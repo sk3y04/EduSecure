@@ -1,0 +1,12 @@
+package edusecure.edusecure.entity;
+
+public enum AuditActionType {
+    ASSIGNMENT_CREATED,
+    SUBMISSION_CREATED,
+    SUBMISSION_VERIFIED,
+    SUBMISSION_VERIFICATION_FAILED,
+    SUBMISSION_CONTENT_ACCESSED,
+    GRADE_CREATED,
+    GRADE_UPDATED
+}
+

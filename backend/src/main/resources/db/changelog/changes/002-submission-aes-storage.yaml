@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-submission-aes-storage
+      author: copilot
+      changes:
+        - addColumn:
+            tableName: submissions
+            columns:
+              - column:
+                  name: storage_encryption_algorithm
+                  type: VARCHAR(64)
+              - column:
+                  name: storage_encryption_nonce
+                  type: VARCHAR(255)
+              - column:
+                  name: wrapped_content_encryption_key
+                  type: VARCHAR(512)
+              - column:
+                  name: key_wrap_algorithm
+                  type: VARCHAR(64)
+              - column:
+                  name: storage_key_version
+                  type: VARCHAR(64)
+              - column:
+                  name: ciphertext_length_bytes
+                  type: BIGINT
+

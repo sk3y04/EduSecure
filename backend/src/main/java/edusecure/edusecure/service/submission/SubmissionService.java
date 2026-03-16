@@ -1,0 +1,208 @@
+package edusecure.edusecure.service.submission;
+
+import edusecure.edusecure.audit.AuditService;
+import edusecure.edusecure.dto.CreateSubmissionRequest;
+import edusecure.edusecure.dto.SubmissionContentResponse;
+import edusecure.edusecure.dto.SubmissionResponse;
+import edusecure.edusecure.entity.Assignment;
+import edusecure.edusecure.entity.AuditActionType;
+import edusecure.edusecure.entity.RoleName;
+import edusecure.edusecure.entity.Submission;
+import edusecure.edusecure.entity.SubmissionVerificationStatus;
+import edusecure.edusecure.entity.User;
+import edusecure.edusecure.repository.SubmissionRepository;
+import edusecure.edusecure.repository.UserRepository;
+import edusecure.edusecure.service.crypto.ICryptoService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class SubmissionService {
+
+    private final SubmissionRepository submissionRepository;
+    private final UserRepository userRepository;
+    private final AssignmentService assignmentService;
+    private final AuditService auditService;
+    private final ICryptoService cryptoService;
+    private final SubmissionContentEncryptionService submissionContentEncryptionService;
+    private final SubmissionKeyProtectionService submissionKeyProtectionService;
+    private final SubmissionContentStore submissionContentStore;
+
+    @Transactional
+    public SubmissionResponse createSubmission(String currentUserEmail, UUID assignmentId, CreateSubmissionRequest request) {
+        User student = findUserByEmail(currentUserEmail);
+        Assignment assignment = assignmentService.getAssignmentOrThrow(assignmentId);
+        if (!assignment.isOpen()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Assignment is closed");
+        }
+
+        byte[] contentBytes = request.content().getBytes(StandardCharsets.UTF_8);
+        String hashDigest = cryptoService.hash(contentBytes);
+        byte[] digestBytes = hashDigest.getBytes(StandardCharsets.UTF_8);
+        String digitalSignature = cryptoService.sign(digestBytes);
+        boolean verified = cryptoService.verify(digestBytes, digitalSignature);
+        SubmissionVerificationStatus status = verified
+                ? SubmissionVerificationStatus.VERIFIED
+                : SubmissionVerificationStatus.FAILED_VERIFICATION;
+        String verificationMessage = verified
+                ? "Signature verified successfully"
+                : "Signature verification failed";
+
+        String storedFileReference = null;
+        try {
+            SubmissionContentEncryptionService.EncryptedSubmissionContent encryptedContent = submissionContentEncryptionService.encrypt(contentBytes);
+            SubmissionKeyProtectionService.WrappedKey wrappedKey = submissionKeyProtectionService.wrap(encryptedContent.contentEncryptionKey());
+            storedFileReference = submissionContentStore.store(encryptedContent.ciphertext());
+
+            Submission submission = Submission.builder()
+                    .assignmentId(assignment.getId())
+                    .studentUserId(student.getId())
+                    .submittedAt(Instant.now())
+                    .fileName(request.fileName().trim())
+                    .contentType(request.contentType().trim())
+                    .storedFileReference(storedFileReference)
+                    .storageEncryptionAlgorithm(encryptedContent.encryptionAlgorithm())
+                    .storageEncryptionNonce(encryptedContent.nonce())
+                    .wrappedContentEncryptionKey(wrappedKey.wrappedKey())
+                    .keyWrapAlgorithm(wrappedKey.keyWrapAlgorithm())
+                    .storageKeyVersion(wrappedKey.keyVersion())
+                    .ciphertextLengthBytes(encryptedContent.ciphertextLengthBytes())
+                    .hashDigest(hashDigest)
+                    .digitalSignature(digitalSignature)
+                    .signatureAlgorithm("SHA256withRSA")
+                    .verificationStatus(status)
+                    .verificationMessage(verificationMessage)
+                    .build();
+
+            Submission saved = submissionRepository.save(submission);
+            auditService.record(
+                    AuditActionType.SUBMISSION_CREATED,
+                    student.getId(),
+                    Submission.class.getSimpleName(),
+                    saved.getId(),
+                    "assignmentId=" + assignment.getId()
+                            + ",fileName=" + saved.getFileName()
+                            + ",encryptedAtRest=true"
+            );
+            auditService.record(
+                    verified ? AuditActionType.SUBMISSION_VERIFIED : AuditActionType.SUBMISSION_VERIFICATION_FAILED,
+                    student.getId(),
+                    Submission.class.getSimpleName(),
+                    saved.getId(),
+                    "verificationStatus=" + saved.getVerificationStatus()
+            );
+
+            return toResponse(saved);
+        } catch (RuntimeException ex) {
+            cleanupStoredContent(storedFileReference);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Submission content could not be protected for storage", ex);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public SubmissionResponse getSubmission(UUID submissionId, Authentication authentication) {
+        Submission submission = requireAccessibleSubmission(submissionId, authentication);
+        return toResponse(submission);
+    }
+
+    @Transactional
+    public SubmissionContentResponse getSubmissionContent(UUID submissionId, Authentication authentication) {
+        User currentUser = findUserByEmail(authentication.getName());
+        Submission submission = requireAccessibleSubmission(submissionId, authentication, currentUser);
+
+        try {
+            byte[] ciphertext = submissionContentStore.read(submission.getStoredFileReference());
+            byte[] plaintext = submissionContentEncryptionService.decrypt(
+                    ciphertext,
+                    submission.getStorageEncryptionNonce(),
+                    submissionKeyProtectionService.unwrap(
+                            submission.getWrappedContentEncryptionKey(),
+                            submission.getStorageKeyVersion()
+                    )
+            );
+
+            auditService.record(
+                    AuditActionType.SUBMISSION_CONTENT_ACCESSED,
+                    currentUser.getId(),
+                    Submission.class.getSimpleName(),
+                    submission.getId(),
+                    "fileName=" + submission.getFileName() + ",contentRetrieved=true"
+            );
+
+            return new SubmissionContentResponse(
+                    submission.getId(),
+                    submission.getFileName(),
+                    submission.getContentType(),
+                    new String(plaintext, StandardCharsets.UTF_8)
+            );
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Submission content could not be decrypted", ex);
+        }
+    }
+
+    private SubmissionResponse toResponse(Submission submission) {
+        return new SubmissionResponse(
+                submission.getId(),
+                submission.getAssignmentId(),
+                submission.getStudentUserId(),
+                submission.getSubmittedAt(),
+                submission.getFileName(),
+                submission.getContentType(),
+                submission.getHashDigest(),
+                submission.getDigitalSignature(),
+                submission.getSignatureAlgorithm(),
+                submission.getVerificationStatus(),
+                submission.getVerificationMessage()
+        );
+    }
+
+    private Submission requireAccessibleSubmission(UUID submissionId, Authentication authentication) {
+        return requireAccessibleSubmission(submissionId, authentication, null);
+    }
+
+    private Submission requireAccessibleSubmission(UUID submissionId, Authentication authentication, User currentUser) {
+        User resolvedUser = currentUser != null ? currentUser : findUserByEmail(authentication.getName());
+        Submission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
+
+        boolean privileged = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
+                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
+
+        if (!privileged && !submission.getStudentUserId().equals(resolvedUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this submission");
+        }
+
+        return submission;
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    private void cleanupStoredContent(String storedFileReference) {
+        if (storedFileReference == null) {
+            return;
+        }
+
+        try {
+            submissionContentStore.delete(storedFileReference);
+        } catch (RuntimeException ignored) {
+            // Best-effort cleanup only; the original failure should still propagate.
+        }
+    }
+}
+
+

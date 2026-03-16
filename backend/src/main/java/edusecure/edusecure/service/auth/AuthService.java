@@ -9,13 +9,11 @@ import edusecure.edusecure.entity.RoleName;
 import edusecure.edusecure.entity.User;
 import edusecure.edusecure.repository.RoleRepository;
 import edusecure.edusecure.repository.UserRepository;
-import edusecure.edusecure.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,13 +29,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final AuthTokenService authTokenService;
+    private final MfaService mfaService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered");
+            throw new AuthApiException(HttpStatus.CONFLICT, "Email is already registered");
         }
 
         Role studentRole = roleRepository.findByName(RoleName.STUDENT)
@@ -51,21 +50,27 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        String token = jwtService.generateToken(toUserDetails(savedUser));
-        return toAuthResponse(savedUser, token);
+        return authTokenService.issuePasswordAuthenticatedResponse(savedUser);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email().trim().toLowerCase(), request.password())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email().trim().toLowerCase(), request.password())
+            );
+        } catch (AuthenticationException ex) {
+            throw new AuthApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
 
         User user = userRepository.findByEmail(request.email().trim().toLowerCase())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                .orElseThrow(() -> new AuthApiException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
-        String token = jwtService.generateToken(toUserDetails(user));
-        return toAuthResponse(user, token);
+        if (user.isMfaEnabled()) {
+            return mfaService.createLoginChallenge(user);
+        }
+
+        return authTokenService.issuePasswordAuthenticatedResponse(user);
     }
 
     @Transactional(readOnly = true)
@@ -81,24 +86,5 @@ public class AuthService {
         );
     }
 
-    private UserDetails toUserDetails(User user) {
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities(user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
-                        .collect(Collectors.toSet()))
-                .build();
-    }
-
-    private AuthResponse toAuthResponse(User user, String token) {
-        return new AuthResponse(
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet()),
-                token
-        );
-    }
 }
 

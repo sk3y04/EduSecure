@@ -1,0 +1,12 @@
+description = 'Workspace aggregator for the EduSecure repository.'
+
+tasks.register('backendTest') {
+    group = 'verification'
+    description = 'Runs the backend test task from the included backend build.'
+    dependsOn gradle.includedBuild('backend').task(':test')
+}
+
+wrapper {
+    gradleVersion = '9.3.1'
+    distributionType = Wrapper.DistributionType.BIN
+}

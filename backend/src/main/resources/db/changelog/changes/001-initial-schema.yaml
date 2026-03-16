@@ -1,0 +1,412 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-initial-schema
+      author: copilot
+      changes:
+        - createTable:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_roles
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: roles
+            columnNames: name
+            constraintName: uk_roles_name
+
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_users
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: full_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mfa_enabled
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mfa_method
+                  type: VARCHAR(32)
+              - column:
+                  name: mfa_secret_ciphertext
+                  type: VARCHAR(512)
+              - column:
+                  name: mfa_secret_nonce
+                  type: VARCHAR(255)
+              - column:
+                  name: mfa_secret_key_version
+                  type: VARCHAR(64)
+              - column:
+                  name: mfa_enabled_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - addUniqueConstraint:
+            tableName: users
+            columnNames: email
+            constraintName: uk_users_email
+
+        - createTable:
+            tableName: assignments
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_assignments
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by_lecturer_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: open
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: submissions
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_submissions
+                    nullable: false
+              - column:
+                  name: assignment_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: submitted_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_type
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stored_file_reference
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hash_digest
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: digital_signature
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: signature_algorithm
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: verification_status
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: verification_message
+                  type: VARCHAR(512)
+
+        - createTable:
+            tableName: grades
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_grades
+                    nullable: false
+              - column:
+                  name: submission_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: grade_value
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: feedback
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_by_lecturer_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_modified_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - addUniqueConstraint:
+            tableName: grades
+            columnNames: submission_id
+            constraintName: uk_grades_submission_id
+
+        - createTable:
+            tableName: audit_logs
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_audit_logs
+                    nullable: false
+              - column:
+                  name: action_type
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_type
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: entity_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_timestamp
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: details_json
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: integrity_value
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: previous_integrity_value
+                  type: TEXT
+
+        - createTable:
+            tableName: mfa_challenges
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_mfa_challenges
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mfa_method
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: consumed_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: attempt_count
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_attempts
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: mfa_recovery_codes
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_mfa_recovery_codes
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_user_roles
+                    nullable: false
+              - column:
+                  name: role_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_user_roles
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: mfa_challenges
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_mfa_challenges_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: mfa_recovery_codes
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_mfa_recovery_codes_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_roles_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: user_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_user_roles_role
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: mfa_challenges
+            indexName: idx_mfa_challenges_user_id
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            tableName: mfa_recovery_codes
+            indexName: idx_mfa_recovery_codes_user_id
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            tableName: user_roles
+            indexName: idx_user_roles_role_id
+            columns:
+              - column:
+                  name: role_id
+
