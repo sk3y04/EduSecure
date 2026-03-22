@@ -1,0 +1,95 @@
+@startuml
+actor Student
+participant Browser
+participant "EduSecure API" as API
+participant "AuthService" as Auth
+participant "MfaService" as MFA
+participant "JwtService" as Jwt
+participant "AuthCookieService" as Cookie
+database DB
+
+Student -> Browser : enter name, email, password
+Browser -> API : POST /api/auth/register over HTTPS
+API -> Auth : register(request)
+Auth -> DB : store user with bcrypt password hash
+Auth -> Jwt : generateToken(amr=[pwd], mfa=false)
+Jwt --> Auth : signed JWT
+API -> Cookie : createAuthenticationCookie(jwt)
+Cookie --> API : Set-Cookie header
+Auth --> API : AuthResponse(..., token omitted from body)
+API --> Browser : 201 Created + HttpOnly auth cookie
+
+Student -> Browser : later enters email + password
+Browser -> API : POST /api/auth/login over HTTPS
+API -> Auth : login(credentials)
+Auth -> DB : load user by email
+DB --> Auth : user with bcrypt password hash
+Auth -> Auth : verify with BCryptPasswordEncoder
+
+alt MFA disabled for this account
+  Auth -> Jwt : generateToken(amr=[pwd], mfa=false)
+  Jwt --> Auth : signed JWT
+  API -> Cookie : createAuthenticationCookie(jwt)
+  Cookie --> API : Set-Cookie header
+  Auth --> API : AuthResponse(authStatus=AUTHENTICATED)
+  API --> Browser : 200 OK + HttpOnly auth cookie
+else MFA enabled for this account
+  Auth -> MFA : createChallenge(user)
+  MFA -> DB : store short-lived MFA challenge
+  DB --> MFA : challengeId + expiry + attempts
+  MFA --> Auth : challenge details
+  API -> Cookie : clearAuthenticationCookie()
+  Cookie --> API : clearing Set-Cookie header
+  Auth --> API : AuthResponse(authStatus=MFA_REQUIRED, challengeId)
+  API --> Browser : 200 OK + MFA challenge metadata
+
+  Student -> Browser : enter authenticator or recovery code
+  Browser -> API : POST /api/auth/mfa/verify over HTTPS
+  API -> MFA : verify(challengeId, verificationCode)
+  MFA -> DB : load challenge + user MFA secret/recovery data
+  DB --> MFA : pending challenge + protected MFA state
+  MFA -> MFA : validate TOTP or consume recovery code
+  MFA -> Jwt : generateToken(amr=[pwd, otp], mfa=true)
+  Jwt --> MFA : signed JWT
+  API -> Cookie : createAuthenticationCookie(jwt)
+  Cookie --> API : Set-Cookie header
+  MFA --> API : AuthResponse(authStatus=AUTHENTICATED)
+  API --> Browser : 200 OK + HttpOnly auth cookie
+end
+
+Browser -> API : GET /api/auth/me with credentialed cookie request
+API -> Cookie : extractToken(request cookies)
+Cookie --> API : JWT from auth cookie
+API -> Jwt : extract username and validate token
+Jwt --> API : valid subject + claims
+API -> DB : load current user
+DB --> API : user profile + roles
+API --> Browser : CurrentUserResponse
+
+note right of Auth
+Plaintext passwords are not stored.
+Only the bcrypt password hash is verified.
+end note
+
+note right of MFA
+No authenticated session cookie is established
+before second-factor success.
+TOTP secrets are protected at rest and
+recovery codes are one-time backup credentials.
+end note
+
+note right of Jwt
+JWT supports stateless session validation,
+but it is not a data-encryption mechanism.
+end note
+
+note over Browser,API
+The browser-facing contract is now cookie-based:
+- JWT is transported in an HttpOnly auth cookie
+- frontend code sends credentialed requests
+- response bodies omit the raw token value
+Auth API failures use a shared structured envelope for
+validation, malformed-body, and auth-domain errors.
+end note
+@enduml
+

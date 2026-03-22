@@ -1,0 +1,84 @@
+@startuml
+actor Student
+participant Browser
+participant "SubmissionController" as Controller
+participant "SubmissionService" as SubmissionService
+participant "ICryptoService" as Crypto
+participant "SubmissionContentEncryptionService" as Encrypt
+participant "SubmissionKeyProtectionService" as KeyProtect
+participant "SubmissionContentStore" as Store
+participant "AuditService" as Audit
+database DB
+participant Lecturer
+
+Student -> Browser : choose assignment file
+Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\ncredentialed cookie request over HTTPS
+Controller -> SubmissionService : createSubmission(student, assignmentId, file, metadata)
+SubmissionService -> DB : load assignment and check access
+DB --> SubmissionService : assignment
+SubmissionService -> Crypto : hash(fileBytes) with SHA-256
+Crypto --> SubmissionService : hashDigest
+SubmissionService -> Crypto : sign(hashDigest) in simulated signing model
+Crypto --> SubmissionService : digitalSignature
+SubmissionService -> Crypto : verify(hashDigest, digitalSignature)
+Crypto --> SubmissionService : verificationResult
+SubmissionService -> Encrypt : encrypt(plaintext) with AES-GCM
+Encrypt --> SubmissionService : ciphertext + nonce + content-encryption key
+SubmissionService -> KeyProtect : wrap(content-encryption key)
+KeyProtect --> SubmissionService : wrapped key + key version
+SubmissionService -> Store : store(ciphertext)
+Store --> SubmissionService : storedFileReference
+
+alt verification succeeds
+    SubmissionService -> DB : store Submission with VERIFIED status\nand encrypted-at-rest metadata
+    SubmissionService -> Audit : log SUBMISSION_CREATED and SUBMISSION_VERIFIED
+    Audit --> SubmissionService : audit recorded
+    SubmissionService --> Controller : metadata-only submission response
+    Controller --> Browser : 201 Created + verificationStatus=VERIFIED
+else verification fails but record is retained
+    SubmissionService -> DB : store Submission with FAILED_VERIFICATION status\nand encrypted-at-rest metadata
+    SubmissionService -> Audit : log SUBMISSION_CREATED and SUBMISSION_VERIFICATION_FAILED
+    Audit --> SubmissionService : audit recorded
+    SubmissionService --> Controller : metadata-only submission response
+    Controller --> Browser : 201 Created + verificationStatus=FAILED_VERIFICATION
+end
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}
+Controller -> SubmissionService : getSubmission(submissionId)
+SubmissionService -> DB : load submission metadata
+DB --> SubmissionService : submission + verification status
+SubmissionService --> Controller : submission details
+Controller --> Lecturer : metadata, digest, status, message
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}/content
+Controller -> SubmissionService : getSubmissionContent(submissionId)
+SubmissionService -> Store : read(ciphertext)
+Store --> SubmissionService : ciphertext bytes
+SubmissionService -> KeyProtect : unwrap(content-encryption key)
+KeyProtect --> SubmissionService : plaintext DEK
+SubmissionService -> Encrypt : decrypt(ciphertext, nonce, DEK)
+Encrypt --> SubmissionService : plaintext content
+SubmissionService -> Audit : log SUBMISSION_CONTENT_ACCESSED
+Audit --> SubmissionService : audit recorded
+SubmissionService --> Controller : decrypted content response
+Controller --> Lecturer : plaintext content
+
+note right of SubmissionService
+The implemented backend still performs immediate
+verification during submission creation, but now also
+encrypts submission content before durable storage.
+end note
+
+note right of Crypto
+The signing model remains simulated for the study project.
+It demonstrates authorship/tamper-evidence logic,
+not a production user-held PKI deployment.
+end note
+
+note right of Controller
+Normal browser access uses the backend-issued
+HttpOnly auth cookie rather than a frontend-managed
+Bearer token contract.
+end note
+@enduml
+

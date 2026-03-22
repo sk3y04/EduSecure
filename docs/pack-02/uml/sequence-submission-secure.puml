@@ -1,0 +1,68 @@
+@startuml
+actor Student
+participant Browser
+participant "SubmissionController" as Controller
+participant "SubmissionService" as SubmissionService
+participant "ICryptoService" as Crypto
+participant "SubmissionContentEncryptionService" as Encrypt
+participant "SubmissionKeyProtectionService" as KeyProtect
+participant "SubmissionContentStore" as Store
+participant "AuditService" as Audit
+database DB
+actor Lecturer
+
+Student -> Browser : choose assignment and prepare submission text/file content
+Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\ncredentialed cookie request over HTTPS
+Controller -> SubmissionService : createSubmission(currentUser, assignmentId, request)
+SubmissionService -> DB : load assignment and student context
+DB --> SubmissionService : assignment + student
+SubmissionService -> Crypto : hash(plaintext bytes) using SHA-256
+Crypto --> SubmissionService : hashDigest
+SubmissionService -> Crypto : sign(hashDigest bytes)
+Crypto --> SubmissionService : digitalSignature
+SubmissionService -> Crypto : verify(hashDigest bytes, digitalSignature)
+Crypto --> SubmissionService : verification result
+SubmissionService -> Encrypt : encrypt(plaintext) with fresh AES-GCM nonce + DEK
+Encrypt --> SubmissionService : ciphertext + nonce + content-encryption key
+SubmissionService -> KeyProtect : wrap(content-encryption key)
+KeyProtect --> SubmissionService : wrapped key + key version
+SubmissionService -> Store : store(ciphertext)
+Store --> SubmissionService : storedFileReference
+SubmissionService -> DB : persist submission metadata, digest, signature, verification state, encryption metadata
+SubmissionService -> Audit : record SUBMISSION_CREATED
+SubmissionService -> Audit : record SUBMISSION_VERIFIED or SUBMISSION_VERIFICATION_FAILED
+SubmissionService --> Controller : SubmissionResponse (metadata only)
+Controller --> Browser : 201 Created
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}\ncredentialed cookie request
+Controller -> SubmissionService : getSubmission(submissionId, actor)
+SubmissionService -> DB : load submission metadata
+DB --> SubmissionService : metadata + verification state
+SubmissionService --> Controller : SubmissionResponse
+Controller --> Lecturer : digest, signature, verificationStatus, message
+
+Student -> Controller : GET /api/submissions/{submissionId}/content\ncredentialed cookie request
+Controller -> SubmissionService : getSubmissionContent(submissionId, actor)
+SubmissionService -> Store : read(ciphertext by storedFileReference)
+Store --> SubmissionService : ciphertext
+SubmissionService -> KeyProtect : unwrap(content-encryption key)
+KeyProtect --> SubmissionService : plaintext DEK
+SubmissionService -> Encrypt : decrypt(ciphertext, nonce, DEK)
+Encrypt --> SubmissionService : plaintext content
+SubmissionService -> Audit : record SUBMISSION_CONTENT_ACCESSED
+SubmissionService --> Controller : SubmissionContentResponse
+Controller --> Student : decrypted content
+
+note right of SubmissionService
+The implemented study-project model computes the digest,
+creates the signature metadata, verifies it immediately,
+and stores the verification result on Submission.
+end note
+
+note right of Store
+Standard metadata responses do not expose ciphertext,
+wrapped keys, nonce values, or storedFileReference.
+Plaintext retrieval is a separate authorised path.
+end note
+@enduml
+

@@ -1,0 +1,157 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+package "Current Auth Baseline" {
+  class User {
+    +id: UUID
+    +email: String
+    +passwordHash: String
+    +fullName: String
+    +roles: Set<Role>
+  }
+
+  class Role {
+    +id: Long
+    +name: RoleName
+  }
+
+  enum RoleName {
+    STUDENT
+    LECTURER
+    ADMIN
+  }
+}
+
+package "Pack 04 Submission and Integrity Design" {
+  class Assignment {
+    +id: UUID
+    +title: String
+    +description: String
+    +dueAt: DateTime
+    +createdByLecturerId: UUID
+    +isOpen: boolean
+  }
+
+  class Submission {
+    +id: UUID
+    +assignmentId: UUID
+    +studentUserId: UUID
+    +submittedAt: DateTime
+    +fileName: String
+    +contentType: String
+    +storedFileReference: String
+    +storageEncryptionAlgorithm: String
+    +storageEncryptionNonce: String
+    +wrappedContentEncryptionKey: String
+    +keyWrapAlgorithm: String
+    +storageKeyVersion: String
+    +ciphertextLengthBytes: long
+    +hashDigest: String
+    +digitalSignature: String
+    +signatureAlgorithm: String
+    +verificationStatus: SubmissionVerificationStatus
+    +verificationMessage: String
+  }
+
+  class Grade {
+    +id: UUID
+    +submissionId: UUID
+    +value: String
+    +feedback: String
+    +gradedByLecturerId: UUID
+    +gradedAt: DateTime
+    +lastModifiedAt: DateTime
+  }
+
+  class AuditLog {
+    +id: UUID
+    +actionType: AuditActionType
+    +actorUserId: UUID
+    +entityType: String
+    +entityId: UUID
+    +eventTimestamp: DateTime
+    +detailsJson: String
+    +integrityValue: String
+    +previousIntegrityValue: String
+  }
+
+  enum SubmissionVerificationStatus {
+    VERIFIED
+    FAILED_VERIFICATION
+  }
+
+  enum AuditActionType {
+    ASSIGNMENT_CREATED
+    SUBMISSION_CREATED
+    SUBMISSION_VERIFIED
+    SUBMISSION_VERIFICATION_FAILED
+    SUBMISSION_CONTENT_ACCESSED
+    GRADE_CREATED
+    GRADE_UPDATED
+  }
+}
+
+package "Service and API Layer" {
+  class AssignmentController
+  class SubmissionController
+  class GradeController
+
+  class AssignmentService
+  class SubmissionService
+  class GradeService
+  class AuditService
+  class SubmissionContentEncryptionService
+  class SubmissionKeyProtectionService
+  class SubmissionContentStore
+
+  interface ICryptoService {
+    +hash(bytes): String
+    +sign(bytes): String
+    +verify(bytes, signature): boolean
+    +computeAuditMac(canonicalPayload, previousIntegrityValue): String
+  }
+
+  class AesRsaCryptoService
+}
+
+Role --> RoleName
+User "*" -- "*" Role
+User "1" -- "*" Submission : submits >
+User "1" -- "*" Assignment : creates >
+Assignment "1" -- "*" Submission
+Submission "0..1" -- "1" Grade
+Submission "1" -- "*" AuditLog : audited by >
+Grade "1" -- "*" AuditLog : later grade actions >
+AuditLog --> AuditActionType
+Submission --> SubmissionVerificationStatus
+
+AssignmentController --> AssignmentService
+SubmissionController --> SubmissionService
+GradeController --> GradeService
+SubmissionService --> ICryptoService
+SubmissionService --> SubmissionContentEncryptionService
+SubmissionService --> SubmissionKeyProtectionService
+SubmissionService --> SubmissionContentStore
+SubmissionService --> Submission
+SubmissionService --> Assignment
+GradeService --> Grade
+GradeService --> AuditService
+AuditService --> AuditLog
+AuditService --> ICryptoService
+AesRsaCryptoService ..|> ICryptoService
+
+note right of Submission
+The implemented submission record now combines
+integrity/authorship metadata with encrypted-at-rest
+storage metadata while keeping ciphertext retrieval
+behind a separate controlled service boundary.
+end note
+
+note right of AuditLog
+AuditLog is append-oriented and includes
+ HMAC-based integrity support, with optional
+ previousIntegrityValue chaining.
+end note
+@enduml
+

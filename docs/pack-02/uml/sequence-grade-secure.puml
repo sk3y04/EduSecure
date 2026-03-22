@@ -1,0 +1,28 @@
+@startuml
+actor Lecturer
+participant "EduSecure API" as API
+participant "GradeService" as GradeService
+participant "AuditService" as Audit
+database DB
+actor Student
+
+Lecturer -> API : update grade over HTTPS
+API -> GradeService : validate role + request
+GradeService -> DB : update grade record
+GradeService -> Audit : create audit entry
+Audit -> Audit : compute HMAC / hash integrity value
+Audit -> DB : store audit record
+API --> Lecturer : success
+Student -> API : request own grade over HTTPS
+API -> GradeService : authorise access
+GradeService -> DB : read grade
+DB --> GradeService : grade
+GradeService --> API : grade
+API --> Student : grade response
+
+note right of Audit
+Sensitive change is logged with
+tamper-evident integrity support.
+end note
+@enduml
+

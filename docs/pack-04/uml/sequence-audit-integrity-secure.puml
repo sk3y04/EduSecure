@@ -1,0 +1,38 @@
+@startuml
+actor Student
+participant "SubmissionService" as SubmissionService
+participant "AuditService" as Audit
+participant "ICryptoService" as Crypto
+database DB
+actor Lecturer
+actor Admin
+
+Student -> SubmissionService : submit verified or failed submission event
+SubmissionService -> Audit : recordAudit(actionType, actor, entity, details)
+Audit -> Audit : build canonical payload\n(actionType, actorUserId, entityType, entityId, timestamp, details)
+Audit -> DB : load previous audit record integrity value (optional)
+DB --> Audit : previousIntegrityValue
+Audit -> Crypto : computeAuditMac(canonicalPayload + previousIntegrityValue, auditSecret)
+Crypto --> Audit : integrityValue (HMAC-SHA-256)
+Audit -> DB : append AuditLog\n+ integrityValue\n+ previousIntegrityValue
+DB --> Audit : audit entry stored
+Audit --> SubmissionService : audit recorded
+
+Lecturer -> DB : review submission-related audit history
+DB --> Lecturer : append-only audit events + integrity values
+Admin -> DB : inspect sensitive action trail
+DB --> Admin : audit evidence for investigation
+
+note right of Audit
+Pack 04 recommends HMAC-SHA-256 for the first
+ audit-integrity pass because it provides
+ authenticated integrity for internal records.
+end note
+
+note right of DB
+No ordinary update path is assumed for AuditLog.
+The model is append-oriented and can optionally
+ chain previousIntegrityValue for stronger tamper evidence.
+end note
+@enduml
+

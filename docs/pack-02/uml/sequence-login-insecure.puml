@@ -1,0 +1,22 @@
+@startuml
+actor Student
+participant Browser
+participant "EduSecure API" as API
+database DB
+
+Student -> Browser : enter email + password
+Browser -> API : POST /login over HTTP
+API -> DB : query plaintext password
+DB --> API : plaintext password record
+API --> Browser : token over HTTP
+
+note right of Browser
+Credentials and token can be intercepted.
+end note
+
+note right of DB
+If the database is exposed,
+passwords are readable immediately.
+end note
+@enduml
+

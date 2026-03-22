@@ -1,0 +1,30 @@
+@startuml
+skinparam componentStyle rectangle
+
+node "Student Laptop" as StudentDevice
+cloud "Campus / Internet Network" as Network
+node "EduSecure Server" as Server {
+  artifact "Vue Frontend"
+  artifact "Spring Boot REST API"
+  artifact "Crypto Service Layer"
+}
+database "PostgreSQL\nbcrypt password hashes\nselected records/files protected" as Db
+
+StudentDevice --> Network : HTTPS / TLS 1.3
+Network --> Server : encrypted login, submissions, grades
+Server --> Db : hashed passwords + protected sensitive metadata
+
+note right of Server
+Server verifies bcrypt password hashes,
+validates signatures, and creates
+integrity-protected audit records.
+end note
+
+note right of Db
+Passwords are stored as bcrypt hashes.
+Selected sensitive content may be protected
+with AES-based mechanisms where required
+by the artefact design.
+end note
+@enduml
+
