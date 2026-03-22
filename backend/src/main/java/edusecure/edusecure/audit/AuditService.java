@@ -1,8 +1,8 @@
 package edusecure.edusecure.audit;
 
-import edusecure.edusecure.entity.AuditActionType;
-import edusecure.edusecure.entity.AuditLog;
-import edusecure.edusecure.repository.AuditLogRepository;
+import edusecure.edusecure.entity.audit.AuditActionType;
+import edusecure.edusecure.entity.audit.AuditLog;
+import edusecure.edusecure.repository.audit.AuditLogRepository;
 import edusecure.edusecure.service.crypto.ICryptoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

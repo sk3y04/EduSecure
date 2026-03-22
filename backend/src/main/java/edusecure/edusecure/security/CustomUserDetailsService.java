@@ -1,7 +1,7 @@
 package edusecure.edusecure.security;
 
-import edusecure.edusecure.entity.User;
-import edusecure.edusecure.repository.UserRepository;
+import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.auth.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

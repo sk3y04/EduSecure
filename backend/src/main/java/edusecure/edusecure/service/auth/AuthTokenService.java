@@ -1,8 +1,8 @@
 package edusecure.edusecure.service.auth;
 
-import edusecure.edusecure.dto.AuthResponse;
-import edusecure.edusecure.dto.AuthStatus;
-import edusecure.edusecure.entity.User;
+import edusecure.edusecure.dto.auth.AuthResponse;
+import edusecure.edusecure.dto.auth.AuthStatus;
+import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

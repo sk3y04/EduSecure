@@ -1,9 +1,9 @@
 package edusecure.edusecure.service.crypto;
 
-import edusecure.edusecure.dto.AesDecryptRequest;
-import edusecure.edusecure.dto.AesDecryptResponse;
-import edusecure.edusecure.dto.AesEncryptRequest;
-import edusecure.edusecure.dto.AesEncryptResponse;
+import edusecure.edusecure.dto.crypto.AesDecryptRequest;
+import edusecure.edusecure.dto.crypto.AesDecryptResponse;
+import edusecure.edusecure.dto.crypto.AesEncryptRequest;
+import edusecure.edusecure.dto.crypto.AesEncryptResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

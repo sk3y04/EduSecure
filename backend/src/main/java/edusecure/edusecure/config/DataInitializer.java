@@ -1,8 +1,8 @@
 package edusecure.edusecure.config;
 
-import edusecure.edusecure.entity.Role;
-import edusecure.edusecure.entity.RoleName;
-import edusecure.edusecure.repository.RoleRepository;
+import edusecure.edusecure.entity.auth.Role;
+import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.repository.auth.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;

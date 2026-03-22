@@ -1,14 +1,14 @@
 package edusecure.edusecure.service.auth;
 
-import edusecure.edusecure.dto.AuthResponse;
-import edusecure.edusecure.dto.CurrentUserResponse;
-import edusecure.edusecure.dto.LoginRequest;
-import edusecure.edusecure.dto.RegisterRequest;
-import edusecure.edusecure.entity.Role;
-import edusecure.edusecure.entity.RoleName;
-import edusecure.edusecure.entity.User;
-import edusecure.edusecure.repository.RoleRepository;
-import edusecure.edusecure.repository.UserRepository;
+import edusecure.edusecure.dto.auth.AuthResponse;
+import edusecure.edusecure.dto.auth.CurrentUserResponse;
+import edusecure.edusecure.dto.auth.LoginRequest;
+import edusecure.edusecure.dto.auth.RegisterRequest;
+import edusecure.edusecure.entity.auth.Role;
+import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.auth.RoleRepository;
+import edusecure.edusecure.repository.auth.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
