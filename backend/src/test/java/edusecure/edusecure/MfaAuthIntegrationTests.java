@@ -1,7 +1,7 @@
 package edusecure.edusecure;
 
-import edusecure.edusecure.entity.MfaChallenge;
-import edusecure.edusecure.repository.MfaChallengeRepository;
+import edusecure.edusecure.entity.auth.MfaChallenge;
+import edusecure.edusecure.repository.auth.MfaChallengeRepository;
 import edusecure.edusecure.service.auth.TotpService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;

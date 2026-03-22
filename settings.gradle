@@ -1,3 +1,4 @@
 rootProject.name = 'EduSecure-workspace'
 
-includeBuild('backend')
+include(':backend')
+project(':backend').projectDir = file('backend')

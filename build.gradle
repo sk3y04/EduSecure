@@ -2,8 +2,8 @@ description = 'Workspace aggregator for the EduSecure repository.'
 
 tasks.register('backendTest') {
     group = 'verification'
-    description = 'Runs the backend test task from the included backend build.'
-    dependsOn gradle.includedBuild('backend').task(':test')
+    description = 'Runs the backend test task from the backend subproject.'
+    dependsOn ':backend:test'
 }
 
 wrapper {

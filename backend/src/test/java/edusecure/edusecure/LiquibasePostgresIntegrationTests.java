@@ -1,10 +1,10 @@
 package edusecure.edusecure;
 
-import edusecure.edusecure.entity.Role;
-import edusecure.edusecure.entity.RoleName;
-import edusecure.edusecure.entity.User;
-import edusecure.edusecure.repository.RoleRepository;
-import edusecure.edusecure.repository.UserRepository;
+import edusecure.edusecure.entity.auth.Role;
+import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.auth.RoleRepository;
+import edusecure.edusecure.repository.auth.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

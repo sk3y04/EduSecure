@@ -1,14 +1,14 @@
 package edusecure.edusecure;
 
-import edusecure.edusecure.entity.AuditLog;
-import edusecure.edusecure.entity.Submission;
-import edusecure.edusecure.entity.Role;
-import edusecure.edusecure.entity.RoleName;
-import edusecure.edusecure.entity.User;
-import edusecure.edusecure.repository.AuditLogRepository;
-import edusecure.edusecure.repository.RoleRepository;
-import edusecure.edusecure.repository.SubmissionRepository;
-import edusecure.edusecure.repository.UserRepository;
+import edusecure.edusecure.entity.audit.AuditLog;
+import edusecure.edusecure.entity.submission.Submission;
+import edusecure.edusecure.entity.auth.Role;
+import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.audit.AuditLogRepository;
+import edusecure.edusecure.repository.auth.RoleRepository;
+import edusecure.edusecure.repository.submission.SubmissionRepository;
+import edusecure.edusecure.repository.auth.UserRepository;
 import edusecure.edusecure.service.submission.SubmissionContentStore;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
