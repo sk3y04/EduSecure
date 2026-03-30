@@ -32,8 +32,11 @@ const enabledAtLabel = computed(() => {
   }
 
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(status.value.enabledAt))
 })
 
@@ -116,63 +119,57 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-      <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand-500">Account security</p>
-      <h2 class="mt-3 text-3xl font-semibold text-white">Manage optional TOTP MFA</h2>
-      <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
-        This page surfaces the MFA slice already implemented in the backend: status lookup, setup,
-        first-code verification, and secure disable flow that requires password plus second factor.
+  <div class="space-y-6">
+    <section class="surface-panel p-8">
+      <p class="section-kicker tracking-[0.3em]">Account security</p>
+      <h2 class="section-title">Manage optional TOTP MFA</h2>
+      <p class="section-copy max-w-3xl">
+        Review MFA status, generate enrollment material, complete the first-code verification flow,
+        and disable MFA only through the stronger password-plus-code requirement.
       </p>
     </section>
 
-    <div
-      v-if="errorMessage"
-      class="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-    >
+    <div v-if="errorMessage" class="alert-error">
       {{ errorMessage }}
     </div>
-    <div
-      v-if="successMessage"
-      class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-    >
+    <div v-if="successMessage" class="alert-success">
       {{ successMessage }}
     </div>
 
-    <div v-if="isLoading" class="rounded-3xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
+    <div v-if="isLoading" class="empty-state">
       Loading MFA status…
     </div>
 
     <template v-else>
-      <div class="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
-        <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-          <h3 class="text-xl font-semibold text-white">Current MFA state</h3>
+      <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section class="surface-panel p-8">
+          <h3 class="text-xl font-semibold text-slate-900">Current MFA state</h3>
 
           <dl class="mt-6 space-y-4">
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Enabled</dt>
-              <dd class="mt-2 text-sm font-semibold text-white">
+              <dd class="mt-2 text-sm font-semibold text-slate-900">
                 {{ status?.mfaEnabled ? 'Yes' : 'No' }}
               </dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Method</dt>
-              <dd class="mt-2 text-sm font-semibold text-white">{{ status?.mfaMethod ?? 'Not configured' }}</dd>
+              <dd class="mt-2 text-sm font-semibold text-slate-900">{{ status?.mfaMethod ?? 'Not configured' }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Enabled at</dt>
-              <dd class="mt-2 text-sm font-semibold text-white">{{ enabledAtLabel }}</dd>
+              <dd class="mt-2 text-sm font-semibold text-slate-900">{{ enabledAtLabel }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Recovery codes remaining</dt>
-              <dd class="mt-2 text-sm font-semibold text-white">{{ status?.recoveryCodesRemaining ?? 0 }}</dd>
+              <dd class="mt-2 text-sm font-semibold text-slate-900">{{ status?.recoveryCodesRemaining ?? 0 }}</dd>
             </div>
           </dl>
 
           <button
             v-if="!status?.mfaEnabled"
             type="button"
-            class="mt-6 inline-flex items-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+            class="btn-primary mt-6"
             :disabled="isSettingUp"
             @click="handleSetup"
           >
@@ -180,51 +177,52 @@ onMounted(() => {
           </button>
         </section>
 
-        <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
+        <section class="surface-panel p-8">
           <template v-if="!status?.mfaEnabled">
-            <h3 class="text-xl font-semibold text-white">Enable MFA</h3>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              Generate the TOTP secret, scan it into an authenticator app, then submit the first code
-              to complete enrollment.
-            </p>
+            <div class="border-b border-slate-200 pb-5">
+              <h3 class="text-xl font-semibold text-slate-900">Enable MFA</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                Generate the TOTP secret, register it in an authenticator app, then verify the first
+                code to complete enrollment.
+              </p>
+            </div>
 
             <div v-if="setupData" class="mt-6 space-y-4">
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div class="data-card">
                 <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Manual entry key</p>
-                <p class="mt-2 break-all font-mono text-sm text-slate-200">{{ setupData.manualEntryKey }}</p>
+                <p class="mt-2 break-all font-mono text-sm text-slate-900">{{ setupData.manualEntryKey }}</p>
               </div>
-              <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+              <div class="data-card">
                 <p class="text-xs uppercase tracking-[0.25em] text-slate-500">otpauth URI</p>
-                <p class="mt-2 break-all font-mono text-sm text-slate-200">{{ setupData.otpauthUri }}</p>
+                <p class="mt-2 break-all font-mono text-sm text-slate-900">{{ setupData.otpauthUri }}</p>
               </div>
 
               <form class="space-y-4" @submit.prevent="handleEnable">
                 <label class="block">
-                  <span class="mb-2 block text-sm font-medium text-slate-200">First verification code</span>
+                  <span class="field-label">First verification code</span>
                   <input
                     v-model="enableForm.verificationCode"
                     type="text"
                     inputmode="numeric"
                     required
-                    class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm tracking-[0.35em] text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+                    class="form-input tracking-[0.35em]"
                     placeholder="123456"
                   />
                 </label>
-                <button
-                  type="submit"
-                  class="inline-flex items-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
-                  :disabled="isEnabling"
-                >
+                <button type="submit" class="btn-primary" :disabled="isEnabling">
                   {{ isEnabling ? 'Enabling…' : 'Enable MFA' }}
                 </button>
               </form>
             </div>
 
-            <div v-else class="mt-6 rounded-2xl border border-dashed border-slate-700 p-6 text-sm text-slate-400">
+            <div v-else class="empty-state mt-6">
               Generate setup material to begin TOTP enrollment.
             </div>
 
-            <div v-if="enableResult?.recoveryCodes?.length" class="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+            <div
+              v-if="enableResult?.recoveryCodes?.length"
+              class="mt-6 rounded-sm border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+            >
               <p class="font-semibold">Recovery codes</p>
               <ul class="mt-3 space-y-2 font-mono text-xs">
                 <li v-for="code in enableResult.recoveryCodes" :key="code">{{ code }}</li>
@@ -233,36 +231,24 @@ onMounted(() => {
           </template>
 
           <template v-else>
-            <h3 class="text-xl font-semibold text-white">Disable MFA</h3>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              The backend requires both the current password and a valid TOTP or recovery code to
-              disable MFA. This protects the account from casual downgrade attacks.
-            </p>
+            <div class="border-b border-slate-200 pb-5">
+              <h3 class="text-xl font-semibold text-slate-900">Disable MFA</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                The backend requires both the current password and a valid TOTP or recovery code to
+                disable MFA, which helps prevent easy downgrade attacks.
+              </p>
+            </div>
 
             <form class="mt-6 space-y-4" @submit.prevent="handleDisable">
               <label class="block">
-                <span class="mb-2 block text-sm font-medium text-slate-200">Current password</span>
-                <input
-                  v-model="disableForm.password"
-                  type="password"
-                  required
-                  class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
-                />
+                <span class="field-label">Current password</span>
+                <input v-model="disableForm.password" type="password" required class="form-input" />
               </label>
               <label class="block">
-                <span class="mb-2 block text-sm font-medium text-slate-200">TOTP or recovery code</span>
-                <input
-                  v-model="disableForm.verificationCode"
-                  type="text"
-                  required
-                  class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
-                />
+                <span class="field-label">TOTP or recovery code</span>
+                <input v-model="disableForm.verificationCode" type="text" required class="form-input" />
               </label>
-              <button
-                type="submit"
-                class="inline-flex items-center rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="isDisabling"
-              >
+              <button type="submit" class="btn-danger" :disabled="isDisabling">
                 {{ isDisabling ? 'Disabling…' : 'Disable MFA' }}
               </button>
             </form>

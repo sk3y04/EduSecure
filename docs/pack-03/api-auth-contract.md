@@ -4,7 +4,7 @@ This document now records the **currently implemented** authentication contract 
 
 The backend implements:
 - password-based authentication with bcrypt-hashed passwords
-- JWT-based stateless API authentication transported in an HttpOnly cookie after successful login
+- JWT-based stateless API authentication transported in an HttpOnly cookie after successful login; incoming JWTs are parsed as signed tokens and their claims are trusted only after signature verification succeeds
 - optional TOTP-based MFA with recovery codes
 
 Status markers used below:
@@ -20,6 +20,7 @@ The current auth-hardening approach uses:
 - factor 2: TOTP code from an authenticator app
 - enrollment model: user opts in after account creation/login
 - session model: JWT is issued **only after full authentication is complete** and is returned to the browser in an `HttpOnly` auth cookie
+- request validation model: protected endpoints only read JWT claims after verifying the token signature with the backend signing key
 
 Deferred from the current MFA phase:
 - SMS OTP
@@ -179,6 +180,11 @@ Status: `200 OK`
 Browser requests are authenticated by the `HttpOnly` auth cookie. The frontend sends credentialed
 requests and does not read the JWT directly.
 
+Server-side compatibility support for `Authorization: Bearer <jwt>` may still be accepted, but the
+same JWT parsing path is used and claims are only read after signature verification succeeds.
+Tampered, malformed, or expired tokens are left unauthenticated and fail with `401 Unauthorized`
+at protected endpoints.
+
 ### Success response
 Status: `200 OK`
 
@@ -193,6 +199,7 @@ Status: `200 OK`
 
 ### Failure cases
 - `401 Unauthorized` if no valid auth cookie is supplied
+- `401 Unauthorized` if the supplied cookie or compatibility bearer token contains a malformed, expired, or signature-invalid JWT
 - `404 Not Found` if the JWT subject no longer exists in persistence
 
 ## 4. Implemented MFA contract

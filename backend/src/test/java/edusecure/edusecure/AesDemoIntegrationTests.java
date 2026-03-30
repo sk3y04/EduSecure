@@ -66,8 +66,8 @@ class AesDemoIntegrationTests {
                 .andReturn();
 
         JsonNode encryptionJson = objectMapper.readTree(encryptResult.getResponse().getContentAsString());
-        String nonce = encryptionJson.get("nonce").asText();
-        String ciphertext = encryptionJson.get("ciphertext").asText();
+        String nonce = textField(encryptionJson, "nonce");
+        String ciphertext = textField(encryptionJson, "ciphertext");
         assertThat(ciphertext).isNotEqualTo(plaintext);
 
         String decryptPayload = objectMapper.writeValueAsString(new DecryptPayload(nonce, ciphertext));
@@ -93,8 +93,8 @@ class AesDemoIntegrationTests {
                 .andReturn();
 
         JsonNode encryptionJson = objectMapper.readTree(encryptResult.getResponse().getContentAsString());
-        String nonce = encryptionJson.get("nonce").asText();
-        String ciphertext = encryptionJson.get("ciphertext").asText();
+        String nonce = textField(encryptionJson, "nonce");
+        String ciphertext = textField(encryptionJson, "ciphertext");
         String tamperedCiphertext = ciphertext.substring(0, ciphertext.length() - 2) + "AA";
 
         String decryptPayload = objectMapper.writeValueAsString(new DecryptPayload(nonce, tamperedCiphertext));
@@ -164,6 +164,10 @@ class AesDemoIntegrationTests {
         return authCookieFrom(loginResult);
     }
 
+    private static String textField(JsonNode objectNode, String fieldName) {
+        return objectNode.required(fieldName).asString();
+    }
+
     private record LoginPayload(String email, String password) {
     }
 
@@ -183,4 +187,3 @@ class AesDemoIntegrationTests {
         return new Cookie(AUTH_COOKIE_NAME, cookieValue);
     }
 }
-

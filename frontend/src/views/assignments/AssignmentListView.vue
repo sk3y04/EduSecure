@@ -30,8 +30,11 @@ const sortedAssignments = computed(() =>
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(value))
 }
 
@@ -87,157 +90,128 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-8">
-    <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
+  <div class="space-y-6">
+    <section class="surface-panel p-8">
       <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div class="max-w-3xl">
-          <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand-500">Assignments</p>
-          <h2 class="mt-3 text-3xl font-semibold text-white">One workspace for role-aware coursework flow</h2>
-          <p class="mt-3 text-sm leading-7 text-slate-400">
-            The same page serves students and lecturer/admin users. Creation is visible only to
-            privileged roles, while students get direct access to the secure submission action.
+          <p class="section-kicker tracking-[0.3em]">Assignments</p>
+          <h2 class="section-title">Role-aware coursework workspace</h2>
+          <p class="section-copy">
+            Students and privileged staff use the same route, but the backend still enforces who can
+            create assignments and who can submit work.
           </p>
         </div>
 
-        <div class="rounded-2xl border border-slate-800 bg-slate-950/70 px-5 py-4 text-sm text-slate-300">
-          <p class="font-semibold text-white">Security evidence</p>
-          <p class="mt-2 leading-6 text-slate-400">
-            The UI mirrors backend enforcement: only <span class="font-semibold text-slate-200">LECTURER</span>
-            and <span class="font-semibold text-slate-200">ADMIN</span> can create assignments.
+        <div class="surface-panel-muted max-w-sm px-5 py-4 text-sm text-slate-600">
+          <p class="font-semibold text-slate-900">Policy alignment</p>
+          <p class="mt-2 leading-6">
+            Assignment creation remains limited to <span class="font-semibold text-slate-900">LECTURER</span>
+            and <span class="font-semibold text-slate-900">ADMIN</span> roles.
           </p>
         </div>
       </div>
     </section>
 
-    <section
-      v-if="canCreateAssignments"
-      class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel"
-    >
-      <div class="mb-6">
-        <h3 class="text-xl font-semibold text-white">Create assignment</h3>
-        <p class="mt-2 text-sm leading-6 text-slate-400">
-          Keep this form intentionally small. It exists to demonstrate role checks and the secure
-          submission entry point.
+    <section v-if="canCreateAssignments" class="surface-panel p-8">
+      <div class="mb-6 border-b border-slate-200 pb-5">
+        <h3 class="text-xl font-semibold text-slate-900">Create assignment</h3>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          A compact form for creating coursework entries without distracting styling.
         </p>
       </div>
 
-      <div
-        v-if="createError"
-        class="mb-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-      >
+      <div v-if="createError" class="alert-error mb-4">
         {{ createError }}
       </div>
-      <div
-        v-if="createSuccess"
-        class="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-      >
+      <div v-if="createSuccess" class="alert-success mb-4">
         {{ createSuccess }}
       </div>
 
       <form class="grid gap-5 lg:grid-cols-2" @submit.prevent="handleCreateAssignment">
         <label class="block lg:col-span-1">
-          <span class="mb-2 block text-sm font-medium text-slate-200">Title</span>
+          <span class="field-label">Title</span>
           <input
             v-model="createForm.title"
             type="text"
             required
-            class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+            class="form-input"
             placeholder="Cryptography Coursework 1"
           />
         </label>
 
         <label class="block lg:col-span-1">
-          <span class="mb-2 block text-sm font-medium text-slate-200">Due date</span>
-          <input
-            v-model="createForm.dueAt"
-            type="datetime-local"
-            required
-            class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
-          />
+          <span class="field-label">Due date</span>
+          <input v-model="createForm.dueAt" type="datetime-local" required class="form-input" />
         </label>
 
         <label class="block lg:col-span-2">
-          <span class="mb-2 block text-sm font-medium text-slate-200">Description</span>
+          <span class="field-label">Description</span>
           <textarea
             v-model="createForm.description"
             required
             rows="4"
-            class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+            class="form-input"
             placeholder="Submit your signed artefact or simulated content."
           />
         </label>
 
         <div class="lg:col-span-2">
-          <button
-            type="submit"
-            class="inline-flex items-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="isCreating"
-          >
+          <button type="submit" class="btn-primary" :disabled="isCreating">
             {{ isCreating ? 'Creating…' : 'Create assignment' }}
           </button>
         </div>
       </form>
     </section>
 
-    <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-      <div class="mb-6 flex items-center justify-between gap-4">
+    <section class="surface-panel p-8">
+      <div class="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 class="text-xl font-semibold text-white">Visible assignments</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-400">
-            Students can launch the secure submission form directly from the relevant assignment.
+          <h3 class="text-xl font-semibold text-slate-900">Visible assignments</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">
+            Students can open the secure submission form directly from an active assignment.
           </p>
         </div>
-        <button
-          type="button"
-          class="inline-flex items-center rounded-2xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-brand-500 hover:text-white"
-          @click="loadAssignments"
-        >
+        <button type="button" class="btn-secondary self-start sm:self-auto" @click="loadAssignments">
           Refresh
         </button>
       </div>
 
-      <div
-        v-if="loadError"
-        class="mb-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-      >
+      <div v-if="loadError" class="alert-error mb-4">
         {{ loadError }}
       </div>
 
-      <div v-if="isLoading" class="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
+      <div v-if="isLoading" class="empty-state">
         Loading assignments…
       </div>
 
-      <div
-        v-else-if="sortedAssignments.length === 0"
-        class="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400"
-      >
+      <div v-else-if="sortedAssignments.length === 0" class="empty-state">
         No assignments are available yet.
       </div>
 
-      <div v-else class="grid gap-4 xl:grid-cols-2">
+      <div v-else class="space-y-4">
         <article
           v-for="assignment in sortedAssignments"
           :key="assignment.id"
-          class="rounded-3xl border border-slate-800 bg-slate-950/70 p-6"
+          class="rounded-sm border border-slate-300 bg-white p-5"
         >
-          <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h4 class="text-lg font-semibold text-white">{{ assignment.title }}</h4>
-              <p class="mt-2 text-sm text-slate-400">Due {{ formatDate(assignment.dueAt) }}</p>
+              <h4 class="text-lg font-semibold text-slate-900">{{ assignment.title }}</h4>
+              <p class="mt-2 text-sm text-slate-600">Due {{ formatDate(assignment.dueAt) }}</p>
             </div>
             <span
-              class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-              :class="assignment.open ? 'bg-emerald-500/15 text-emerald-100 ring-1 ring-inset ring-emerald-500/30' : 'bg-amber-500/15 text-amber-100 ring-1 ring-inset ring-amber-500/30'"
+              class="status-pill"
+              :class="assignment.open ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-800'"
             >
               {{ assignment.open ? 'Open' : 'Closed' }}
             </span>
           </div>
 
-          <div class="mt-6 flex flex-wrap items-center gap-3">
+          <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
             <RouterLink
               v-if="isStudent"
               :to="{ name: 'submission-create', params: { assignmentId: assignment.id } }"
-              class="inline-flex items-center rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500"
+              class="btn-primary"
             >
               Submit work
             </RouterLink>

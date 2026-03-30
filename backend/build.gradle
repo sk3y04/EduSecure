@@ -4,13 +4,21 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
+def javaToolchainVersion = (findProperty('javaToolchainVersion') ?: '25') as Integer
+def javaTargetVersion = (findProperty('javaTargetVersion') ?: '21') as Integer
+def configuredBuildDir = findProperty('edusecureBuildDir') ?: System.getenv('EDUSECURE_BUILD_DIR')
+
+if (configuredBuildDir) {
+    layout.buildDirectory.set(file(configuredBuildDir))
+}
+
 group = 'EduSecure'
 version = '0.0.1-SNAPSHOT'
 description = 'EduSecure'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(javaToolchainVersion)
     }
 }
 
@@ -49,7 +57,13 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.release = javaTargetVersion
+}
 
 tasks.named('test') {
     useJUnitPlatform()
+    def testSubmissionStoragePath = layout.buildDirectory.dir('test-submission-storage').get().asFile.absolutePath
+    systemProperty 'SUBMISSION_STORAGE_BASE_PATH', testSubmissionStoragePath
+    systemProperty 'submission.storage.base-path', testSubmissionStoragePath
 }

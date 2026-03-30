@@ -20,19 +20,22 @@ const submissionId = computed(() => String(route.params.submissionId ?? ''))
 const verificationTone = computed(() => {
   switch (submission.value?.verificationStatus) {
     case 'VERIFIED':
-      return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+      return 'border-emerald-300 bg-emerald-50 text-emerald-800'
     case 'FAILED_VERIFICATION':
     case 'REJECTED':
-      return 'border-rose-500/30 bg-rose-500/10 text-rose-100'
+      return 'border-rose-300 bg-rose-50 text-rose-800'
     default:
-      return 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+      return 'border-amber-300 bg-amber-50 text-amber-800'
   }
 })
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(new Date(value))
 }
 
@@ -68,141 +71,120 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-8">
-    <div class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
+  <section class="space-y-6">
+    <div class="surface-panel p-8">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="max-w-3xl">
-          <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand-500">Submission evidence</p>
-          <h2 class="mt-3 text-3xl font-semibold text-white">Review the integrity and authorship metadata</h2>
-          <p class="mt-3 text-sm leading-7 text-slate-400">
-            This screen exists to make the cryptographic evidence explicit: digest, signature
-            algorithm, and verification result are all visible to support the report narrative.
-            Stored content is intentionally retrieved through a separate audited endpoint.
+          <p class="section-kicker tracking-[0.3em]">Submission evidence</p>
+          <h2 class="section-title">Review integrity and authorship metadata</h2>
+          <p class="section-copy">
+            This screen keeps the cryptographic evidence easy to inspect: digest, signature
+            algorithm, and verification result remain prominent, while plaintext retrieval stays a
+            separate audited action.
           </p>
         </div>
 
-        <button
-          type="button"
-          class="inline-flex items-center rounded-2xl border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-brand-500 hover:text-white"
-          @click="loadSubmission"
-        >
+        <button type="button" class="btn-secondary self-start" @click="loadSubmission">
           Refresh
         </button>
       </div>
     </div>
 
-    <div
-      v-if="errorMessage"
-      class="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-    >
+    <div v-if="errorMessage" class="alert-error">
       {{ errorMessage }}
     </div>
 
-    <div v-else-if="isLoading" class="rounded-3xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">
+    <div v-else-if="isLoading" class="empty-state">
       Loading submission evidence…
     </div>
 
     <template v-else-if="submission">
-      <div class="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-        <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-          <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section class="surface-panel p-8">
+          <div class="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 class="text-xl font-semibold text-white">Submission metadata</h3>
-              <p class="mt-2 text-sm text-slate-400">Submitted {{ formatDate(submission.submittedAt) }}</p>
+              <h3 class="text-xl font-semibold text-slate-900">Submission metadata</h3>
+              <p class="mt-2 text-sm text-slate-600">Submitted {{ formatDate(submission.submittedAt) }}</p>
             </div>
-            <div :class="['rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-wide', verificationTone]">
+            <div :class="['status-pill', verificationTone]">
               {{ submission.verificationStatus }}
             </div>
           </div>
 
-          <dl class="mt-8 grid gap-5 sm:grid-cols-2">
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+          <dl class="mt-6 grid gap-4 sm:grid-cols-2">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Submission ID</dt>
-              <dd class="mt-2 break-all font-mono text-sm text-slate-200">{{ submission.id }}</dd>
+              <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ submission.id }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Assignment ID</dt>
-              <dd class="mt-2 break-all font-mono text-sm text-slate-200">{{ submission.assignmentId }}</dd>
+              <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ submission.assignmentId }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">File name</dt>
-              <dd class="mt-2 text-sm text-slate-200">{{ submission.fileName }}</dd>
+              <dd class="mt-2 text-sm text-slate-900">{{ submission.fileName }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Content type</dt>
-              <dd class="mt-2 text-sm text-slate-200">{{ submission.contentType }}</dd>
+              <dd class="mt-2 text-sm text-slate-900">{{ submission.contentType }}</dd>
             </div>
           </dl>
         </section>
 
-        <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-          <h3 class="text-xl font-semibold text-white">Verification summary</h3>
-          <p class="mt-2 text-sm leading-6 text-slate-400">{{ submission.verificationMessage }}</p>
+        <section class="surface-panel p-8">
+          <h3 class="text-xl font-semibold text-slate-900">Verification summary</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-600">{{ submission.verificationMessage }}</p>
 
           <dl class="mt-6 space-y-4">
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Hash digest</dt>
-              <dd class="mt-2 break-all font-mono text-sm text-slate-200">{{ submission.hashDigest }}</dd>
+              <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ submission.hashDigest }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Signature algorithm</dt>
-              <dd class="mt-2 text-sm text-slate-200">{{ submission.signatureAlgorithm }}</dd>
+              <dd class="mt-2 text-sm text-slate-900">{{ submission.signatureAlgorithm }}</dd>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+            <div class="data-card">
               <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Digital signature</dt>
-              <dd class="mt-2 break-all font-mono text-sm text-slate-200">{{ submission.digitalSignature }}</dd>
+              <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ submission.digitalSignature }}</dd>
             </div>
           </dl>
         </section>
       </div>
 
-      <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section class="surface-panel p-8">
+        <div class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-start lg:justify-between">
           <div class="max-w-3xl">
-            <h3 class="text-xl font-semibold text-white">Protected submission content</h3>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              Metadata stays visible by default. Plaintext content is retrieved only through a
-              separate controlled endpoint so the backend can authorize and audit content access.
+            <h3 class="text-xl font-semibold text-slate-900">Protected submission content</h3>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Metadata remains visible by default. Plaintext content is only fetched through the
+              controlled retrieval endpoint so the backend can authorize and audit access.
             </p>
           </div>
-          <button
-            type="button"
-            class="inline-flex items-center rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="isLoadingContent"
-            @click="loadSubmissionContent"
-          >
+          <button type="button" class="btn-primary self-start" :disabled="isLoadingContent" @click="loadSubmissionContent">
             {{ isLoadingContent ? 'Retrieving…' : submissionContent ? 'Reload content' : 'Retrieve content' }}
           </button>
         </div>
 
-        <div
-          v-if="contentErrorMessage"
-          class="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-        >
+        <div v-if="contentErrorMessage" class="alert-error mt-6">
           {{ contentErrorMessage }}
         </div>
 
-        <div
-          v-else-if="submissionContent"
-          class="mt-6 rounded-2xl border border-slate-800 bg-slate-950/70 p-5"
-        >
+        <div v-else-if="submissionContent" class="mt-6 rounded-sm border border-slate-300 bg-slate-50 p-5">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="text-sm font-semibold text-white">{{ submissionContent.fileName }}</p>
+              <p class="text-sm font-semibold text-slate-900">{{ submissionContent.fileName }}</p>
               <p class="mt-1 text-xs uppercase tracking-[0.25em] text-slate-500">
                 {{ submissionContent.contentType }}
               </p>
             </div>
-            <p class="text-xs uppercase tracking-[0.25em] text-emerald-300">Audited retrieval</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">Audited retrieval</p>
           </div>
 
-          <pre class="mt-4 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-200 whitespace-pre-wrap">{{ submissionContent.content }}</pre>
+          <pre class="code-block mt-4">{{ submissionContent.content }}</pre>
         </div>
 
-        <div
-          v-else
-          class="mt-6 rounded-2xl border border-dashed border-slate-700 p-6 text-sm text-slate-400"
-        >
+        <div v-else class="empty-state mt-6">
           Content is encrypted at rest and is not included in the standard metadata response.
         </div>
       </section>

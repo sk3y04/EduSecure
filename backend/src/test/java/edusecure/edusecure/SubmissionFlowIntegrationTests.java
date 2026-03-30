@@ -88,7 +88,7 @@ class SubmissionFlowIntegrationTests {
                 .andReturn();
 
         JsonNode assignmentJson = objectMapper.readTree(assignmentResult.getResponse().getContentAsString());
-        String assignmentId = assignmentJson.get("id").asText();
+        String assignmentId = textField(assignmentJson, "id");
 
         String submittedContent = "This is my authentic coursework submission content.";
         String submissionPayload = objectMapper.writeValueAsString(new CreateSubmissionPayload(
@@ -112,7 +112,7 @@ class SubmissionFlowIntegrationTests {
                 .andReturn();
 
         JsonNode submissionJson = objectMapper.readTree(submissionResult.getResponse().getContentAsString());
-        String submissionId = submissionJson.get("id").asText();
+        String submissionId = textField(submissionJson, "id");
 
         Submission savedSubmission = submissionRepository.findById(UUID.fromString(submissionId)).orElseThrow();
         org.assertj.core.api.Assertions.assertThat(savedSubmission.getStorageEncryptionAlgorithm()).isEqualTo("AES/GCM/NoPadding");
@@ -178,7 +178,7 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String assignmentId = objectMapper.readTree(assignmentResult.getResponse().getContentAsString()).get("id").asText();
+        String assignmentId = textField(objectMapper.readTree(assignmentResult.getResponse().getContentAsString()), "id");
 
         String submissionPayload = objectMapper.writeValueAsString(new CreateSubmissionPayload(
                 "guarded.txt",
@@ -193,7 +193,7 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String submissionId = objectMapper.readTree(submissionResult.getResponse().getContentAsString()).get("id").asText();
+        String submissionId = textField(objectMapper.readTree(submissionResult.getResponse().getContentAsString()), "id");
 
         mockMvc.perform(get("/api/submissions/{submissionId}", submissionId)
                         .cookie(otherStudentCookie))
@@ -255,6 +255,10 @@ class SubmissionFlowIntegrationTests {
     private record CreateSubmissionPayload(String fileName, String contentType, String content) {
     }
 
+    private static String textField(JsonNode objectNode, String fieldName) {
+        return objectNode.required(fieldName).asString();
+    }
+
     private Cookie authCookieFrom(MvcResult result) {
         String setCookieHeader = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
         org.assertj.core.api.Assertions.assertThat(setCookieHeader)
@@ -265,5 +269,4 @@ class SubmissionFlowIntegrationTests {
         return new Cookie(AUTH_COOKIE_NAME, cookieValue);
     }
 }
-
 

@@ -151,5 +151,5 @@ Do not expand the grade API with moderation, appeals, or advanced workflow endpo
 Protected grade endpoints should follow the current implemented auth model:
 - authenticated browser requests use the backend-issued `HttpOnly` cookie
 - frontend code should not store the JWT directly in JavaScript-accessible storage
+- the backend only reads JWT claims after verifying the token signature, so tampered bearer tokens or cookies remain unauthenticated
 - any remaining `Authorization` header support should be treated as compatibility-only rather than the primary browser contract
-

@@ -8,6 +8,7 @@ For the currently implemented metadata/content split and AES-at-rest boundary, s
 
 From the current auth baseline:
 - browser-facing auth is already in place through an `HttpOnly` auth cookie that carries the JWT session
+- protected requests only trust JWT claims after the backend verifies the token signature
 - students authenticate before submitting work
 - lecturers authenticate before reviewing submissions
 - endpoint security should continue to be role-aware and minimal
@@ -105,7 +106,7 @@ Status: `201 Created`
 
 ### Failure cases
 - `400 Bad Request` for invalid request structure
-- `401 Unauthorized` for missing/invalid authenticated session cookie
+- `401 Unauthorized` for missing/invalid authenticated session cookie, including malformed, expired, or signature-invalid JWTs
 - `403 Forbidden` if role is not allowed
 - `404 Not Found` if assignment does not exist
 - `500 Internal Server Error` if the submission content cannot be protected for storage
@@ -169,7 +170,7 @@ Status: `200 OK`
 Every successful content retrieval should create a dedicated audit event.
 
 ### Failure cases
-- `401 Unauthorized` if no valid authenticated session is present
+- `401 Unauthorized` if no valid authenticated session is present, including malformed, expired, or signature-invalid JWTs
 - `403 Forbidden` if the actor is not permitted to access the submission content
 - `404 Not Found` if the submission does not exist
 - `500 Internal Server Error` if ciphertext cannot be decrypted or the protected content store is unavailable
@@ -201,5 +202,5 @@ Do not add speculative grade, encryption-demo, or unrelated course-management en
 Protected submission endpoints should be documented and tested against the current auth baseline:
 - authenticated browser requests use the backend-issued `HttpOnly` cookie
 - frontend code should not read or persist the JWT directly
+- the backend only reads JWT claims after verifying the token signature, so tampered bearer tokens or cookies remain unauthenticated
 - server-side compatibility support for `Authorization` headers may exist, but it is no longer the primary browser contract
-

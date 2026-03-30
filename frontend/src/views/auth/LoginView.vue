@@ -47,85 +47,79 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 px-6 py-10 text-slate-100">
+  <div class="app-page px-6 py-10">
     <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-      <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-        <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand-500">Frontend MVP</p>
-        <h1 class="mt-4 text-4xl font-semibold text-white">Start with the security-critical flow</h1>
-        <p class="mt-4 max-w-2xl text-base leading-7 text-slate-300">
-          This frontend is intentionally narrow: sign in, complete MFA when required, submit work,
-          and inspect the integrity evidence returned by the backend.
+      <section class="surface-panel p-8 lg:p-10">
+        <p class="section-kicker tracking-[0.3em]">EduSecure portal</p>
+        <h1 class="section-title text-4xl">Security-focused access for coursework operations</h1>
+        <p class="section-copy max-w-2xl text-base leading-7">
+          Sign in to reach the protected assignment and submission workspace. The interface keeps the
+          security journey direct: authenticate, complete MFA if required, and review integrity data
+          without decorative visual noise.
         </p>
 
         <div class="mt-8 grid gap-4 md:grid-cols-3">
-          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
-            <p class="text-sm font-semibold text-white">Password + secure cookie</p>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              Successful password-only logins establish an HttpOnly authentication cookie for the protected app.
+          <article class="info-card">
+            <p class="text-sm font-semibold text-slate-900">Protected session</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Successful authentication establishes the secure cookie used for the protected app.
             </p>
           </article>
-          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
-            <p class="text-sm font-semibold text-white">MFA branch</p>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              MFA-enabled accounts are challenged before the authenticated cookie is established.
+          <article class="info-card">
+            <p class="text-sm font-semibold text-slate-900">MFA-aware sign-in</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Accounts with TOTP enabled are challenged before the authenticated session is created.
             </p>
           </article>
-          <article class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
-            <p class="text-sm font-semibold text-white">Role-aware routes</p>
-            <p class="mt-2 text-sm leading-6 text-slate-400">
-              Students can submit work, while lecturer/admin roles can create assignments.
+          <article class="info-card">
+            <p class="text-sm font-semibold text-slate-900">Role-based access</p>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Student and lecturer flows stay separated by the backend role policy already in place.
             </p>
           </article>
         </div>
       </section>
 
-      <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-panel">
-        <div class="mb-6">
-          <p class="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sign in</p>
-          <h2 class="mt-3 text-2xl font-semibold text-white">Authenticate against the Spring API</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-400">
-            Use an existing backend account. If the account has MFA enabled, the next screen will
-            request the TOTP code.
+      <section class="surface-panel p-8 lg:p-10">
+        <div class="mb-6 border-b border-slate-200 pb-5">
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Sign in</p>
+          <h2 class="mt-3 text-2xl font-semibold text-slate-900">Authenticate against the API</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">
+            Use an existing backend account. If MFA is enabled, the next step will request a TOTP
+            verification code.
           </p>
         </div>
 
-        <div
-          v-if="authStore.errorMessage"
-          class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100"
-        >
+        <div v-if="authStore.errorMessage" class="alert-error mb-6">
           {{ authStore.errorMessage }}
         </div>
 
         <form class="space-y-5" @submit.prevent="handleSubmit">
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-slate-200">Email</span>
+            <span class="field-label">Email</span>
             <input
               v-model="form.email"
               type="email"
               required
               autocomplete="username"
-              class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+              class="form-input"
               placeholder="student@example.com"
             />
           </label>
 
           <label class="block">
-            <span class="mb-2 block text-sm font-medium text-slate-200">Password</span>
+            <span class="field-label">Password</span>
             <input
               v-model="form.password"
               type="password"
               required
               autocomplete="current-password"
-              class="w-full rounded-2xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30"
+              class="form-input"
               placeholder="Enter your password"
             />
           </label>
 
-          <button
-            type="submit"
-            class="inline-flex w-full items-center justify-center rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="isSubmitting"
-          >
+          <button type="submit" class="btn-primary w-full" :disabled="isSubmitting">
             {{ isSubmitting ? 'Signing in…' : 'Continue' }}
           </button>
         </form>

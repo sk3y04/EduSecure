@@ -27,6 +27,5 @@ public class SubmissionStorageProperties {
     private String cipherAlgorithm = "AES/GCM/NoPadding";
 
     @NotBlank
-    private String basePath = "./build/submission-storage";
+    private String basePath = "./var/submission-storage";
 }
-

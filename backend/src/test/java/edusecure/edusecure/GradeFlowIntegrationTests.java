@@ -2,7 +2,6 @@ package edusecure.edusecure;
 
 import edusecure.edusecure.entity.assignment.Assignment;
 import edusecure.edusecure.entity.audit.AuditLog;
-import edusecure.edusecure.entity.grade.Grade;
 import edusecure.edusecure.entity.auth.Role;
 import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.submission.Submission;
@@ -10,7 +9,6 @@ import edusecure.edusecure.entity.submission.SubmissionVerificationStatus;
 import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.repository.assignment.AssignmentRepository;
 import edusecure.edusecure.repository.audit.AuditLogRepository;
-import edusecure.edusecure.repository.grade.GradeRepository;
 import edusecure.edusecure.repository.auth.RoleRepository;
 import edusecure.edusecure.repository.submission.SubmissionRepository;
 import edusecure.edusecure.repository.auth.UserRepository;
@@ -24,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
@@ -66,9 +65,6 @@ class GradeFlowIntegrationTests {
     private SubmissionRepository submissionRepository;
 
     @Autowired
-    private GradeRepository gradeRepository;
-
-    @Autowired
     private AuditLogRepository auditLogRepository;
 
     @Test
@@ -90,7 +86,7 @@ class GradeFlowIntegrationTests {
                 .andExpect(jsonPath("$.value").value("78"))
                 .andReturn();
 
-        String gradeId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+        String gradeId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
 
         String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload("81", "Updated after remarking."));
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
@@ -130,7 +126,7 @@ class GradeFlowIntegrationTests {
                         .content(createPayload))
                 .andExpect(status().isCreated())
                 .andReturn();
-        String gradeId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+        String gradeId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(studentCookie)
@@ -181,7 +177,7 @@ class GradeFlowIntegrationTests {
                         .cookie(lecturerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
     }
 
     @Test
@@ -201,7 +197,7 @@ class GradeFlowIntegrationTests {
                         .content(createPayload))
                 .andExpect(status().isCreated())
                 .andReturn();
-        String gradeId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+        String gradeId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
 
         mockMvc.perform(get("/api/my/grades/{gradeId}", gradeId)
                         .cookie(otherStudentCookie))
@@ -251,6 +247,10 @@ class GradeFlowIntegrationTests {
                         .build()));
     }
 
+    private static String textField(JsonNode objectNode, String fieldName) {
+        return objectNode.required(fieldName).asString();
+    }
+
     private Cookie loginAndReturnAuthCookie(String email, String password) throws Exception {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
@@ -281,4 +281,3 @@ class GradeFlowIntegrationTests {
         return new Cookie(AUTH_COOKIE_NAME, cookieValue);
     }
 }
-

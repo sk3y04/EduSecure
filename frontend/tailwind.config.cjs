@@ -5,18 +5,19 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#f4f7ff',
-          100: '#e8efff',
-          500: '#4f7cff',
-          600: '#335df4',
-          700: '#2646cf',
+          50: '#eef4ff',
+          100: '#d9e7ff',
+          200: '#b9d0ff',
+          500: '#446fbe',
+          600: '#355b9e',
+          700: '#28497f',
+          800: '#203a67',
         },
       },
       boxShadow: {
-        panel: '0 20px 45px -25px rgba(15, 23, 42, 0.55)',
+        panel: '0 14px 30px -24px rgba(15, 23, 42, 0.4)',
       },
     },
   },
   plugins: [],
 }
-

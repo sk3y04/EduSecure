@@ -94,8 +94,8 @@ public class GradeService {
 
         boolean privileged = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> authority.equals("ROLE_" + RoleName.LECTURER.name())
-                        || authority.equals("ROLE_" + RoleName.ADMIN.name()));
+                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
+                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
 
         if (!privileged) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
@@ -138,7 +138,7 @@ public class GradeService {
 
     private void ensureSubmissionVerified(Submission submission) {
         if (submission.getVerificationStatus() != SubmissionVerificationStatus.VERIFIED) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Only verified submissions can be graded");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "Only verified submissions can be graded");
         }
     }
 
@@ -152,4 +152,3 @@ public class GradeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
 }
-

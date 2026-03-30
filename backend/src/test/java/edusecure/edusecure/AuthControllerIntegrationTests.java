@@ -214,10 +214,55 @@ class AuthControllerIntegrationTests {
         assertCookieCleared(logoutResult);
     }
 
+    @Test
+    void tamperedAuthCookieIsRejected() throws Exception {
+        String email = "tampered-cookie-" + UUID.randomUUID() + "@example.com";
+        String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Tampered Cookie User"));
+
+        Cookie authCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn());
+
+        mockMvc.perform(get("/api/auth/me")
+                        .cookie(new Cookie(AUTH_COOKIE_NAME, tamperJwt(authCookie.getValue()))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void tamperedBearerTokenIsRejected() throws Exception {
+        String email = "tampered-bearer-" + UUID.randomUUID() + "@example.com";
+        String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Tampered Bearer User"));
+
+        Cookie authCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn());
+
+        mockMvc.perform(get("/api/auth/me")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + tamperJwt(authCookie.getValue())))
+                .andExpect(status().isUnauthorized());
+    }
+
     private record RegisterPayload(String email, String password, String fullName) {
     }
 
     private record LoginPayload(String email, String password) {
+    }
+
+    private String tamperJwt(String token) {
+        String[] parts = token.split("\\.");
+        org.assertj.core.api.Assertions.assertThat(parts).hasSize(3);
+
+        String signature = parts[2];
+        org.assertj.core.api.Assertions.assertThat(signature).isNotEmpty();
+
+        char lastCharacter = signature.charAt(signature.length() - 1);
+        char replacement = lastCharacter == 'a' ? 'b' : 'a';
+        parts[2] = signature.substring(0, signature.length() - 1) + replacement;
+        return String.join(".", parts);
     }
 
     private Cookie authCookieFrom(MvcResult result) {

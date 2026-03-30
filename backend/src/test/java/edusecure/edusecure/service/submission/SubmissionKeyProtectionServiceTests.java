@@ -52,11 +52,10 @@ class SubmissionKeyProtectionServiceTests {
     private SubmissionStorageProperties properties() {
         SubmissionStorageProperties properties = new SubmissionStorageProperties();
         properties.setCipherAlgorithm("AES/GCM/NoPadding");
-        properties.setBasePath("./build/test-submission-storage");
+        properties.setBasePath("./var/test-submission-storage");
         properties.setKeyWrapAlgorithm("AESWrap");
         properties.setMasterKey("c3VibWlzc2lvbi1zdG9yYWdlLW1hc3Rlci1rZXktMDI=");
         properties.setMasterKeyVersion("test-v1");
         return properties;
     }
 }
-
