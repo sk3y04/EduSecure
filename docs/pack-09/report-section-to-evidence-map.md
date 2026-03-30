@@ -57,7 +57,7 @@ Suggested diagram emphasis:
 - secure login sequence
 - secure submission sequence
 - grade integrity sequence
-- AES demo sequence
+- ~~AES demo sequence~~ *(removed — TLS deployment via Certbot/Let's Encrypt is the transmission control)*
 
 ## Section 5. Cryptographic controls and algorithm selection
 

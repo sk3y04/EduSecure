@@ -20,8 +20,9 @@ The following claims are supported by repository evidence and can be described a
 
 - EduSecure is a backend-focused cryptography case-study artefact built with Spring Boot.
 - EduSecure also includes a small Vue frontend MVP that demonstrates the implemented auth, MFA, assignment, and submission flows.
-- The backend implements authentication, MFA hardening, assignment/submission handling, audit integrity, grade integrity, and an AES-GCM secure transmission demo.
-- The backend also now implements AES-GCM protection of stored submission content at rest as a real EduSecure business control.
+- The backend implements authentication, MFA hardening, assignment/submission handling, audit integrity, and grade integrity.
+- The backend uses AES-GCM in two real business roles: MFA secret protection at rest and submission content encryption at rest.
+- Secure client-server transmission is enforced by TLS 1.3 via Certbot/Let's Encrypt on deployment.
 - Browser-facing authentication uses an `HttpOnly` cookie-backed session rather than frontend-managed JWT storage.
 - The submission-signature workflow now uses a stable configured demo RSA keypair within the existing simulated signing model.
 - The artefact contains evidence for `bcrypt`, `TOTP`, `SHA-256`, `RSA`-based signing/verification, `HMAC-SHA-256`, and `AES-GCM`.
@@ -150,31 +151,37 @@ Primary supporting references:
 - `docs/pack-03/mfa-cryptography-implementation.md`
 - `docs/pack-09/postgresql-setup-and-security.md`
 
-## 6. AES wording boundary
+## 6. AES and TLS wording boundary
 
-Be careful to distinguish the **two different AES roles** now present in EduSecure.
+The standalone AES-GCM demo endpoints (`AesDemoController`, `AesGcmDemoService`, `AesDemoIntegrationTests`) have been removed. Secure transmission is now covered by real infrastructure TLS via Certbot/Let's Encrypt.
+
+AES-GCM remains in the codebase in two real business roles only:
+- MFA secret encryption at rest
+- submission content encryption at rest
 
 Supported claims:
 
-- EduSecure includes a separate AES-GCM secure-transmission demo for artefact evidence.
-- EduSecure also uses AES-GCM as a real confidentiality-at-rest control for stored submission content.
+- EduSecure uses AES-GCM as a confidentiality-at-rest control for both MFA secrets and stored submission content.
+- Secure client-server transmission is enforced by TLS 1.3 via Certbot/Let's Encrypt, which itself uses AES-GCM internally.
 
 Safe wording:
 
-- "AES-GCM is demonstrated in EduSecure both as a standalone symmetric-encryption artefact demo and as the implemented confidentiality-at-rest control for stored submissions."
-- "The AES demo should be described as complementary artefact evidence, not as a replacement for the real submission-storage protection now present in the backend."
+- "AES-GCM is used in EduSecure as the encryption mechanism for MFA secrets and submission content at rest."
+- "Secure transmission in EduSecure is enforced by TLS 1.3 via Certbot/Let's Encrypt rather than a separate application-layer AES demo."
+- "The 'secure file/message transmission' artefact requirement is satisfied by real infrastructure TLS rather than a standalone demo endpoint."
 
 Unsafe wording:
 
-- "The AES demo was replaced entirely by submission storage encryption."
-- "Only one AES use-case remains in the final artefact."
-- "All AES-related diagrams or evidence should be removed because submission storage is now encrypted."
+- "EduSecure includes a standalone AES demo endpoint." *(removed)*
+- "The AES demo proves symmetric encryption." *(no longer present)*
+- "There is no evidence of AES usage beyond key wrapping." *(wrong — AES-GCM is used for MFA secrets and submission content)*
 
 Primary supporting references:
 
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
 - `docs/pack-06/submission-content-protection-and-retrieval.md`
+- `docs/pack-03/mfa-cryptography-implementation.md`
 - `docs/pack-09/final-cryptography-claims-matrix.md`
+- `docs/pack-09/appendix-cicd-and-deployment-plan.md`
 
 ## 7. Quick final-review questions
 

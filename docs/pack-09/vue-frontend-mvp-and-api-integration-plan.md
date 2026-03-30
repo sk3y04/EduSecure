@@ -39,13 +39,7 @@ It should not become a large polished product.
 - student grade view if additional screenshots/evidence are needed
 - lecturer/admin grade create/update view if time permits
 
-### Phase D: AES demo view
-- small utility screen for encrypt/decrypt message demo if still useful for evidence
-- clear display of:
-  - plaintext
-  - nonce
-  - ciphertext
-  - decrypted result or failure message
+> **Note (updated):** Phase D (AES demo view) has been removed. The standalone AES demo endpoints no longer exist. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level.
 
 ## 4. API integration targets
 
@@ -75,9 +69,6 @@ The frontend should integrate against these implemented endpoints first:
 - `GET /api/grades/{gradeId}`
 - `GET /api/my/grades/{gradeId}`
 
-### AES demo
-- `POST /api/crypto-demo/encrypt`
-- `POST /api/crypto-demo/decrypt`
 
 ## 5. Recommended Vue stack
 
@@ -107,7 +98,6 @@ The browser-facing frontend now uses the implemented auth model from Pack 03:
 - submit work
 - view submission verification result
 - view own grades
-- optional AES demo page
 
 ### Lecturer
 - login
@@ -128,7 +118,7 @@ That means each screen should make at least one security-relevant fact visible, 
 - role-aware access
 - submission verification status
 - grade ownership restrictions
-- AES nonce/ciphertext output
+- submission integrity metadata (hashDigest, verificationStatus)
 
 ## 9. Scope-control rule
 
@@ -149,6 +139,5 @@ Implemented baseline already present:
 
 Remaining optional order if more UI evidence is useful:
 5. student grade view
-6. AES demo view
-7. lecturer/admin grade management screens if still useful and time allows
+6. lecturer/admin grade management screens if still useful and time allows
 

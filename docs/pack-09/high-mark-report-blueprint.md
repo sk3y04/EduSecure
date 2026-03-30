@@ -98,8 +98,9 @@ Structure this section by control type and security goal:
 
 #### B. Symmetric encryption
 - explain the role of symmetric encryption in confidentiality
-- distinguish secure transport design (`TLS`) from artefact-level AES demonstrations
+- explain that TLS 1.3 (via Certbot/Let's Encrypt) handles secure transmission in deployment — this is the correct, complete solution
 - explain why `AES-GCM` matters because it adds authenticated encryption
+- connect `AES-GCM` to the two real business roles in EduSecure: MFA secret protection at rest and submission content encryption at rest
 
 #### C. Asymmetric cryptography and signatures
 - explain RSA/ECC as asymmetric approaches
@@ -123,7 +124,7 @@ Structure this section by control type and security goal:
 
 ### Strong repo examples to mention
 - `backend/src/main/java/edusecure/edusecure/service/auth/MfaService.java`
-- `backend/src/main/java/edusecure/edusecure/service/crypto/AesGcmDemoService.java`
+- `backend/src/main/java/edusecure/edusecure/service/submission/SubmissionContentEncryptionService.java`
 - `backend/src/main/java/edusecure/edusecure/service/crypto/AesRsaCryptoService.java`
 - `backend/src/main/java/edusecure/edusecure/audit/AuditService.java`
 
@@ -138,7 +139,7 @@ Example distinctions to make:
 ### Caution
 Do not blur:
 - JWT and encryption
-- AES demo and TLS
+- TLS (transport) and AES-GCM (application-layer at-rest encryption)
 - digest and authorship proof
 
 ## Section 3. Risk assessment
@@ -209,7 +210,7 @@ Recommended flow:
 2. secure auth design
 3. secure submission design
 4. secure grade-integrity design
-5. secure AES demo positioning
+5. TLS deployment via Certbot/Let's Encrypt
 
 ### Diagrams to emphasize
 Use only the diagrams that help marks directly:
@@ -217,8 +218,8 @@ Use only the diagrams that help marks directly:
 - `docs/pack-02/uml/sequence-submission-secure.puml`
 - `docs/pack-04/uml/class-diagram-submission-addendum.puml`
 - `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml`
-- `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`
 - one insecure/secure deployment comparison from `docs/pack-02/uml/`
+- ~~`docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`~~ *(superseded — AES demo removed; TLS via Certbot/Let's Encrypt handles transmission)*
 
 ### Main evidence to cite
 - `docs/pack-09/final-doc-alignment-summary.md`
@@ -244,9 +245,10 @@ Use only the diagrams that help marks directly:
 - create/update actions always write audit entries
 - students can view only their own grades
 
-#### AES demo
-- separate artefact slice
-- not the normal business-traffic protection model
+#### TLS deployment
+- enforced via Certbot/Let's Encrypt on deployment
+- protects all client-server traffic in transit
+- satisfies the "secure file/message transmission" artefact requirement through real infrastructure rather than a standalone demo
 
 ### Outstanding-band differentiation
 When discussing each diagram, say what security property it proves.
@@ -301,8 +303,8 @@ That academic contrast reads strongly.
 ### Caution
 Keep claim wording bounded:
 - do not say RSA flow is enterprise PKI
-- do not say AES demo proves all traffic is AES-protected
-- do not say TLS is deployment-proven unless you have external proof
+- do not conflate TLS (infrastructure) with application-layer AES-GCM encryption
+- TLS is deployment-proven via Certbot/Let's Encrypt and can be stated as implemented
 
 ## Section 6. Implementation plan and considerations
 
@@ -334,7 +336,6 @@ Differentiate the key types:
 - MFA secret-encryption key
 - audit HMAC secret
 - submission storage master/wrapping material
-- AES demo key
 
 #### Secure error handling
 - no secret leakage in API responses
@@ -429,11 +430,10 @@ Present the artefact as a set of evidenced capability slices.
 - own-grade student retrieval
 - HMAC-backed audit trail
 
-#### Slice 4: AES demo
-- encrypt
-- decrypt
-- nonce handling
-- tamper detection
+#### Slice 4: TLS secure transmission
+- all client-server traffic encrypted via TLS 1.3 (Certbot/Let's Encrypt)
+- satisfies "secure file/message transmission" artefact requirement
+- no standalone demo endpoint needed — real infrastructure deployment is the evidence
 
 #### Slice 5: delivery evidence
 - Liquibase schema
@@ -445,7 +445,7 @@ Present the artefact as a set of evidenced capability slices.
 - `docs/pack-06/submission-phase-status-and-evidence.md`
 - `docs/pack-06/submission-content-protection-and-retrieval.md`
 - `docs/pack-07/grade-phase-status-and-evidence.md`
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
+- `docs/pack-09/appendix-cicd-and-deployment-plan.md`
 - `frontend/README.md`
 
 ### Best tests to mention explicitly
@@ -453,7 +453,6 @@ Present the artefact as a set of evidenced capability slices.
 - `backend/src/test/java/edusecure/edusecure/MfaAuthIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/SubmissionFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/GradeFlowIntegrationTests.java`
-- `backend/src/test/java/edusecure/edusecure/AesDemoIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/LiquibasePostgresIntegrationTests.java`
 
 ### Suggested screenshot/output picks
@@ -462,7 +461,7 @@ Choose only a few strong, readable items:
 2. submission response showing `hashDigest`, `digitalSignature`, `verificationStatus`
 3. content retrieval response from `/api/submissions/{submissionId}/content`
 4. grade create/update response
-5. AES encrypt/decrypt example with tamper-failure example
+5. browser showing HTTPS padlock / Certbot certificate proof
 6. one short test result summary or IDE/terminal proof that tests pass
 
 ### Outstanding-band differentiation

@@ -263,9 +263,9 @@ Responsibility:
 These may be implemented as separate classes or a smaller combined service, but the responsibilities should remain conceptually distinct.
 
 ## Important boundary rule
-Do **not** overload `AesGcmDemoService` with submission-storage responsibilities.
+~~Do **not** overload `AesGcmDemoService` with submission-storage responsibilities.~~
 
-That service should remain a demo/evidence utility.
+> **Note (updated):** `AesGcmDemoService` and its associated demo endpoints have been removed. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level. Submission content encryption at rest remains in `SubmissionContentEncryptionService` as the only AES-GCM application-layer control for submissions.
 
 ## 10. API impact
 
@@ -311,7 +311,7 @@ If encryption or storage fails before persistence completes, no successful submi
 Use a dedicated environment-configured submission-storage master key.
 
 Example intent:
-- property separate from `aes.demo-key`
+- property separate from the (now-removed) `aes.demo-key`
 - versioned so future rotation is possible
 
 ### DEK lifecycle
@@ -401,15 +401,13 @@ The following are deliberately deferred until coding begins:
 
 ## 17. Phase gate for later coding
 
-Do not start the AES-at-rest implementation until all of the following are accepted:
-- plaintext digest/signature continues to be the canonical integrity/authorship path
-- `AesGcmDemoService` remains separate from storage protection
-- per-submission DEK + wrapped-key design is accepted
-- the minimum `Submission` metadata additions are accepted
-- fail-closed behaviour for encryption/storage failures is accepted
-- the test/evidence expectations above are accepted
+> **Note (updated):** This phase gate has been completed. The AES-at-rest implementation is done. `AesGcmDemoService` has also been removed — secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt. The following original gate conditions are retained for historical reference only.
 
-Once those decisions are accepted, use `submission-aes-storage-implementation-checklist.md` as the coding-ready execution checklist.
-
-For exact backend touchpoints and proposed implementation order, use `submission-aes-storage-file-by-file-plan.md`.
+~~Do not start the AES-at-rest implementation until all of the following are accepted:~~
+- ~~plaintext digest/signature continues to be the canonical integrity/authorship path~~
+- ~~`AesGcmDemoService` remains separate from storage protection~~
+- ~~per-submission DEK + wrapped-key design is accepted~~
+- ~~the minimum `Submission` metadata additions are accepted~~
+- ~~fail-closed behaviour for encryption/storage failures is accepted~~
+- ~~the test/evidence expectations above are accepted~~
 

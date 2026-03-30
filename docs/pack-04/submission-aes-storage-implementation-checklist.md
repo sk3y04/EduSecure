@@ -25,7 +25,7 @@ Before touching code, confirm the following are still accepted:
 - plaintext content remains the canonical input for `hashDigest`
 - signature generation/verification remains based on the plaintext-derived digest
 - AES-at-rest does not replace TLS, JWT auth, or audit integrity
-- `AesGcmDemoService` remains separate from submission-storage protection
+- ~~`AesGcmDemoService` remains separate from submission-storage protection~~ *(removed — `AesGcmDemoService` no longer exists; TLS via Certbot/Let's Encrypt handles transmission)*
 - the first implementation keeps the existing submission API contract stable unless a change becomes unavoidable
 - the later implementation fails closed if encryption, DEK wrapping, or ciphertext persistence fails
 
@@ -78,7 +78,7 @@ Add separate properties from the AES demo key, for example conceptually:
 - optional storage-path/base-location property if using local blob/file storage
 
 Checklist:
-- [ ] keep submission-storage keys separate from `aes.demo-key`
+- [ ] submission-storage keys are separate from any demo key material *(note: `aes.demo-key` has been removed from the project)*
 - [ ] use environment-variable-backed values in the same style as the existing config
 - [ ] define a key version for later rotation support
 - [ ] document any local development defaults carefully and honestly

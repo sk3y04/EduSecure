@@ -118,24 +118,17 @@ What it proves:
 - grade-sensitive actions are audited
 - grade endpoints remain protected under the same cookie-authenticated session model
 
-## 5. AES secure transmission demo
+## 5. Secure transmission — TLS via Certbot/Let's Encrypt
 
-Controller:
-- `backend/src/main/java/edusecure/edusecure/controller/AesDemoController.java`
+The standalone AES-GCM demo endpoints (`AesDemoController`, `AesGcmDemoService`) have been removed. Secure message/file transmission is covered at the infrastructure level by TLS 1.3 enforced via Certbot and Let's Encrypt on deployment. This is the correct and complete solution: all client-server traffic is protected by TLS, which itself uses AES-GCM internally.
 
-Service:
-- `backend/src/main/java/edusecure/edusecure/service/crypto/AesGcmDemoService.java`
+AES-GCM symmetric encryption remains evidenced in the codebase through two real business controls:
+- MFA secret protection at rest (`MfaSecretCryptoService`)
+- Submission content encryption at rest (`SubmissionContentEncryptionService`, `SubmissionKeyProtectionService`)
 
-Evidence/tests:
-- `backend/src/test/java/edusecure/edusecure/AesDemoIntegrationTests.java`
-
-What it proves:
-- AES-GCM encryption works
-- nonce is returned explicitly
-- correct decrypt restores plaintext
-- tampered ciphertext is rejected
-- malformed input is rejected
-- AES demo endpoints are reachable only through the authenticated session model already used elsewhere in the API
+What the deployment proves:
+- all client-server traffic is encrypted in transit (TLS 1.3, Certbot/Let's Encrypt)
+- the "secure file/message transmission" artefact requirement is satisfied by real infrastructure TLS rather than a standalone demo endpoint
 
 ## 6. Baseline availability / boot evidence
 

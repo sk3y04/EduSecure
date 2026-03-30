@@ -77,7 +77,7 @@ Recommended wording in the report:
 Do **not** overstate these areas:
 
 - the submission signature flow is a **study-project simulated signing model**, not a user-held PKI deployment
-- the AES demo is a **separate artefact demonstration**, not proof that all normal app traffic is custom AES-encrypted end to end
+- ~~the AES demo is a **separate artefact demonstration**~~ — the standalone AES demo has been removed; secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt; AES-GCM appears only in real at-rest business roles (MFA secrets, submission content)
 - the PostgreSQL/Liquibase path proves **versioned schema delivery and local verification**, not enterprise production hardening
 - default property fallbacks in `application.properties` should be described as **development/demo defaults**, with production secrets expected to be externalised
 

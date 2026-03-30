@@ -131,9 +131,9 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 **Refer to:** [grade-integrity UML]
 
-## 4.5 AES demo design position
+## 4.5 Secure transmission design
 
-[Explain why the AES demo exists separately and how it complements, rather than replaces, the real business controls.]
+[Explain that TLS 1.3 is enforced via Certbot/Let's Encrypt on deployment, protecting all client-server traffic in transit. This satisfies the "secure file/message transmission" artefact requirement through real infrastructure rather than a standalone demo endpoint.]
 
 **Mini-conclusion:** [Summarize how the secure design addresses the brief’s major incidents.]
 
@@ -177,7 +177,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 6.3 Key handling assumptions
 
-[Differentiate JWT secret, MFA secret-encryption key, audit HMAC secret, submission storage key material, and AES demo key.]
+[Differentiate JWT secret, MFA secret-encryption key, audit HMAC secret, and submission storage key material. Note that the (now-removed) AES demo key no longer exists.]
 
 ## 6.4 Error handling and secure coding boundaries
 
@@ -195,7 +195,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 7.1 Confidentiality
 
-[Explain how bcrypt, MFA secret encryption, TLS design, submission AES-at-rest protection, and the AES demo contribute to confidentiality.]
+[Explain how bcrypt, MFA secret encryption, TLS 1.3 via Certbot/Let's Encrypt (transport), and submission AES-at-rest protection contribute to confidentiality. Note that the standalone AES demo has been removed — AES-GCM appears only in real business roles.]
 
 ## 7.2 Integrity
 
@@ -227,9 +227,9 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 [Summarize the grade slice and reference audit-backed integrity/accountability.]
 
-## 8.4 Implemented AES demo evidence
+## 8.4 Secure transmission evidence (TLS via Certbot/Let's Encrypt)
 
-[Summarize encryption/decryption/tamper detection.]
+[Explain that TLS 1.3 is enforced at the infrastructure level via Certbot/Let's Encrypt, protecting all client-server traffic. Reference the deployment configuration and browser HTTPS evidence. Note that the standalone AES demo was removed in favour of this real deployment control.]
 
 ## 8.5 Test and execution evidence
 

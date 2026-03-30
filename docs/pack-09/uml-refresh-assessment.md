@@ -15,7 +15,7 @@ The existing UML set can still be used safely **if it is presented as design-lev
 That is the correct interpretation of the repository’s UML files:
 - Pack 02 diagrams are broad secure-system design baselines
 - Pack 04 diagrams freeze early submission/authorship/audit design decisions
-- Pack 05 diagrams document the later grade and AES demo flows
+- Pack 05 diagrams document the later grade flow and (now-removed) AES demo
 
 The recent implementation changes refine the submission confidentiality boundary, but they do **not** invalidate the main pedagogic points already shown by the diagrams.
 
@@ -39,7 +39,7 @@ The important design claims already captured in the UML remain correct:
 - digital-signature verification occurs during submission creation
 - audit records are append-oriented and integrity-protected
 - grades attach to submissions and are integrity-sensitive
-- the AES demo remains a separate artefact capability
+- ~~the AES demo remains a separate artefact capability~~ *(removed — secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt)*
 
 Those are still true in the current implementation.
 
@@ -118,10 +118,7 @@ The grade-integrity flow remains unchanged in principle. Verified-submission-onl
 
 ## `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`
 ### Assessment
-No refresh required.
-
-### Reason
-The AES demo remains a separate artefact slice. The newer submission AES-at-rest feature does not invalidate the demo sequence.
+**Superseded.** The standalone AES demo endpoints have been removed. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt. This diagram should not be cited in the report as active evidence. It is retained as a historical planning artefact only.
 
 ## 4. Safe wording for the report
 

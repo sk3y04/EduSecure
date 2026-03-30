@@ -112,7 +112,7 @@ Recommended new properties:
 - `submission.storage.base-path` (if local file/blob storage is used first)
 
 Important rule:
-- do not reuse `aes.demo-key`
+- ~~do not reuse `aes.demo-key`~~ *(note: `aes.demo-key` and `AesGcmDemoService` have been removed; submission storage uses its own dedicated key material)*
 
 Acceptance points:
 - properties are environment-variable-backed in the same style as the current file
@@ -182,7 +182,7 @@ Planned responsibilities:
 - later support decryption if a content-access path is added
 
 Important rule:
-- do not depend on demo controller DTOs or `AesGcmDemoService`
+- ~~do not depend on demo controller DTOs or `AesGcmDemoService`~~ *(note: `AesGcmDemoService` has been removed from the project)*
 
 Acceptance points:
 - uses `AES/GCM/NoPadding`

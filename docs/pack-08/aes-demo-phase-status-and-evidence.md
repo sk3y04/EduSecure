@@ -1,3 +1,5 @@
+> **⚠️ Deprecated (updated 2026-03-30):** The AES-GCM demo documented in this file has been removed from the codebase. `AesDemoController`, `AesGcmDemoService`, `AesDemoIntegrationTests`, and `aes.demo-key` have all been deleted. Secure transmission is now handled by TLS 1.3 via Certbot/Let's Encrypt. This file is retained as a historical record only and must not be cited as active evidence in the report.
+
 # AES Demo Phase Status and Evidence
 
 This document records the current implemented status of the Pack 05-aligned AES-GCM secure transmission demonstration.

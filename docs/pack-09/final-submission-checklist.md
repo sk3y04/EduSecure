@@ -50,7 +50,6 @@ Use `docs/pack-09/final-cryptography-claims-matrix.md` for control-by-control cl
 - [x] auth integration follows the current cookie-backed session contract
 - [x] implemented submission/auth/MFA pages reflect the real API contract
 - [ ] optional grade pages are added only if they improve report evidence
-- [ ] optional AES demo page is clearly presented as a demo tool, not normal app traffic encryption
 
 ## 5. Appendix checklist
 
