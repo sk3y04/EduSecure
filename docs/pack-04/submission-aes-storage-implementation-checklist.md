@@ -172,11 +172,12 @@ Checklist:
 
 ### 5.1 Review the request DTO
 File:
-- `backend/src/main/java/edusecure/edusecure/dto/CreateSubmissionRequest.java`
+- superseded by the later multipart upload contract documented in `docs/pack-04/api-submission-contract.md`
 
 Checklist:
-- [ ] confirm no request change is needed for the first pass
-- [ ] keep request validation aligned with the current API contract
+- [ ] treat the original JSON request-DTO assumption as historical planning only
+- [ ] keep multipart file validation aligned with the current API contract
+- [ ] keep the active implemented scope bounded to UTF-8 `text/plain` uploads unless a later evidence-backed expansion is completed
 
 ### 5.2 Review the response DTO
 File:

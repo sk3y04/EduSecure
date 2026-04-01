@@ -2,7 +2,7 @@ package edusecure.edusecure;
 
 import edusecure.edusecure.entity.auth.MfaChallenge;
 import edusecure.edusecure.repository.auth.MfaChallengeRepository;
-import edusecure.edusecure.service.auth.TotpService;
+import edusecure.edusecure.service.auth.TotpProvider;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ class MfaAuthIntegrationTests {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private TotpService totpService;
+    private TotpProvider totpProvider;
 
     @Autowired
     private MfaChallengeRepository mfaChallengeRepository;
@@ -64,7 +64,7 @@ class MfaAuthIntegrationTests {
                 .andReturn().getResponse().getContentAsString());
 
         String manualEntryKey = textField(setupJson, "manualEntryKey");
-        String currentTotp = totpService.generateCurrentCodeFromBase32(manualEntryKey);
+        String currentTotp = totpProvider.generateCurrentCodeFromBase32(manualEntryKey);
 
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
@@ -87,7 +87,7 @@ class MfaAuthIntegrationTests {
 
         MvcResult verifyResult = mockMvc.perform(post("/api/auth/mfa/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authStatus").value("AUTHENTICATED"))
                 .andExpect(jsonPath("$.mfaEnabled").value(true))
@@ -99,7 +99,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isGone());
 
         mockMvc.perform(get("/api/auth/me")
@@ -110,7 +110,7 @@ class MfaAuthIntegrationTests {
         mockMvc.perform(post("/api/auth/mfa/disable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new DisablePayload(password, totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new DisablePayload(password, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/auth/mfa/status")
@@ -147,7 +147,7 @@ class MfaAuthIntegrationTests {
         JsonNode enableJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
@@ -190,7 +190,7 @@ class MfaAuthIntegrationTests {
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk());
 
         JsonNode challengeJson = loginAndReturnJson(email, password);
@@ -205,7 +205,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authStatus").value("AUTHENTICATED"));
     }
@@ -226,7 +226,7 @@ class MfaAuthIntegrationTests {
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk());
 
         JsonNode challengeJson = loginAndReturnJson(email, password);
@@ -239,7 +239,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/verify")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpService.generateCurrentCodeFromBase32(manualEntryKey)))))
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isGone())
                 .andExpect(jsonPath("$.message").value("MFA challenge has expired or is no longer valid"))
                 .andExpect(jsonPath("$.errors._global[0]").value("MFA challenge has expired or is no longer valid"));
@@ -276,7 +276,7 @@ class MfaAuthIntegrationTests {
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpService.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/auth/mfa/setup")
@@ -339,13 +339,13 @@ class MfaAuthIntegrationTests {
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpService.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/auth/mfa/disable")
                         .cookie(registerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new DisablePayload("WrongPass123!", totpService.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
+                        .content(objectMapper.writeValueAsString(new DisablePayload("WrongPass123!", totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"))
                 .andExpect(jsonPath("$.errors._global[0]").value("Invalid credentials"));

@@ -157,8 +157,8 @@ onMounted(() => {
           <div class="max-w-3xl">
             <h3 class="text-xl font-semibold text-slate-900">Protected submission content</h3>
             <p class="mt-2 text-sm leading-6 text-slate-600">
-              Metadata remains visible by default. Plaintext content is only fetched through the
-              controlled retrieval endpoint so the backend can authorize and audit access.
+              Metadata remains visible by default. Uploaded text content is only fetched through
+              the controlled retrieval endpoint so the backend can authorize and audit access.
             </p>
           </div>
           <button type="button" class="btn-primary self-start" :disabled="isLoadingContent" @click="loadSubmissionContent">

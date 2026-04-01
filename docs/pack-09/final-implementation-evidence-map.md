@@ -71,7 +71,7 @@ Evidence/tests:
 
 What it proves:
 - lecturer can create assignments
-- student can submit work
+- student can upload a bounded UTF-8 `text/plain` submission file through the browser-facing multipart contract
 - `SHA-256` digest metadata is created
 - digital signature metadata is created
 - the submission-signature workflow uses a stable configured demo RSA keypair rather than a fresh runtime-generated keypair
@@ -80,6 +80,9 @@ What it proves:
 - submission metadata and plaintext retrieval are separated into different endpoints
 - successful plaintext retrieval is auditable
 - unrelated student cannot read another student's submission
+- unsupported non-text uploads are rejected
+- empty uploads are rejected
+- invalid UTF-8 uploads are rejected
 - assignment/submission endpoints work under the cookie-authenticated session model used by the browser-facing frontend
 
 ## 3. Audit integrity

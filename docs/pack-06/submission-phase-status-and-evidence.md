@@ -36,6 +36,8 @@ The backend now includes a minimal Pack 04-aligned implementation for:
 ### Submission creation
 - allowed for `STUDENT`
 - requires the authenticated browser session established by the backend-issued `HttpOnly` auth cookie
+- now accepts a multipart browser upload rather than pasted JSON submission text
+- currently bounded to small UTF-8 `text/plain` uploads for evidence-friendly scope control
 
 ### Submission retrieval
 - allowed for submission owner
@@ -53,7 +55,7 @@ The backend now includes a minimal Pack 04-aligned implementation for:
 
 ### Submission integrity/authorship metadata
 For each submission, the backend now:
-- computes a `SHA-256` digest
+- computes a `SHA-256` digest over uploaded file bytes
 - creates a digital signature using the current simulated signing model
 - verifies that signature immediately
 - stores verification status and message with the submission
@@ -95,12 +97,13 @@ Implemented actions currently include:
 
 This currently proves:
 - lecturer can create an assignment
-- student can submit work to an assignment
+- student can upload a text submission file to an assignment
 - submission response contains digest, signature, algorithm, and verification status without exposing the internal storage reference
 - lecturer can review submission metadata
 - lecturer can retrieve decrypted submission content through the separate controlled endpoint
 - unrelated student cannot view another student's submission
 - unrelated student cannot retrieve another student's submission content
+- unsupported non-text uploads are rejected within the current bounded scope
 - student cannot create assignments
 - audit entries are created for submission events
 - audit entries contain non-empty integrity values

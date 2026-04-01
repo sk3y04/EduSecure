@@ -12,28 +12,31 @@ import java.security.SecureRandom;
 import java.time.Instant;
 
 @Service
-public class TotpService {
+public class TotpService implements TotpProvider {
 
     private static final String HMAC_ALGORITHM = "HmacSHA1";
     private static final int SECRET_LENGTH_BYTES = 20;
-    private static final int CODE_DIGITS = 6;
     private static final char[] BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567".toCharArray();
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final String issuer;
     private final long timeStepSeconds;
     private final int allowedWindow;
+    private final int codeDigits;
 
     public TotpService(
             @Value("${mfa.issuer:EduSecure}") String issuer,
             @Value("${mfa.totp-time-step-seconds:30}") long timeStepSeconds,
-            @Value("${mfa.totp-allowed-window:1}") int allowedWindow
+            @Value("${mfa.totp-allowed-window:1}") int allowedWindow,
+            @Value("${mfa.totp-code-digits:6}") int codeDigits
     ) {
         this.issuer = issuer;
         this.timeStepSeconds = timeStepSeconds;
         this.allowedWindow = allowedWindow;
+        this.codeDigits = codeDigits;
     }
 
+    @Override
     public GeneratedSecret generateSecret(String accountName) {
         byte[] secret = new byte[SECRET_LENGTH_BYTES];
         secureRandom.nextBytes(secret);
@@ -44,23 +47,30 @@ public class TotpService {
         String otpauthUri = "otpauth://totp/" + label
                 + "?secret=" + manualEntryKey
                 + "&issuer=" + encodedIssuer
-                + "&digits=" + CODE_DIGITS
+                + "&digits=" + codeDigits
                 + "&period=" + timeStepSeconds;
 
         return new GeneratedSecret(secret, manualEntryKey, otpauthUri);
     }
 
+    @Override
     public boolean looksLikeTotpCode(String verificationCode) {
-        return normalizeVerificationCode(verificationCode).matches("\\d{" + CODE_DIGITS + "}");
+        return normalizeVerificationCode(verificationCode).matches("\\d{" + codeDigits + "}");
     }
 
+    @Override
     public boolean isValidCode(byte[] secret, String verificationCode) {
+        return isValidCodeAt(secret, verificationCode, Instant.now());
+    }
+
+    @Override
+    public boolean isValidCodeAt(byte[] secret, String verificationCode, Instant instant) {
         String normalizedCode = normalizeVerificationCode(verificationCode);
         if (!looksLikeTotpCode(normalizedCode)) {
             return false;
         }
 
-        long currentCounter = Instant.now().getEpochSecond() / timeStepSeconds;
+        long currentCounter = calculateCounter(instant);
         for (int offset = -allowedWindow; offset <= allowedWindow; offset++) {
             if (generateCode(secret, currentCounter + offset).equals(normalizedCode)) {
                 return true;
@@ -69,13 +79,19 @@ public class TotpService {
         return false;
     }
 
-    public String generateCurrentCode(byte[] secret) {
-        long currentCounter = Instant.now().getEpochSecond() / timeStepSeconds;
-        return generateCode(secret, currentCounter);
+    @Override
+    public String generateCodeAt(byte[] secret, Instant instant) {
+        return generateCode(secret, calculateCounter(instant));
     }
 
+    @Override
     public String generateCurrentCodeFromBase32(String manualEntryKey) {
-        return generateCurrentCode(decodeBase32(manualEntryKey));
+        return generateCodeAtFromBase32(manualEntryKey, Instant.now());
+    }
+
+    @Override
+    public String generateCodeAtFromBase32(String manualEntryKey, Instant instant) {
+        return generateCodeAt(decodeBase32(manualEntryKey), instant);
     }
 
     private String generateCode(byte[] secret, long counter) {
@@ -90,11 +106,15 @@ public class TotpService {
                     | ((hash[offset + 2] & 0xFF) << 8)
                     | (hash[offset + 3] & 0xFF);
 
-            int otp = binary % (int) Math.pow(10, CODE_DIGITS);
-            return String.format("%0" + CODE_DIGITS + "d", otp);
+            int otp = binary % (int) Math.pow(10, codeDigits);
+            return String.format("%0" + codeDigits + "d", otp);
         } catch (Exception ex) {
             throw new IllegalStateException("TOTP generation failed", ex);
         }
+    }
+
+    private long calculateCounter(Instant instant) {
+        return instant.getEpochSecond() / timeStepSeconds;
     }
 
     private String normalizeVerificationCode(String verificationCode) {
@@ -157,17 +177,4 @@ public class TotpService {
         }
         return -1;
     }
-
-    public record GeneratedSecret(byte[] secretBytes, String manualEntryKey, String otpauthUri) {
-        public GeneratedSecret {
-            secretBytes = secretBytes.clone();
-        }
-
-        @Override
-        public byte[] secretBytes() {
-            return secretBytes.clone();
-        }
-    }
 }
-
-

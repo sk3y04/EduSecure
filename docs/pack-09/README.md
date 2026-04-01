@@ -18,10 +18,11 @@ The backend now already covers the main cryptographic artefact areas:
 - `SHA-256` digest generation
 - RSA-backed submission verification
 - `HMAC-SHA-256` audit integrity
-- `AES-GCM` secure transmission demo
+- `AES-GCM` protection for MFA secrets and submission content at rest
 
 What still needs disciplined planning is:
 - how to present this evidence in the report
+- how to supplement the earlier UML with a proper current-state data flow diagram
 - how to phrase cryptographic claims precisely without over-claiming
 - whether the existing UML diagrams need refresh after later implementation refinements
 - how to present the implemented Vue frontend and its credentialed API integration without scope drift
@@ -31,11 +32,13 @@ What still needs disciplined planning is:
 
 ## Contents
 
+- `current-state-data-flow-diagram.md`
 - `final-implementation-evidence-map.md`
 - `final-cryptography-claims-matrix.md`
 - `report-section-to-evidence-map.md`
 - `report-claims-audit-note.md`
 - `uml-refresh-assessment.md`
+- `uml/`
 - `vue-frontend-mvp-and-api-integration-plan.md`
 - `appendix-cicd-and-deployment-plan.md`
 - `postgresql-setup-and-security.md`

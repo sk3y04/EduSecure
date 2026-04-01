@@ -85,30 +85,39 @@ Status: `200 OK`
 
 ## C. `POST /api/assignments/{assignmentId}/submissions`
 
-### Implemented request body
-The current backend uses a deliberately simple JSON request body:
+### Implemented request format
+The current backend now uses a deliberately narrow multipart upload contract:
+
+- content type: `multipart/form-data`
+- required part: `file`
+- currently supported upload type: UTF-8 `text/plain`
+- current size bound: small evidence-friendly text uploads only
 
 ### Success response
 Status: `201 Created`
 
-```json
-{
-  "fileName": "coursework.txt",
-  "contentType": "text/plain",
-  "content": "This is my authentic coursework submission content."
-}
+```http
+POST /api/assignments/{assignmentId}/submissions
+Content-Type: multipart/form-data
+
+file=<coursework.txt>
 ```
 
 ### Implementation note
-- the backend computes the digest itself
+- the backend derives the effective file metadata from the uploaded file
+- the backend computes the digest itself from uploaded file bytes
 - the backend creates and verifies the signature metadata in the current simulated signing model
 - the backend encrypts submission content before durable storage
+- the current repository state does **not** implement broader binary upload handling yet
 
 ### Failure cases
 - `400 Bad Request` for invalid request structure
+- `400 Bad Request` for empty uploads or non-UTF-8 text input
 - `401 Unauthorized` for missing/invalid authenticated session cookie, including malformed, expired, or signature-invalid JWTs
 - `403 Forbidden` if role is not allowed
 - `404 Not Found` if assignment does not exist
+- `413 Payload Too Large` if the uploaded file exceeds the current bounded limit
+- `415 Unsupported Media Type` if the uploaded file is not within the current supported text-upload scope
 - `500 Internal Server Error` if the submission content cannot be protected for storage
 
 ### Storage note

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -13,22 +13,33 @@ const assignmentId = computed(() => String(route.params.assignmentId ?? ''))
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 
-const form = reactive({
-  fileName: '',
-  contentType: 'text/plain',
-  content: '',
-})
+const selectedFile = ref<File | null>(null)
+
+function handleFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  selectedFile.value = input.files?.[0] ?? null
+  errorMessage.value = null
+}
+
+function formatFileSize(size: number): string {
+  if (size < 1024) {
+    return `${size} B`
+  }
+
+  return `${(size / 1024).toFixed(1)} KB`
+}
 
 async function handleSubmit() {
+  if (!selectedFile.value) {
+    errorMessage.value = 'Select a UTF-8 text/plain file before submitting.'
+    return
+  }
+
   isSubmitting.value = true
   errorMessage.value = null
 
   try {
-    const response = await submissionsService.create(assignmentId.value, {
-      fileName: form.fileName,
-      contentType: form.contentType,
-      content: form.content,
-    })
+    const response = await submissionsService.create(assignmentId.value, selectedFile.value)
 
     await router.push({
       name: 'submission-detail',
@@ -66,42 +77,36 @@ async function handleSubmit() {
 
     <form class="mt-8 grid gap-5" @submit.prevent="handleSubmit">
       <label class="block">
-        <span class="field-label">File name</span>
+        <span class="field-label">Submission file</span>
         <input
-          v-model="form.fileName"
-          type="text"
+          type="file"
           required
           class="form-input"
-          placeholder="coursework.txt"
+          accept=".txt,text/plain"
+          @change="handleFileChange"
         />
       </label>
 
-      <label class="block">
-        <span class="field-label">Content type</span>
-        <input
-          v-model="form.contentType"
-          type="text"
-          required
-          class="form-input"
-          placeholder="text/plain"
-        />
-      </label>
-
-      <label class="block">
-        <span class="field-label">Submission content</span>
-        <textarea
-          v-model="form.content"
-          rows="12"
-          required
-          class="form-input"
-          placeholder="Paste the simulated coursework content that will be hashed and signed by the backend."
-        />
-      </label>
+      <div v-if="selectedFile" class="surface-panel-muted grid gap-4 p-4 text-sm text-slate-600 sm:grid-cols-3">
+        <div>
+          <p class="font-semibold text-slate-900">Selected file</p>
+          <p class="mt-2 break-all text-slate-700">{{ selectedFile.name }}</p>
+        </div>
+        <div>
+          <p class="font-semibold text-slate-900">Detected content type</p>
+          <p class="mt-2 text-slate-700">{{ selectedFile.type || 'Browser did not provide a type' }}</p>
+        </div>
+        <div>
+          <p class="font-semibold text-slate-900">Size</p>
+          <p class="mt-2 text-slate-700">{{ formatFileSize(selectedFile.size) }}</p>
+        </div>
+      </div>
 
       <div class="surface-panel-muted p-4 text-sm text-slate-600">
         <p class="font-semibold text-slate-900">What happens next</p>
         <ul class="mt-3 list-disc space-y-2 pl-5">
-          <li>The backend computes a SHA-256 digest.</li>
+          <li>The current upload flow is intentionally narrow: UTF-8 <code>text/plain</code> files only.</li>
+          <li>The backend computes a SHA-256 digest over the uploaded file bytes.</li>
           <li>A digital signature is created and immediately verified.</li>
           <li>The submission content is encrypted at rest before durable storage.</li>
           <li>The detail page exposes metadata first and content through a separate audited retrieval.</li>

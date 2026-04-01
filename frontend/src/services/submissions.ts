@@ -1,9 +1,12 @@
 import http from '@/services/http'
-import type { CreateSubmissionRequest, SubmissionContentResponse, SubmissionResponse } from '@/types/submission'
+import type { SubmissionContentResponse, SubmissionResponse } from '@/types/submission'
 
 export const submissionsService = {
-  async create(assignmentId: string, payload: CreateSubmissionRequest): Promise<SubmissionResponse> {
-    const response = await http.post<SubmissionResponse>(`/assignments/${assignmentId}/submissions`, payload)
+  async create(assignmentId: string, file: File): Promise<SubmissionResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await http.post<SubmissionResponse>(`/assignments/${assignmentId}/submissions`, formData)
     return response.data
   },
 

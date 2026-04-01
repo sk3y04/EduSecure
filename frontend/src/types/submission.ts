@@ -1,10 +1,5 @@
 export type SubmissionVerificationStatus = 'PENDING' | 'VERIFIED' | 'FAILED_VERIFICATION' | 'REJECTED'
 
-export interface CreateSubmissionRequest {
-  fileName: string
-  contentType: string
-  content: string
-}
 
 export interface SubmissionResponse {
   id: string

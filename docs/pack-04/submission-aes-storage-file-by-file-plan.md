@@ -234,17 +234,16 @@ Acceptance points:
 
 ## E. DTO and controller files
 
-### `backend/src/main/java/edusecure/edusecure/dto/CreateSubmissionRequest.java`
-Purpose in this feature:
-- likely no functional change for the first pass
+### Historical note: request-contract DTO
+Earlier planning assumed the first submission contract would stay JSON-backed.
 
-Planned action:
-- review only
-- keep the current request shape unless implementation forces a change
+Current implemented state:
+- the create-submission flow now uses multipart upload instead of a JSON `CreateSubmissionRequest`
+- browser clients submit a bounded UTF-8 `text/plain` file part
+- backend validation, hashing, signature generation, and AES-at-rest storage now operate on uploaded file bytes
 
-Acceptance points:
-- request contract remains stable
-- frontend compatibility is preserved
+Implementation takeaway:
+- treat the older JSON request-DTO assumption in this planning note as superseded by the implemented Pack 06 / Pack 09 evidence set
 
 ### `backend/src/main/java/edusecure/edusecure/dto/SubmissionResponse.java`
 Purpose in this feature:

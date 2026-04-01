@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #475569
+}
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #C2410C
+}
+
+title EduSecure Current-State Data Flow Diagram - Context
+
+rectangle "Student Browser\n<<External Entity>>" as Student #E0F2FE
+rectangle "Lecturer / Admin Browser\n<<External Entity>>" as Staff #E0F2FE
+rectangle "Authenticator App\n(TOTP)\n<<External Entity>>" as Authenticator #E0F2FE
+
+rectangle "P0 EduSecure Platform\nVue frontend + Spring Boot API" as System #DBEAFE
+
+Student --> System : registration/login credentials\nassignment plaintext\ncredentialed API requests
+System --> Student : Set-Cookie auth session\nsubmission metadata\nsubmission plaintext on explicit retrieval\nown-grade data
+
+Staff --> System : login credentials\ncredentialed review/grading requests
+System --> Staff : Set-Cookie auth session\nsubmission metadata\ngrade data
+
+System --> Authenticator : MFA setup secret\notpauth URI / manual-entry key
+Authenticator --> System : TOTP verification code\nor recovery-code-backed verification
+
+note bottom of System
+Current transport claims are deployment/TLS based.
+The browser does not persist the JWT in JavaScript storage.
+Only MFA pending-challenge data is kept in sessionStorage.
+end note
+@enduml
+
+

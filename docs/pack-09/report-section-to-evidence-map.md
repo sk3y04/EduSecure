@@ -47,10 +47,13 @@ Use:
 - `docs/pack-02/uml/*.puml`
 - `docs/pack-04/uml/*.puml`
 - `docs/pack-05/uml/*.puml`
+- `docs/pack-09/current-state-data-flow-diagram.md`
+- `docs/pack-09/uml/*.puml`
 - `docs/pack-09/final-doc-alignment-summary.md`
 - `docs/pack-09/uml-refresh-assessment.md`
 
 Suggested diagram emphasis:
+- context and level-1 DFD for current trust boundaries and data stores
 - use case diagram
 - deployment diagram insecure/secure
 - class diagram

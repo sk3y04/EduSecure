@@ -21,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -34,13 +33,14 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MfaService {
 
     private static final String RECOVERY_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int RECOVERY_CODE_SEGMENT_LENGTH = 4;
 
     private final UserRepository userRepository;
     private final MfaChallengeRepository mfaChallengeRepository;
     private final MfaRecoveryCodeRepository mfaRecoveryCodeRepository;
     private final PasswordEncoder passwordEncoder;
     private final MfaSecretCryptoService mfaSecretCryptoService;
-    private final TotpService totpService;
+    private final TotpProvider totpProvider;
     private final AuthTokenService authTokenService;
 
     @Value("${mfa.challenge-ttl-seconds:300}")
@@ -70,7 +70,7 @@ public class MfaService {
             throw new AuthApiException(HttpStatus.CONFLICT, "MFA is already enabled for this account");
         }
 
-        TotpService.GeneratedSecret generatedSecret = totpService.generateSecret(user.getEmail());
+        TotpProvider.GeneratedSecret generatedSecret = totpProvider.generateSecret(user.getEmail());
         MfaSecretCryptoService.EncryptedSecret encryptedSecret = mfaSecretCryptoService.encrypt(generatedSecret.secretBytes());
 
         user.setMfaEnabled(false);
@@ -94,7 +94,7 @@ public class MfaService {
         }
 
         byte[] secret = getStoredSecret(user);
-        if (!totpService.isValidCode(secret, request.verificationCode())) {
+        if (!totpProvider.isValidCode(secret, request.verificationCode())) {
             throw new AuthApiException(HttpStatus.UNAUTHORIZED, "Invalid MFA verification code");
         }
 
@@ -225,8 +225,8 @@ public class MfaService {
     }
 
     private boolean verifyTotpOrRecoveryCode(User user, String verificationCode, Instant now) {
-        if (totpService.looksLikeTotpCode(verificationCode)) {
-            return totpService.isValidCode(getStoredSecret(user), verificationCode);
+        if (totpProvider.looksLikeTotpCode(verificationCode)) {
+            return totpProvider.isValidCodeAt(getStoredSecret(user), verificationCode, now);
         }
         return consumeRecoveryCodeIfValid(user, verificationCode, now);
     }
@@ -256,12 +256,12 @@ public class MfaService {
     }
 
     private String generateRecoveryCode() {
-        return randomCodeSegment(4) + "-" + randomCodeSegment(4);
+        return randomCodeSegment() + "-" + randomCodeSegment();
     }
 
-    private String randomCodeSegment(int length) {
-        StringBuilder segment = new StringBuilder(length);
-        for (int i = 0; i < length; i++) {
+    private String randomCodeSegment() {
+        StringBuilder segment = new StringBuilder(RECOVERY_CODE_SEGMENT_LENGTH);
+        for (int i = 0; i < RECOVERY_CODE_SEGMENT_LENGTH; i++) {
             int index = ThreadLocalRandom.current().nextInt(RECOVERY_CODE_ALPHABET.length());
             segment.append(RECOVERY_CODE_ALPHABET.charAt(index));
         }
@@ -272,5 +272,4 @@ public class MfaService {
         return code == null ? "" : code.trim().toUpperCase(Locale.ROOT);
     }
 }
-
 

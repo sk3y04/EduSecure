@@ -31,7 +31,8 @@ These are the safest report-facing sources when you need to prove what the repos
 - `docs/pack-06/submission-phase-status-and-evidence.md`
 - `docs/pack-06/submission-content-protection-and-retrieval.md`
 - `docs/pack-07/grade-phase-status-and-evidence.md`
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
+- `docs/pack-09/current-state-data-flow-diagram.md`
+- `docs/pack-09/uml/dfd-level-1-current-state.puml`
 - `docs/pack-09/final-implementation-evidence-map.md`
 - backend integration tests under `backend/src/test/java/edusecure/edusecure/`
 
@@ -44,11 +45,14 @@ These files are still valuable in the report, but they should be presented as **
 - `docs/pack-04/uml/class-diagram-submission-addendum.puml`
 - `docs/pack-04/uml/sequence-submission-secure-pack04.puml`
 - `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml`
+- `docs/pack-09/uml/dfd-context-current-state.puml`
 - `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`
 
 Recommended wording in the report:
 
 > The UML artefacts represent the security design and main interaction logic of EduSecure. Implementation-specific refinements, such as cookie transport details, encrypted-at-rest submission storage, and separate plaintext retrieval, are corroborated by the implementation evidence notes and automated tests.
+
+The Pack 09 DFD files can be used alongside those UML artefacts when you want one marker-friendly diagram that highlights current trust boundaries, data stores, and sensitive-data movement more directly.
 
 ## 5. Code symbols the corrected docs now map to
 

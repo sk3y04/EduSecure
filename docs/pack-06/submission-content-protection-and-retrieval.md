@@ -67,7 +67,7 @@ This endpoint exists so plaintext retrieval is:
 `POST /api/assignments/{assignmentId}/submissions`
 
 Purpose:
-- accept plaintext submission content from an authenticated student
+- accept an authenticated student's uploaded UTF-8 text submission file
 - compute integrity/authorship metadata
 - encrypt the stored content before durable persistence
 
@@ -108,15 +108,15 @@ It also makes the confidentiality story clearer in the report:
 The current submission creation path follows this effective order.
 
 ### Step 1: authenticated student submits plaintext content
-`CreateSubmissionRequest` still accepts:
-- `fileName`
-- `contentType`
-- `content`
+The current implementation now accepts a deliberately narrow multipart upload:
+- one required `file` part
+- UTF-8 `text/plain` only in the current scope
+- a bounded small upload size suitable for report/evidence workflows
 
-The request contract remains deliberately simple.
+The browser selects a local text file, while the backend derives the effective file metadata and reads the uploaded bytes.
 
-### Step 2: digest is computed on plaintext
-The backend converts `content` to bytes and computes a `SHA-256` digest.
+### Step 2: digest is computed on uploaded plaintext bytes
+The backend validates the uploaded bytes as UTF-8 text and computes a `SHA-256` digest over those uploaded plaintext bytes.
 
 This preserves the original integrity model:
 - the digest reflects the actual submitted plaintext
@@ -302,6 +302,7 @@ The current implementation is deliberately scoped.
 ### It does not yet implement
 - public audit review endpoints
 - download/stream handling for richer binary file workflows
+- broader multipart binary upload workflows beyond the current UTF-8 `text/plain` cut
 - enterprise key management
 - end-to-end encrypted submission transport
 - a final report-ready audit viewer
