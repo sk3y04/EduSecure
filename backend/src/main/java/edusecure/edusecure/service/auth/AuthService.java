@@ -1,9 +1,12 @@
 package edusecure.edusecure.service.auth;
 
+import edusecure.edusecure.audit.AuditService;
 import edusecure.edusecure.dto.auth.AuthResponse;
+import edusecure.edusecure.dto.auth.CreateManagedUserRequest;
 import edusecure.edusecure.dto.auth.CurrentUserResponse;
 import edusecure.edusecure.dto.auth.LoginRequest;
 import edusecure.edusecure.dto.auth.RegisterRequest;
+import edusecure.edusecure.entity.audit.AuditActionType;
 import edusecure.edusecure.entity.auth.Role;
 import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.auth.User;
@@ -32,26 +35,38 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final AuthTokenService authTokenService;
     private final MfaService mfaService;
+        private final AuditService auditService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new AuthApiException(HttpStatus.CONFLICT, "Email is already registered");
-        }
-
-        Role studentRole = roleRepository.findByName(RoleName.STUDENT)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Default student role is missing"));
-
-        User user = User.builder()
-                .email(request.email().trim().toLowerCase())
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .fullName(request.fullName().trim())
-                .roles(Set.of(studentRole))
-                .build();
-
-        User savedUser = userRepository.save(user);
+        User savedUser = createUserAccount(request.email(), request.password(), request.fullName(), RoleName.STUDENT);
         return authTokenService.issuePasswordAuthenticatedResponse(savedUser);
     }
+
+        @Transactional
+        public CurrentUserResponse createManagedUser(String creatorEmail, CreateManagedUserRequest request) {
+        User creator = userRepository.findByEmail(normalizeEmail(creatorEmail))
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        RoleName requestedRole = request.role();
+        validateManagedRoleAssignment(creator, requestedRole);
+
+        User savedUser = createUserAccount(request.email(), request.password(), request.fullName(), requestedRole);
+        auditService.record(
+            AuditActionType.USER_CREATED,
+            creator.getId(),
+            User.class.getSimpleName(),
+            savedUser.getId(),
+            "email=" + savedUser.getEmail() + ",role=" + requestedRole.name()
+        );
+
+        return new CurrentUserResponse(
+            savedUser.getId(),
+            savedUser.getEmail(),
+            savedUser.getFullName(),
+            savedUser.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet())
+        );
+        }
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -75,7 +90,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public CurrentUserResponse currentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         return new CurrentUserResponse(
@@ -84,6 +99,49 @@ public class AuthService {
                 user.getFullName(),
                 user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet())
         );
+    }
+
+    private User createUserAccount(String email, String password, String fullName, RoleName roleName) {
+        String normalizedEmail = normalizeEmail(email);
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new AuthApiException(HttpStatus.CONFLICT, "Email is already registered");
+        }
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Required role is missing: " + roleName.name()));
+
+        User user = User.builder()
+                .email(normalizedEmail)
+                .passwordHash(passwordEncoder.encode(password))
+                .fullName(fullName.trim())
+                .roles(Set.of(role))
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    private void validateManagedRoleAssignment(User creator, RoleName requestedRole) {
+        if (requestedRole == RoleName.ADMIN) {
+            throw new AuthApiException(HttpStatus.FORBIDDEN, "Admin accounts cannot be created through this endpoint");
+        }
+
+        if (hasRole(creator, RoleName.ADMIN)) {
+            return;
+        }
+
+        if (hasRole(creator, RoleName.LECTURER) && requestedRole == RoleName.STUDENT) {
+            return;
+        }
+
+        throw new AuthApiException(HttpStatus.FORBIDDEN, "You are not allowed to create an account with that role");
+    }
+
+    private boolean hasRole(User user, RoleName roleName) {
+        return user.getRoles().stream().anyMatch(role -> role.getName() == roleName);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 
 }

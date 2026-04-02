@@ -142,7 +142,7 @@ Current technical notes:
 | hashing for integrity | `MessageDigest` with `SHA-256` |
 | HMAC integrity | `Mac` with `HmacSHA256` |
 | symmetric encryption demo | `Cipher` with AES-GCM |
-| digital signature generation/verification | `Signature` with RSA + SHA-256 |
+| digital signature generation/verification | `Signature` with ECC + SHA-256 (`SHA256withECDSA`) |
 
 ## 5. Randomness and key generation
 
@@ -180,7 +180,7 @@ Why this matters:
 - keep the MFA secret-encryption key externalised in environment configuration
 - treat recovery codes as separate secrets and store only their hashes
 
-## RSA keypairs for digital signatures
+## ECC keypairs for digital signatures
 - private key should remain server-side for system-controlled demonstrations unless a user-specific signing flow is explicitly simulated
 - if student-side authorship is simulated, document that the private key represents the student's controlled signing identity within the study-project model
 - public verification key may be stored and associated with the signer identity
@@ -226,7 +226,7 @@ The first demonstration-friendly implementation path should be:
 1. user registration/login with bcrypt-protected passwords
 2. MFA hardening for login using TOTP and recovery codes
 3. secure message/file encryption demo using AES-GCM
-4. assignment signature generation and verification using RSA + SHA-256
+4. assignment signature generation and verification using ECC + SHA-256
 5. grade-change audit entry protected by SHA-256/HMAC integrity support
 
 Current progress against this sequence:

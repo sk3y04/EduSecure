@@ -24,6 +24,9 @@ import java.util.HexFormat;
 @Service
 public class AesRsaCryptoService implements ICryptoService {
 
+    private static final String SIGNING_KEY_ALGORITHM = "EC";
+    private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA";
+
     private final KeyPair demoSigningKeyPair;
     private final byte[] auditSecretBytes;
 
@@ -50,6 +53,11 @@ public class AesRsaCryptoService implements ICryptoService {
     }
 
     @Override
+    public String signatureAlgorithm() {
+        return SIGNATURE_ALGORITHM;
+    }
+
+    @Override
     public String sign(byte[] data) {
         return Base64.getEncoder().encodeToString(signWithPrivateKey(data, demoSigningKeyPair.getPrivate()));
     }
@@ -57,7 +65,7 @@ public class AesRsaCryptoService implements ICryptoService {
     @Override
     public boolean verify(byte[] data, String signature) {
         try {
-            Signature verifier = Signature.getInstance("SHA256withRSA");
+            Signature verifier = Signature.getInstance(SIGNATURE_ALGORITHM);
             verifier.initVerify(demoSigningKeyPair.getPublic());
             verifier.update(data);
             return verifier.verify(Base64.getDecoder().decode(signature));
@@ -80,7 +88,7 @@ public class AesRsaCryptoService implements ICryptoService {
 
     private byte[] signWithPrivateKey(byte[] data, PrivateKey privateKey) {
         try {
-            Signature signer = Signature.getInstance("SHA256withRSA");
+            Signature signer = Signature.getInstance(SIGNATURE_ALGORITHM);
             signer.initSign(privateKey);
             signer.update(data);
             return signer.sign();
@@ -101,12 +109,12 @@ public class AesRsaCryptoService implements ICryptoService {
 
     private PrivateKey readPrivateKey(Resource privateKeyResource) throws IOException, GeneralSecurityException {
         byte[] decoded = decodePem(privateKeyResource, "PRIVATE KEY");
-        return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
+        return KeyFactory.getInstance(SIGNING_KEY_ALGORITHM).generatePrivate(new PKCS8EncodedKeySpec(decoded));
     }
 
     private PublicKey readPublicKey(Resource publicKeyResource) throws IOException, GeneralSecurityException {
         byte[] decoded = decodePem(publicKeyResource, "PUBLIC KEY");
-        return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(decoded));
+        return KeyFactory.getInstance(SIGNING_KEY_ALGORITHM).generatePublic(new X509EncodedKeySpec(decoded));
     }
 
     private byte[] decodePem(Resource resource, String pemLabel) throws IOException {

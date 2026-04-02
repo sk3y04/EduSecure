@@ -2,6 +2,11 @@ package edusecure.edusecure.entity.audit;
 
 public enum AuditActionType {
     ASSIGNMENT_CREATED,
+    USER_CREATED,
+    SPACE_CREATED,
+    SPACE_UPDATED,
+    SPACE_STUDENT_ADDED,
+    SPACE_STUDENT_REMOVED,
     SUBMISSION_CREATED,
     SUBMISSION_VERIFIED,
     SUBMISSION_VERIFICATION_FAILED,

@@ -6,7 +6,7 @@ This document defines the cryptographic workflow for the first secure submission
 
 From the existing decision matrix:
 - `SHA-256` for digest generation
-- `RSA + SHA-256` for digital signature creation and verification
+- `ECC + SHA-256` for digital signature creation and verification
 - `TLS 1.3` in the secure design narrative for transport protection
 
 ## 2. Workflow goal
@@ -26,7 +26,7 @@ Use a **server-managed simulation of student signing identity**.
 - the report must explicitly state that this is a simulated authorship environment suitable for an educational artefact
 
 ### Current implementation refinement
-The current backend now uses a **stable configured demo RSA keypair** loaded from externalisable resource locations rather than generating a fresh signing keypair on each application startup.
+The current backend now uses a **stable configured demo ECC keypair** loaded from externalisable resource locations rather than generating a fresh signing keypair on each application startup.
 
 This improves:
 - repeatability across runs

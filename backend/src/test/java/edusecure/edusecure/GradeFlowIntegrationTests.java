@@ -228,7 +228,7 @@ class GradeFlowIntegrationTests {
                 .ciphertextLengthBytes(128L)
                 .hashDigest("digest")
                 .digitalSignature("signature")
-                .signatureAlgorithm("SHA256withRSA")
+                .signatureAlgorithm("SHA256withECDSA")
                 .verificationStatus(verificationStatus)
                 .verificationMessage(verificationStatus.name())
                 .build());

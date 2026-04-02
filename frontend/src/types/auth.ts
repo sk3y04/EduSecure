@@ -7,6 +7,13 @@ export interface LoginRequest {
   password: string
 }
 
+export interface CreateManagedUserRequest {
+  email: string
+  password: string
+  fullName: string
+  role: Exclude<RoleName, 'ADMIN'>
+}
+
 export interface AuthResponse {
   authStatus: AuthStatus
   userId: string | null

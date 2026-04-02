@@ -55,16 +55,16 @@ The selected mechanisms should satisfy four needs:
 ## C. Digital signature / proof of authorship
 
 ### Selected
-- `RSA` with `SHA-256`
+- `ECC` with `SHA-256`
 
 ### Rationale
-- simpler to explain and demonstrate in a study project than ECC
+- provides smaller keys and a more modern asymmetric-signature design than RSA
 - provides a clear proof-of-authorship story for assignment submissions
 - well supported in the standard Java cryptography architecture
 
-### Why ECC is still discussed
-- ECC should still be compared in the report because the brief expects comparison
-- ECC remains a valid alternative and may be mentioned as a more efficient future option
+### Why RSA is still discussed
+- RSA should still be compared in the report because the brief expects comparison
+- RSA remains a valid alternative and may be mentioned as a simpler comparison point
 
 ## D. Integrity checking
 
@@ -93,7 +93,7 @@ The selected mechanisms should satisfy four needs:
 |---|---|
 | `bcrypt` | plaintext credential disclosure |
 | `AES-GCM` | insecure file/message confidentiality |
-| `RSA + SHA-256` signature | assignment tampering, weak authorship proof |
+| `ECC + SHA-256` signature | assignment tampering, weak authorship proof |
 | `SHA-256` digest | file integrity checking, audit-chain input |
 | `HMAC-SHA-256` | tamper-evident protection for sensitive records/logging |
 | `TLS 1.3` in secure design | token interception, eavesdropping, MITM exposure |
@@ -104,7 +104,7 @@ For the first EduSecure artefact, the recommended control set is:
 
 1. `bcrypt` for user passwords
 2. `AES-GCM` for secure file/message transmission simulation
-3. `RSA + SHA-256` for digital signature generation and verification
+3. `ECC + SHA-256` for digital signature generation and verification
 4. `SHA-256` and/or `HMAC-SHA-256` for integrity and tamper-evident audit support
 
 This selection covers the brief well while keeping implementation manageable in Java Spring Boot.

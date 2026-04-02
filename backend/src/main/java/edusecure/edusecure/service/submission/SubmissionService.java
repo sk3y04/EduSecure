@@ -92,7 +92,7 @@ public class SubmissionService {
                     .ciphertextLengthBytes(encryptedContent.ciphertextLengthBytes())
                     .hashDigest(hashDigest)
                     .digitalSignature(digitalSignature)
-                    .signatureAlgorithm("SHA256withRSA")
+                    .signatureAlgorithm(cryptoService.signatureAlgorithm())
                     .verificationStatus(status)
                     .verificationMessage(verificationMessage)
                     .build();

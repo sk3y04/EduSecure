@@ -8,6 +8,7 @@ The current authentication implementation in `backend/` is now a **password + JW
 
 Implemented auth areas:
 - public registration endpoint
+- staff-managed user creation endpoint for admin/lecturer workflows
 - public login endpoint
 - protected current-user endpoint
 - `bcrypt` password hashing through Spring Security
@@ -51,6 +52,7 @@ Important clarification:
 
 ### Auth DTOs
 - `backend/src/main/java/edusecure/edusecure/dto/RegisterRequest.java`
+- `backend/src/main/java/edusecure/edusecure/dto/CreateManagedUserRequest.java`
 - `backend/src/main/java/edusecure/edusecure/dto/LoginRequest.java`
 - `backend/src/main/java/edusecure/edusecure/dto/AuthResponse.java`
 - `backend/src/main/java/edusecure/edusecure/dto/AuthStatus.java`
@@ -82,11 +84,12 @@ Important clarification:
 |---|---|---|---|
 | `/api/system/health` | GET | Implemented | Public health/status endpoint |
 | `/api/auth/register` | POST | Implemented | Public registration; assigns default `STUDENT` role and sets auth cookie on success |
+| `/api/auth/users` | POST | Implemented | Requires authenticated `ADMIN` or `LECTURER`; admins create lecturer/student accounts, lecturers create student accounts only |
 | `/api/auth/login` | POST | Implemented | Public login; sets auth cookie for non-MFA users or returns `MFA_REQUIRED` challenge for MFA-enabled users |
 | `/api/auth/logout` | POST | Implemented | Clears the auth cookie |
 | `/api/auth/me` | GET | Implemented | Requires authenticated cookie-backed session |
 | `/api/auth/mfa/status` | GET | Implemented | Return current user MFA state |
-| `/api/auth/mfa/setup` | POST | Implemented | Begin TOTP enrollment |
+| `/api/auth/mfa/setup` | POST | Implemented | Begin TOTP enrollment and return a manual-entry key plus standard `otpauth://` URI for authenticator apps |
 | `/api/auth/mfa/enable` | POST | Implemented | Confirm first TOTP code and enable MFA |
 | `/api/auth/mfa/verify` | POST | Implemented | Finish login for MFA-enabled users and set auth cookie |
 | `/api/auth/mfa/disable` | POST | Implemented | Disable MFA after password + second-factor re-verification |
@@ -127,7 +130,16 @@ Important clarification:
 ### Access control baseline
 - `/api/system/health` is public
 - `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, and `/api/auth/mfa/verify` are public
+- `/api/auth/users` requires an authenticated caller with `ADMIN` or `LECTURER`
 - other endpoints are authenticated by default in the current security config
+
+### Managed account-creation behaviour
+- public self-registration remains available and still creates only `STUDENT` accounts
+- staff-managed creation is separated into `/api/auth/users`
+- admins can create `LECTURER` and `STUDENT` accounts
+- lecturers can create `STUDENT` accounts only
+- attempts to create `ADMIN` accounts through the managed endpoint are rejected
+- successful staff-managed account creation records a `USER_CREATED` audit event
 
 ### Validation-response consistency
 - `register`, `login`, `mfa/enable`, `mfa/verify`, and `mfa/disable` all use the same `ValidationErrorResponse` shape for request-body input errors
@@ -139,6 +151,7 @@ Important clarification:
 The current auth implementation now includes:
 - optional MFA per user account
 - TOTP authenticator app as the first and only MFA method in phase 1
+- compatibility with normal smartphone authenticator apps through manual-entry key or `otpauth://` enrollment material
 - no JWT issuance before MFA verification for MFA-enabled users
 - server-side short-lived MFA challenge records
 - hashed one-time recovery codes
@@ -173,6 +186,10 @@ Evidence currently covered:
 - logout clears the auth cookie
 - `/api/auth/me` rejects unauthenticated access
 - duplicate registration returns conflict
+- admin can create lecturer and student accounts through `/api/auth/users`
+- lecturer can create student accounts through `/api/auth/users`
+- lecturer cannot create lecturer or admin accounts
+- student callers are forbidden from using `/api/auth/users`
 
 ### MFA integration tests
 - `backend/src/test/java/edusecure/edusecure/MfaAuthIntegrationTests.java`

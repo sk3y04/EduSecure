@@ -35,6 +35,7 @@ Those may be considered later, but the first implementation should stay small an
 | Endpoint | Method | Authentication required | Status | Purpose |
 |---|---|---|---|---|
 | `/register` | POST | No | Implemented | Create a new user with default `STUDENT` role |
+| `/users` | POST | Yes (`ADMIN` or `LECTURER`) | Implemented | Staff-managed account creation with role restrictions |
 | `/login` | POST | No | Implemented | Authenticate password; either return JWT immediately or return MFA challenge |
 | `/logout` | POST | No | Implemented | Clear the auth cookie in the browser |
 | `/me` | GET | Yes | Implemented | Return current authenticated user details |
@@ -174,7 +175,59 @@ Status: `200 OK`
 - password-only success sets the auth JWT in an `HttpOnly` cookie
 - MFA challenge responses clear any previous auth cookie
 
-## C. `GET /api/auth/me` — Implemented
+## C. `POST /api/auth/users` — Implemented
+
+### Purpose
+Create new accounts through a staff-managed flow rather than public self-registration.
+
+### Authentication and authorization
+- requires an authenticated session
+- allowed caller roles: `ADMIN`, `LECTURER`
+- `ADMIN` may create `LECTURER` and `STUDENT` accounts
+- `LECTURER` may create `STUDENT` accounts only
+- `ADMIN` accounts cannot be created through this endpoint
+
+### Request body
+```json
+{
+  "email": "lecturer@example.com",
+  "password": "StrongPass123!",
+  "fullName": "Lecturer Example",
+  "role": "LECTURER"
+}
+```
+
+### Validation rules
+- `email` must be present and valid
+- `password` uses the same strength rules as `POST /api/auth/register`
+- `fullName` must be present
+- `role` must be supplied as a valid implemented role name
+
+### Success response
+Status: `201 Created`
+
+```json
+{
+  "userId": "uuid-value",
+  "email": "lecturer@example.com",
+  "fullName": "Lecturer Example",
+  "roles": ["LECTURER"]
+}
+```
+
+### Failure cases
+- `400 Bad Request` for validation failures
+- `401 Unauthorized` if no valid authenticated session is supplied
+- `403 Forbidden` if the caller tries to create a disallowed role
+- `409 Conflict` if the email is already registered
+- `500 Internal Server Error` if the required role is unexpectedly missing
+
+### Notes
+- this endpoint does not log in the newly created user
+- the caller keeps their own existing authenticated session
+- successful creation is audited as a `USER_CREATED` event
+
+## D. `GET /api/auth/me` — Implemented
 
 ### Authentication transport
 Browser requests are authenticated by the `HttpOnly` auth cookie. The frontend sends credentialed

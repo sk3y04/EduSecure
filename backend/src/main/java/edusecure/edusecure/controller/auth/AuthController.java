@@ -1,6 +1,7 @@
 package edusecure.edusecure.controller.auth;
 
 import edusecure.edusecure.dto.auth.AuthResponse;
+import edusecure.edusecure.dto.auth.CreateManagedUserRequest;
 import edusecure.edusecure.dto.auth.CurrentUserResponse;
 import edusecure.edusecure.dto.auth.LoginRequest;
 import edusecure.edusecure.dto.auth.MfaDisableRequest;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,6 +44,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return buildAuthResponse(HttpStatus.OK, authService.login(request));
+    }
+
+    @PostMapping("/users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LECTURER')")
+    public ResponseEntity<CurrentUserResponse> createManagedUser(
+            Authentication authentication,
+            @Valid @RequestBody CreateManagedUserRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(authService.createManagedUser(authentication.getName(), request));
     }
 
     @GetMapping("/mfa/status")

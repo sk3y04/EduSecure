@@ -7,8 +7,11 @@ import AssignmentListView from '@/views/assignments/AssignmentListView.vue'
 import LoginView from '@/views/auth/LoginView.vue'
 import MfaChallengeView from '@/views/auth/MfaChallengeView.vue'
 import AccountSecurityView from '@/views/security/AccountSecurityView.vue'
+import SpaceDetailView from '@/views/spaces/SpaceDetailView.vue'
+import SpaceListView from '@/views/spaces/SpaceListView.vue'
 import SubmissionCreateView from '@/views/submissions/SubmissionCreateView.vue'
 import SubmissionDetailView from '@/views/submissions/SubmissionDetailView.vue'
+import UserManagementView from '@/views/users/UserManagementView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +52,16 @@ const router = createRouter({
           component: AssignmentListView,
         },
         {
+          path: 'spaces',
+          name: 'spaces',
+          component: SpaceListView,
+        },
+        {
+          path: 'spaces/:spaceId',
+          name: 'space-detail',
+          component: SpaceDetailView,
+        },
+        {
           path: 'assignments/:assignmentId/submit',
           name: 'submission-create',
           component: SubmissionCreateView,
@@ -65,6 +78,14 @@ const router = createRouter({
           path: 'security/mfa',
           name: 'account-security',
           component: AccountSecurityView,
+        },
+        {
+          path: 'users',
+          name: 'user-management',
+          component: UserManagementView,
+          meta: {
+            roles: ['ADMIN', 'LECTURER'] satisfies RoleName[],
+          },
         },
       ],
     },

@@ -151,7 +151,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 5.3 Asymmetric/signature choice
 
-[Compare RSA and ECC. Justify RSA + SHA-256 for this artefact, and note that the implemented signing flow uses a stable configured demo keypair within a bounded study-project simulation rather than a full production PKI.]
+[Compare RSA and ECC. Justify ECC + SHA-256 for this artefact, and note that the implemented signing flow uses a stable configured demo keypair within a bounded study-project simulation rather than a full production PKI.]
 
 ## 5.4 Hashing and MAC choice
 

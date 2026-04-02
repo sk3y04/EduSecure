@@ -28,7 +28,7 @@ The report should read as a **cryptography case study supported by implementatio
 These are the themes that should carry the report:
 - plaintext password mitigation using `bcrypt`
 - stronger authentication through optional TOTP-based MFA
-- submission integrity/authorship evidence using `SHA-256` and RSA-based signing/verification logic
+- submission integrity/authorship evidence using `SHA-256` and ECC-based signing/verification logic
 - submission confidentiality-at-rest using `AES-GCM`
 - grade integrity and accountability using verified-submission-only grading plus HMAC-backed audit evidence
 - a separate AES-GCM demo that proves symmetric encryption independently of the business flow
@@ -278,9 +278,9 @@ Use a compare-and-select structure.
 
 #### C. Asymmetric signing choice
 - compare RSA vs ECC
-- explain why RSA was chosen for first artefact implementation: clarity, library support, easier explanation
-- explain that the implemented submission-signature flow now uses a stable configured demo RSA keypair for repeatable evidence, while still remaining a study-project simulation
-- still acknowledge ECC as a strong modern alternative
+- explain why ECC was chosen for the implemented artefact and compare it against RSA clearly
+- explain that the implemented submission-signature flow now uses a stable configured demo ECC keypair for repeatable evidence, while still remaining a study-project simulation
+- still acknowledge RSA as a viable comparison point even though ECC is the implemented choice
 
 #### D. Hashing and MACs
 - explain the separate roles of `SHA-256` and `HMAC-SHA-256`
@@ -302,7 +302,7 @@ That academic contrast reads strongly.
 
 ### Caution
 Keep claim wording bounded:
-- do not say RSA flow is enterprise PKI
+- do not say the ECC flow is enterprise PKI
 - do not conflate TLS (infrastructure) with application-layer AES-GCM encryption
 - TLS is deployment-proven via Certbot/Let's Encrypt and can be stated as implemented
 
@@ -383,7 +383,7 @@ A strong structure is control-by-control:
 - `AES-GCM` demo
 - submission AES-at-rest protection
 - `SHA-256` digests
-- RSA-based signature workflow
+- ECC-based signature workflow
 - `HMAC-SHA-256` audit integrity
 - RBAC and audited sensitive actions
 

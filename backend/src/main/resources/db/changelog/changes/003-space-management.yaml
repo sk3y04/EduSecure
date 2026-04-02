@@ -1,0 +1,158 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-space-management
+      author: copilot
+      changes:
+        - createTable:
+            tableName: spaces
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_spaces
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(120)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: archived
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: spaces
+            columnNames: code
+            constraintName: uk_spaces_code
+
+        - createTable:
+            tableName: space_memberships
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_space_memberships
+                    nullable: false
+              - column:
+                  name: space_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: added_by_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: added_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: space_memberships
+            columnNames: space_id, student_user_id
+            constraintName: uk_space_memberships_space_student
+
+        - addForeignKeyConstraint:
+            baseTableName: spaces
+            baseColumnNames: created_by_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_spaces_created_by_user
+            onDelete: RESTRICT
+
+        - addForeignKeyConstraint:
+            baseTableName: space_memberships
+            baseColumnNames: space_id
+            referencedTableName: spaces
+            referencedColumnNames: id
+            constraintName: fk_space_memberships_space
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: space_memberships
+            baseColumnNames: student_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_space_memberships_student_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: space_memberships
+            baseColumnNames: added_by_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_space_memberships_added_by_user
+            onDelete: RESTRICT
+
+        - createIndex:
+            tableName: spaces
+            indexName: idx_spaces_created_by_user_id
+            columns:
+              - column:
+                  name: created_by_user_id
+
+        - createIndex:
+            tableName: spaces
+            indexName: idx_spaces_archived
+            columns:
+              - column:
+                  name: archived
+
+        - createIndex:
+            tableName: space_memberships
+            indexName: idx_space_memberships_space_id
+            columns:
+              - column:
+                  name: space_id
+
+        - createIndex:
+            tableName: space_memberships
+            indexName: idx_space_memberships_student_user_id
+            columns:
+              - column:
+                  name: student_user_id
+
+        - createIndex:
+            tableName: space_memberships
+            indexName: idx_space_memberships_added_by_user_id
+            columns:
+              - column:
+                  name: added_by_user_id

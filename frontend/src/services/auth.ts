@@ -1,6 +1,7 @@
 import http from '@/services/http'
 import type {
   AuthResponse,
+  CreateManagedUserRequest,
   CurrentUserResponse,
   LoginRequest,
   MfaDisableRequest,
@@ -12,6 +13,11 @@ import type {
 } from '@/types/auth'
 
 export const authService = {
+  async createManagedUser(payload: CreateManagedUserRequest): Promise<CurrentUserResponse> {
+    const response = await http.post<CurrentUserResponse>('/auth/users', payload)
+    return response.data
+  },
+
   async login(payload: LoginRequest): Promise<AuthResponse> {
     const response = await http.post<AuthResponse>('/auth/login', payload)
     return response.data

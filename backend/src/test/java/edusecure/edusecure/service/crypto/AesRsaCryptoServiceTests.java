@@ -10,12 +10,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AesRsaCryptoServiceTests {
 
+        private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA";
+
     private static final String PRIVATE_KEY_LOCATION = "classpath:crypto-demo-signing-private.pem";
     private static final String PUBLIC_KEY_LOCATION = "classpath:crypto-demo-signing-public.pem";
     private static final String AUDIT_SECRET = "QXVkaXRJbnRlZ3JpdHlTZWNyZXRGb3JUZXN0c0luRWR1U2VjdXJlMTIzNDU2Nzg5MDEyMzQ1Ng==";
 
     @Test
-    void configuredDemoSigningKeyPairProducesStableSignatureAcrossServiceInstances() {
+        void configuredDemoSigningKeyPairVerifiesAcrossServiceInstances() {
         AesRsaCryptoService firstService = new AesRsaCryptoService(
                 new DefaultResourceLoader(),
                 PRIVATE_KEY_LOCATION,
@@ -34,9 +36,12 @@ class AesRsaCryptoServiceTests {
         String firstSignature = firstService.sign(payload);
         String secondSignature = secondService.sign(payload);
 
-        assertThat(firstSignature).isEqualTo(secondSignature);
+                assertThat(firstService.signatureAlgorithm()).isEqualTo(SIGNATURE_ALGORITHM);
+                assertThat(firstSignature).isNotBlank();
+                assertThat(secondSignature).isNotBlank();
         assertThat(firstService.verify(payload, firstSignature)).isTrue();
         assertThat(secondService.verify(payload, firstSignature)).isTrue();
+                assertThat(secondService.verify(payload, secondSignature)).isTrue();
     }
 
     @Test

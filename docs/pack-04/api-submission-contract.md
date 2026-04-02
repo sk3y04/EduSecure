@@ -137,7 +137,7 @@ Status: `200 OK`
   "contentType": "application/pdf",
   "submittedAt": "2026-03-15T17:00:00Z",
   "hashDigest": "sha256-hex-or-base64",
-  "signatureAlgorithm": "SHA256withRSA",
+  "signatureAlgorithm": "SHA256withECDSA",
   "verificationStatus": "VERIFIED",
   "verificationMessage": "Signature verified successfully"
 }

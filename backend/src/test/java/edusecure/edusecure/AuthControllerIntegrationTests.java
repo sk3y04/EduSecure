@@ -1,5 +1,12 @@
 package edusecure.edusecure;
 
+import edusecure.edusecure.entity.audit.AuditLog;
+import edusecure.edusecure.entity.auth.Role;
+import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.audit.AuditLogRepository;
+import edusecure.edusecure.repository.auth.RoleRepository;
+import edusecure.edusecure.repository.auth.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,10 +14,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -31,6 +41,18 @@ class AuthControllerIntegrationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+        @Autowired
+        private UserRepository userRepository;
+
+        @Autowired
+        private RoleRepository roleRepository;
+
+        @Autowired
+        private PasswordEncoder passwordEncoder;
+
+        @Autowired
+        private AuditLogRepository auditLogRepository;
 
     @Test
     void registerLoginAndMeFlowWorks() throws Exception {
@@ -196,6 +218,113 @@ class AuthControllerIntegrationTests {
     }
 
     @Test
+    void adminCanCreateLecturerAndStudentAccounts() throws Exception {
+        User admin = ensureUser("admin-create-" + UUID.randomUUID() + "@example.com", "Admin Creator", RoleName.ADMIN);
+        Cookie adminCookie = loginAndReturnAuthCookie(admin.getEmail(), "StrongPass123!");
+
+        String lecturerEmail = "lecturer-created-" + UUID.randomUUID() + "@example.com";
+        mockMvc.perform(post("/api/auth/users")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                lecturerEmail,
+                                "StrongPass123!",
+                                "Lecturer Created",
+                                "LECTURER"
+                        ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value(lecturerEmail))
+                .andExpect(jsonPath("$.roles[*]").value(hasItem("LECTURER")));
+
+        String studentEmail = "student-created-" + UUID.randomUUID() + "@example.com";
+        MvcResult studentResult = mockMvc.perform(post("/api/auth/users")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                studentEmail,
+                                "StrongPass123!",
+                                "Student Created",
+                                "STUDENT"
+                        ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value(studentEmail))
+                .andExpect(jsonPath("$.roles[*]").value(hasItem("STUDENT")))
+                .andReturn();
+
+        String createdStudentId = objectMapper.readTree(studentResult.getResponse().getContentAsString()).get("userId").asText();
+        List<AuditLog> auditLogs = auditLogRepository.findByEntityTypeAndEntityIdOrderByEventTimestampAsc("User", UUID.fromString(createdStudentId));
+        org.assertj.core.api.Assertions.assertThat(auditLogs)
+                .extracting(log -> log.getActionType().name())
+                .contains("USER_CREATED");
+    }
+
+    @Test
+    void lecturerCanCreateStudentButNotLecturerOrAdminAccounts() throws Exception {
+        User lecturer = ensureUser("lecturer-create-" + UUID.randomUUID() + "@example.com", "Lecturer Creator", RoleName.LECTURER);
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123!");
+
+        String studentEmail = "lecturer-student-" + UUID.randomUUID() + "@example.com";
+        mockMvc.perform(post("/api/auth/users")
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                studentEmail,
+                                "StrongPass123!",
+                                "Lecturer Added Student",
+                                "STUDENT"
+                        ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roles[*]").value(hasItem("STUDENT")));
+
+        mockMvc.perform(post("/api/auth/users")
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                "lecturer-target-" + UUID.randomUUID() + "@example.com",
+                                "StrongPass123!",
+                                "Lecturer Target",
+                                "LECTURER"
+                        ))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You are not allowed to create an account with that role"));
+
+        mockMvc.perform(post("/api/auth/users")
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                "admin-target-" + UUID.randomUUID() + "@example.com",
+                                "StrongPass123!",
+                                "Admin Target",
+                                "ADMIN"
+                        ))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Admin accounts cannot be created through this endpoint"));
+    }
+
+    @Test
+    void studentCannotAccessManagedUserCreationEndpoint() throws Exception {
+        String email = "student-endpoint-" + UUID.randomUUID() + "@example.com";
+        String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Student Endpoint"));
+
+        Cookie studentCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn());
+
+        mockMvc.perform(post("/api/auth/users")
+                        .cookie(studentCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ManagedUserPayload(
+                                "blocked-" + UUID.randomUUID() + "@example.com",
+                                "StrongPass123!",
+                                "Blocked Student Attempt",
+                                "STUDENT"
+                        ))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void logoutClearsAuthenticationCookie() throws Exception {
         String email = "logout-" + UUID.randomUUID() + "@example.com";
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Logout User"));
@@ -249,7 +378,34 @@ class AuthControllerIntegrationTests {
     private record RegisterPayload(String email, String password, String fullName) {
     }
 
+    private record ManagedUserPayload(String email, String password, String fullName, String role) {
+    }
+
     private record LoginPayload(String email, String password) {
+    }
+
+    private User ensureUser(String email, String fullName, RoleName roleName) {
+        Role role = roleRepository.findByName(roleName)
+                .orElseGet(() -> roleRepository.save(Role.builder().name(roleName).build()));
+
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> userRepository.save(User.builder()
+                        .email(email)
+                        .passwordHash(passwordEncoder.encode("StrongPass123!"))
+                        .fullName(fullName)
+                        .roles(Set.of(role))
+                        .build()));
+    }
+
+    private Cookie loginAndReturnAuthCookie(String email, String password) throws Exception {
+        String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
+        MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return authCookieFrom(loginResult);
     }
 
     private String tamperJwt(String token) {

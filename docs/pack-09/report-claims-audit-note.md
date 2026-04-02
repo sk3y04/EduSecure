@@ -24,7 +24,7 @@ The following claims are supported by repository evidence and can be described a
 - The backend uses AES-GCM in two real business roles: MFA secret protection at rest and submission content encryption at rest.
 - Secure client-server transmission is enforced by TLS 1.3 via Certbot/Let's Encrypt on deployment.
 - Browser-facing authentication uses an `HttpOnly` cookie-backed session rather than frontend-managed JWT storage.
-- The submission-signature workflow now uses a stable configured demo RSA keypair within the existing simulated signing model.
+- The submission-signature workflow now uses a stable configured demo ECC keypair within the existing simulated signing model.
 - The artefact contains evidence for `bcrypt`, `TOTP`, `SHA-256`, `RSA`-based signing/verification, `HMAC-SHA-256`, and `AES-GCM`.
 - PostgreSQL is the intended runtime database path.
 - Schema delivery is now represented in Liquibase changelogs rather than relying only on Hibernate schema mutation.

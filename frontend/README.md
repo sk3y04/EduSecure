@@ -19,6 +19,7 @@ This MVP focuses on the backend flows already implemented in `backend/`:
 - password login with backend-issued HttpOnly auth cookie
 - MFA challenge completion
 - current-user bootstrap and role-aware navigation
+- admin/lecturer account creation UI for managed user onboarding
 - assignment listing
 - lecturer/admin assignment creation
 - student submission creation
@@ -79,5 +80,7 @@ npm run build
 - The UI is intentionally evidence-oriented rather than product-polished.
 - Authentication is now cookie-based: the browser stores the session JWT in an HttpOnly cookie,
   while the frontend only keeps the MFA challenge state in `sessionStorage`.
+- MFA is standard TOTP: users can enroll with a normal smartphone authenticator app by scanning a QR code derived from the backend `otpauth://` URI or by entering the returned manual key.
+- Admins and lecturers now have a user-management screen; admins can create lecturer and student accounts, while lecturers are limited to student account creation.
 - The AES demo remains a separate artefact-evidence slice; the real submission confidentiality control is the AES-at-rest storage flow already present in the backend.
 - Grade and optional AES demo screens can still be expanded in the frontend if additional screenshots/report evidence are useful.

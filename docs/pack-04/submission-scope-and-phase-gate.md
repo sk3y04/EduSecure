@@ -35,7 +35,7 @@ This phase primarily targets the following already-documented risks:
 - minimal `Assignment` entity
 - minimal `Submission` entity
 - `SHA-256` digest generation for uploaded content
-- `RSA + SHA-256` digital signature generation and verification
+- `ECC + SHA-256` digital signature generation and verification
 - persistence of integrity/authorship metadata
 - lecturer-facing verification status at API level
 

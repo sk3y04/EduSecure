@@ -74,7 +74,7 @@ What it proves:
 - student can upload a bounded UTF-8 `text/plain` submission file through the browser-facing multipart contract
 - `SHA-256` digest metadata is created
 - digital signature metadata is created
-- the submission-signature workflow uses a stable configured demo RSA keypair rather than a fresh runtime-generated keypair
+- the submission-signature workflow uses a stable configured demo ECC keypair rather than a fresh runtime-generated keypair
 - verification status is stored and returned
 - submission content is encrypted at rest
 - submission metadata and plaintext retrieval are separated into different endpoints
@@ -175,7 +175,7 @@ The implemented artefact now contains evidence for at least these techniques:
 - password hashing with `bcrypt`
 - TOTP-based MFA using HMAC-derived one-time-password verification
 - hashing with `SHA-256`
-- digital signature workflow with RSA-based signing/verification logic
+- digital signature workflow with ECC-based signing/verification logic
 - HMAC-backed integrity for audit records
 - AES-GCM symmetric encryption demo
 - AES-GCM protection of stored MFA secrets at rest

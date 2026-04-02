@@ -108,7 +108,7 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(jsonPath("$.storedFileReference").doesNotExist())
                 .andExpect(jsonPath("$.hashDigest").isNotEmpty())
                 .andExpect(jsonPath("$.digitalSignature").isNotEmpty())
-                .andExpect(jsonPath("$.signatureAlgorithm").value("SHA256withRSA"))
+                .andExpect(jsonPath("$.signatureAlgorithm").value("SHA256withECDSA"))
                 .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"))
                 .andReturn();
 

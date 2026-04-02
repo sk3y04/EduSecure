@@ -73,7 +73,7 @@ Use:
 Purpose:
 - compare alternatives
 - justify final selections
-- explain why AES-GCM, bcrypt, RSA + SHA-256, and HMAC-SHA-256 were chosen
+- explain why AES-GCM, bcrypt, ECC + SHA-256, and HMAC-SHA-256 were chosen
 
 ## Section 6. Implementation plan and considerations
 

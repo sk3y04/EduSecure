@@ -7,10 +7,19 @@ import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const navigationItems = computed(() => [
-  { label: 'Assignments', to: { name: 'assignments' } },
-  { label: 'Account security', to: { name: 'account-security' } },
-])
+const navigationItems = computed(() => {
+  const items = [
+    { label: 'Assignments', to: { name: 'assignments' } },
+    { label: 'Spaces', to: { name: 'spaces' } },
+  ]
+
+  if (authStore.hasAnyRole(['ADMIN', 'LECTURER'])) {
+    items.push({ label: 'User management', to: { name: 'user-management' } })
+  }
+
+  items.push({ label: 'Account security', to: { name: 'account-security' } })
+  return items
+})
 
 async function handleLogout() {
   await authStore.logout()

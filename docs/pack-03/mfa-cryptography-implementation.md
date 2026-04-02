@@ -93,6 +93,25 @@ The implemented MFA mechanism is based on the standard TOTP idea:
 3. both sides compute a short code
 4. if the independently computed values match within an allowed time window, the server accepts the second factor
 
+### Practical use with a smartphone authenticator app
+This design is intended to work with standard smartphone authenticator applications.
+
+In practice, the user can enroll EduSecure in apps such as:
+- Google Authenticator
+- Microsoft Authenticator
+- Authy
+- other apps that support the standard TOTP `otpauth://` format
+
+During MFA setup, the backend returns:
+- a Base32 manual-entry key
+- a standard `otpauth://totp/...` URI
+
+That means the frontend can either:
+- render the `otpauth` URI as a QR code for the user to scan, or
+- display the manual-entry key so the user can type it into their phone app
+
+After enrollment, the phone app generates a 6-digit code every 30 seconds, and the user enters the current code into EduSecure to enable MFA or complete login.
+
 In EduSecure, this logic is implemented in:
 - `backend/src/main/java/edusecure/edusecure/service/auth/TotpService.java`
 

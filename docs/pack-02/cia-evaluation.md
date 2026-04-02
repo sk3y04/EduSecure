@@ -19,7 +19,7 @@ The brief requires the selected controls to be justified using the CIA model. Fo
 | TOTP-based MFA | limits unauthorised account access even if a password alone is exposed | strongly improves authentication integrity by requiring a second proof at login | can reduce availability if users lose their authenticator device or recovery codes | does not fully stop phishing proxies, session hijack after login, or endpoint compromise |
 | `TLS 1.3` for client-server communication | protects credentials, tokens, and sensitive data in transit | protects against many in-transit modification attacks | supports reliable secure communication but may add small operational complexity | does not protect compromised endpoints or bad authorisation logic |
 | `AES-GCM` secure message/file protection | protects selected file/message content from unauthorised disclosure | authenticated encryption also detects tampering of encrypted payload | minimal direct contribution to availability | depends on correct key and nonce handling |
-| `RSA + SHA-256` digital signature verification | limited direct confidentiality role | strongly supports integrity and authorship / non-repudiation for submissions | little direct availability effect | depends on secure private-key control and correct verification workflow |
+| `ECC + SHA-256` digital signature verification | limited direct confidentiality role | strongly supports integrity and authorship / non-repudiation for submissions | little direct availability effect | depends on secure private-key control and correct verification workflow |
 | `SHA-256` digesting | no direct confidentiality | detects accidental or intentional content modification when compared against expected digest | minimal direct effect | hash alone does not prove who created or changed the data |
 | `HMAC-SHA-256` for audit integrity | shared-secret protection helps keep internal audit integrity mechanisms trustworthy | stronger authenticated integrity than plain hash for trusted-system records | minimal direct effect | requires secure shared-secret handling |
 | RBAC with Student/Lecturer/Admin roles | limits unauthorised exposure of records | limits unauthorised modification paths | supports stable operation by reducing misuse | cryptography cannot compensate for badly designed permissions |
@@ -46,7 +46,7 @@ Integrity is the strongest and most central property in this assignment because 
 EduSecure integrity is mainly supported by:
 - TOTP-based MFA for stronger login assurance
 - `SHA-256` digests
-- `RSA` digital signatures for authorship and tamper detection
+- `ECC` digital signatures for authorship and tamper detection
 - `HMAC-SHA-256` for protected audit integrity where appropriate
 - audit logging of sensitive actions
 - role checks on grade-changing operations
