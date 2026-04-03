@@ -36,8 +36,8 @@ public class AssignmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AssignmentSummaryResponse>> listAssignments() {
-        return ResponseEntity.ok(assignmentService.listAssignments());
+    public ResponseEntity<List<AssignmentSummaryResponse>> listAssignments(Authentication authentication) {
+        return ResponseEntity.ok(assignmentService.listAssignments(authentication));
     }
 }
 

@@ -49,6 +49,15 @@ public class GradeController {
         return ResponseEntity.ok(gradeService.updateGrade(authentication.getName(), gradeId, request));
     }
 
+    @GetMapping("/api/submissions/{submissionId}/grade")
+    @PreAuthorize("hasAnyRole('LECTURER', 'ADMIN')")
+    public ResponseEntity<GradeResponse> getGradeForSubmission(
+            @PathVariable UUID submissionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(gradeService.getGradeForSubmission(submissionId, authentication));
+    }
+
     @GetMapping("/api/grades/{gradeId}")
     @PreAuthorize("hasAnyRole('LECTURER', 'ADMIN')")
     public ResponseEntity<GradeResponse> getGrade(
@@ -65,6 +74,15 @@ public class GradeController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(gradeService.getMyGrade(gradeId, authentication));
+    }
+
+    @GetMapping("/api/my/submissions/{submissionId}/grade")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<MyGradeResponse> getMyGradeForSubmission(
+            @PathVariable UUID submissionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(gradeService.getMyGradeForSubmission(submissionId, authentication));
     }
 }
 

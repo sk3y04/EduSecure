@@ -8,6 +8,7 @@ const props = defineProps<{
   isLoading: boolean
   loadError: string | null
   isStudent: boolean
+  canReviewSubmissions: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +23,10 @@ function formatDate(value: string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+function hasExistingSubmission(assignment: AssignmentSummary): boolean {
+  return Boolean(assignment.latestSubmissionId)
 }
 </script>
 
@@ -61,22 +66,48 @@ function formatDate(value: string): string {
           <div>
             <h4 class="text-lg font-semibold text-slate-900">{{ assignment.title }}</h4>
             <p class="mt-2 text-sm text-slate-600">Due {{ formatDate(assignment.dueAt) }}</p>
+            <p v-if="props.isStudent && assignment.latestSubmittedAt" class="mt-2 text-sm text-slate-600">
+              Latest submission: {{ formatDate(assignment.latestSubmittedAt) }}
+            </p>
           </div>
-          <span
-            class="status-pill"
-            :class="assignment.open ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-800'"
-          >
-            {{ assignment.open ? 'Open' : 'Closed' }}
-          </span>
+          <div class="flex flex-wrap gap-2">
+            <span
+              class="status-pill"
+              :class="assignment.open ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-800'"
+            >
+              {{ assignment.open ? 'Open' : 'Closed' }}
+            </span>
+            <span
+              v-if="props.isStudent && hasExistingSubmission(assignment)"
+              class="status-pill border-sky-300 bg-sky-50 text-sky-800"
+            >
+              Submitted
+            </span>
+          </div>
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+          <template v-if="props.isStudent">
+            <RouterLink
+              :to="{ name: 'submission-create', params: { assignmentId: assignment.id } }"
+              class="btn-primary"
+            >
+              Submit work
+            </RouterLink>
+            <RouterLink
+              v-if="assignment.latestSubmissionId"
+              :to="{ name: 'submission-detail', params: { submissionId: assignment.latestSubmissionId } }"
+              class="btn-secondary"
+            >
+              View latest submission
+            </RouterLink>
+          </template>
           <RouterLink
-            v-if="props.isStudent"
-            :to="{ name: 'submission-create', params: { assignmentId: assignment.id } }"
-            class="btn-primary"
+            v-else-if="props.canReviewSubmissions"
+            :to="{ name: 'assignment-submissions', params: { assignmentId: assignment.id } }"
+            class="btn-secondary"
           >
-            Submit work
+            View submissions
           </RouterLink>
           <span v-else class="text-sm text-slate-500">
             Submission action is reserved for authenticated students.

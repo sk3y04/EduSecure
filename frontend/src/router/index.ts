@@ -61,6 +61,14 @@ const router = createRouter({
           },
         },
         {
+          path: 'assignments/:assignmentId/submissions',
+          name: 'assignment-submissions',
+          component: () => import('@/pages/AssignmentSubmissions/index.vue'),
+          meta: {
+            roles: ['LECTURER', 'ADMIN'] satisfies RoleName[],
+          },
+        },
+        {
           path: 'submissions/:submissionId',
           name: 'submission-detail',
           component: () => import('@/pages/SubmissionDetail/index.vue'),

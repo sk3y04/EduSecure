@@ -57,6 +57,7 @@ services:
 
 volumes:
   postgres_data:
+    name: ${POSTGRES_DATA_VOLUME_NAME:-edusecure_dev_postgres_data}
   gradle_cache:
   submission_storage:
   frontend_node_modules:

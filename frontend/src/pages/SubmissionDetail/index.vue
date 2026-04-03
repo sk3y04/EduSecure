@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -6,10 +7,11 @@ import { extractErrorMessage } from '@/services/http'
 import { gradesService } from '@/services/grades'
 import { submissionsService } from '@/services/submissions'
 import { useAuthStore } from '@/stores/auth'
-import type { GradeResponse } from '@/types/grade'
+import type { GradeResponse, MyGradeResponse } from '@/types/grade'
 import type { SubmissionContentResponse, SubmissionResponse } from '@/types/submission'
 import {
   GradePanel,
+  StudentGradePanel,
   SubmissionContentPanel,
   SubmissionMetaPanel,
   SubmissionVerificationPanel,
@@ -31,10 +33,57 @@ const isCreatingGrade = ref(false)
 const isUpdatingGrade = ref(false)
 const gradeErrorMessage = ref<string | null>(null)
 const gradeSuccessMessage = ref<string | null>(null)
+const studentGrade = ref<MyGradeResponse | null>(null)
+const isLoadingStudentGrade = ref(false)
+const studentGradeErrorMessage = ref<string | null>(null)
 
 const submissionId = computed(() => String(route.params.submissionId ?? ''))
 const canGrade = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
+const canViewOwnGrade = computed(() => authStore.hasAnyRole(['STUDENT']))
 const isSubmissionVerified = computed(() => submission.value?.verificationStatus === 'VERIFIED')
+
+async function loadGrade() {
+  if (!canGrade.value) {
+    grade.value = null
+    return
+  }
+
+  gradeErrorMessage.value = null
+
+  try {
+    grade.value = await gradesService.getForSubmission(submissionId.value)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      grade.value = null
+      return
+    }
+
+    gradeErrorMessage.value = extractErrorMessage(error)
+  }
+}
+
+async function loadStudentGrade() {
+  if (!canViewOwnGrade.value) {
+    studentGrade.value = null
+    return
+  }
+
+  isLoadingStudentGrade.value = true
+  studentGradeErrorMessage.value = null
+
+  try {
+    studentGrade.value = await gradesService.getMyGradeForSubmission(submissionId.value)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      studentGrade.value = null
+      return
+    }
+
+    studentGradeErrorMessage.value = extractErrorMessage(error)
+  } finally {
+    isLoadingStudentGrade.value = false
+  }
+}
 
 async function loadSubmission() {
   isLoading.value = true
@@ -42,6 +91,13 @@ async function loadSubmission() {
 
   try {
     submission.value = await submissionsService.getById(submissionId.value)
+    if (canGrade.value) {
+      await loadGrade()
+    }
+
+    if (canViewOwnGrade.value) {
+      await loadStudentGrade()
+    }
   } catch (error) {
     errorMessage.value = extractErrorMessage(error)
   } finally {
@@ -62,13 +118,16 @@ async function loadSubmissionContent() {
   }
 }
 
-async function handleCreateGrade(payload: { value: string; feedback: string }) {
+async function handleCreateGrade(payload: { value: number | string; feedback: string }) {
   isCreatingGrade.value = true
   gradeErrorMessage.value = null
   gradeSuccessMessage.value = null
 
   try {
-    grade.value = await gradesService.create(submissionId.value, payload)
+    grade.value = await gradesService.create(submissionId.value, {
+      value: Number(payload.value),
+      feedback: payload.feedback,
+    })
     gradeSuccessMessage.value = 'Grade submitted successfully.'
   } catch (error) {
     gradeErrorMessage.value = extractErrorMessage(error)
@@ -77,7 +136,7 @@ async function handleCreateGrade(payload: { value: string; feedback: string }) {
   }
 }
 
-async function handleUpdateGrade(payload: { value: string; feedback: string }) {
+async function handleUpdateGrade(payload: { value: number | string; feedback: string }) {
   if (!grade.value) return
 
   isUpdatingGrade.value = true
@@ -85,7 +144,10 @@ async function handleUpdateGrade(payload: { value: string; feedback: string }) {
   gradeSuccessMessage.value = null
 
   try {
-    grade.value = await gradesService.update(grade.value.id, payload)
+    grade.value = await gradesService.update(grade.value.id, {
+      value: Number(payload.value),
+      feedback: payload.feedback,
+    })
     gradeSuccessMessage.value = 'Grade updated successfully.'
   } catch (error) {
     gradeErrorMessage.value = extractErrorMessage(error)
@@ -144,6 +206,13 @@ onMounted(() => {
         :existing-grade="grade"
         @create="handleCreateGrade"
         @update="handleUpdateGrade"
+      />
+
+      <StudentGradePanel
+        v-if="canViewOwnGrade"
+        :grade="studentGrade"
+        :is-loading="isLoadingStudentGrade"
+        :error-message="studentGradeErrorMessage"
       />
     </template>
   </section>

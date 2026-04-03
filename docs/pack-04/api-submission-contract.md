@@ -22,8 +22,10 @@ Practical implication:
 | Endpoint | Method | Intended role | Status | Purpose |
 |---|---|---|---|---|
 | `/api/assignments` | POST | Lecturer/Admin | Implemented | Create a basic assignment |
-| `/api/assignments` | GET | Lecturer/Admin/Student | Implemented | List visible assignments |
+| `/api/assignments` | GET | Lecturer/Admin/Student | Implemented | List visible assignments, including student-specific latest submission metadata when available |
 | `/api/assignments/{assignmentId}/submissions` | POST | Student | Implemented | Create submission with integrity/authorship metadata and encrypted-at-rest storage |
+| `/api/assignments/{assignmentId}/submissions` | GET | Lecturer/Admin | Implemented | List all submissions for one assignment for review and grading |
+| `/api/assignments/{assignmentId}/submissions/me` | GET | Student | Implemented | Retrieve the current student's latest submission for one assignment |
 | `/api/submissions/{submissionId}` | GET | Student/Lecturer/Admin | Implemented | View submission metadata and verification status |
 | `/api/submissions/{submissionId}/content` | GET | Submission owner or Lecturer/Admin | Implemented | Retrieve decrypted submission content through a separate audited path |
 | `/api/assignments/{assignmentId}` | GET | Lecturer/Admin/Student | Deferred | Optional single-assignment retrieval |
@@ -37,8 +39,10 @@ The implemented submission slice currently includes only these endpoints:
 1. `POST /api/assignments`
 2. `GET /api/assignments`
 3. `POST /api/assignments/{assignmentId}/submissions`
-4. `GET /api/submissions/{submissionId}`
-5. `GET /api/submissions/{submissionId}/content` for controlled plaintext retrieval after the AES-at-rest extension
+4. `GET /api/assignments/{assignmentId}/submissions`
+5. `GET /api/assignments/{assignmentId}/submissions/me`
+6. `GET /api/submissions/{submissionId}`
+7. `GET /api/submissions/{submissionId}/content` for controlled plaintext retrieval after the AES-at-rest extension
 
 The verify and audit endpoints remain deferred because verification already occurs during submission creation and audit evidence is currently exposed through tests/database inspection rather than a dedicated REST read endpoint.
 
@@ -78,10 +82,17 @@ Status: `200 OK`
   {
     "id": "assignment-uuid",
     "title": "Cryptography Coursework 1",
-    "dueAt": "2026-04-15T18:00:00Z"
+    "dueAt": "2026-04-15T18:00:00Z",
+    "open": true,
+    "latestSubmissionId": "submission-uuid-or-null",
+    "latestSubmittedAt": "2026-04-14T15:30:00Z"
   }
 ]
 ```
+
+### Student-view note
+- for lecturers/admins, `latestSubmissionId` and `latestSubmittedAt` are currently `null`
+- for students, those fields are populated when they already have a submission for the assignment
 
 ## C. `POST /api/assignments/{assignmentId}/submissions`
 
@@ -123,7 +134,67 @@ file=<coursework.txt>
 ### Storage note
 The current implementation encrypts the submitted content at rest internally while returning only metadata through the standard submission response.
 
-## D. `GET /api/submissions/{submissionId}`
+## D. `GET /api/assignments/{assignmentId}/submissions/me`
+
+### Purpose
+Allow a returning student to reopen the latest submission they already made for a specific assignment.
+
+### Success response
+Status: `200 OK`
+
+```json
+{
+  "id": "submission-uuid",
+  "assignmentId": "assignment-uuid",
+  "studentUserId": "student-uuid",
+  "fileName": "coursework.txt",
+  "contentType": "text/plain",
+  "submittedAt": "2026-03-15T17:00:00Z",
+  "hashDigest": "sha256-hex-or-base64",
+  "signatureAlgorithm": "SHA256withECDSA",
+  "verificationStatus": "VERIFIED",
+  "verificationMessage": "Signature verified successfully"
+}
+```
+
+### Failure cases
+- `401 Unauthorized` if no valid authenticated session is present
+- `403 Forbidden` if the caller is not a student
+- `404 Not Found` if the assignment does not exist or the student has not submitted anything for it yet
+
+## E. `GET /api/assignments/{assignmentId}/submissions`
+
+### Purpose
+Allow lecturers/admins to review all submitted work for one assignment and navigate into grading.
+
+### Success response
+Status: `200 OK`
+
+```json
+[
+  {
+    "id": "submission-uuid",
+    "assignmentId": "assignment-uuid",
+    "studentUserId": "student-uuid",
+    "fileName": "coursework.txt",
+    "contentType": "text/plain",
+    "submittedAt": "2026-03-15T17:00:00Z",
+    "hashDigest": "sha256-hex-or-base64",
+    "signatureAlgorithm": "SHA256withECDSA",
+    "verificationStatus": "VERIFIED",
+    "verificationMessage": "Signature verified successfully",
+    "graded": true,
+    "gradeId": "grade-uuid-or-null"
+  }
+]
+```
+
+### Failure cases
+- `401 Unauthorized` if no valid authenticated session is present
+- `403 Forbidden` if the caller is not a lecturer/admin
+- `404 Not Found` if the assignment does not exist
+
+## F. `GET /api/submissions/{submissionId}`
 
 ### Success response
 Status: `200 OK`
@@ -139,7 +210,9 @@ Status: `200 OK`
   "hashDigest": "sha256-hex-or-base64",
   "signatureAlgorithm": "SHA256withECDSA",
   "verificationStatus": "VERIFIED",
-  "verificationMessage": "Signature verified successfully"
+  "verificationMessage": "Signature verified successfully",
+  "graded": false,
+  "gradeId": null
 }
 ```
 
@@ -153,7 +226,7 @@ It should not expose:
 - nonce values
 - internal storage locators if those are considered unnecessary client-facing detail
 
-## E. `GET /api/submissions/{submissionId}/content`
+## G. `GET /api/submissions/{submissionId}/content`
 
 ### Purpose
 Provide controlled access to decrypted submission content without overloading the standard metadata endpoint.

@@ -67,6 +67,12 @@ export const useAuthStore = defineStore('auth', () => {
     clearError()
   }
 
+  function handleSessionExpired() {
+    clearAuthState()
+    initialized.value = true
+    errorMessage.value = 'Your session is no longer valid. Please sign in again.'
+  }
+
   async function fetchCurrentUser(): Promise<CurrentUserResponse | null> {
     const currentUser = await authService.getCurrentUser()
     user.value = currentUser
@@ -181,6 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     errorMessage,
     clearError,
+    handleSessionExpired,
     initialize,
     fetchCurrentUser,
     login,

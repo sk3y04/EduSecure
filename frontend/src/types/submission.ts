@@ -13,6 +13,8 @@ export interface SubmissionResponse {
   signatureAlgorithm: string
   verificationStatus: SubmissionVerificationStatus
   verificationMessage: string
+  graded: boolean
+  gradeId: string | null
 }
 
 export interface SubmissionContentResponse {

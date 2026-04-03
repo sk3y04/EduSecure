@@ -17,6 +17,7 @@ const createSuccess = ref<string | null>(null)
 const isCreating = ref(false)
 
 const canCreateAssignments = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
+const canReviewSubmissions = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 const isStudent = computed(() => authStore.hasAnyRole(['STUDENT']))
 const sortedAssignments = computed(() =>
   [...assignments.value].sort(
@@ -50,7 +51,14 @@ async function handleCreate(payload: { title: string; description: string; dueAt
     })
 
     assignments.value = [
-      { id: created.id, title: created.title, dueAt: created.dueAt, open: created.open },
+      {
+        id: created.id,
+        title: created.title,
+        dueAt: created.dueAt,
+        open: created.open,
+        latestSubmissionId: null,
+        latestSubmittedAt: null,
+      },
       ...assignments.value,
     ]
 
@@ -84,6 +92,7 @@ onMounted(() => {
       :is-loading="isLoading"
       :load-error="loadError"
       :is-student="isStudent"
+      :can-review-submissions="canReviewSubmissions"
       @refresh="loadAssignments"
     />
   </div>

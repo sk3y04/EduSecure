@@ -4,7 +4,7 @@ import type { SpaceDetail } from '@/types/space'
 const props = defineProps<{
   space: SpaceDetail | null
 }>()
-</script>
+
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
     year: 'numeric',

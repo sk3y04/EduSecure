@@ -10,6 +10,16 @@ export const submissionsService = {
     return response.data
   },
 
+  async getMyLatestForAssignment(assignmentId: string): Promise<SubmissionResponse> {
+    const response = await http.get<SubmissionResponse>(`/assignments/${assignmentId}/submissions/me`)
+    return response.data
+  },
+
+  async listForAssignment(assignmentId: string): Promise<SubmissionResponse[]> {
+    const response = await http.get<SubmissionResponse[]>(`/assignments/${assignmentId}/submissions`)
+    return response.data
+  },
+
   async getById(submissionId: string): Promise<SubmissionResponse> {
     const response = await http.get<SubmissionResponse>(`/submissions/${submissionId}`)
     return response.data

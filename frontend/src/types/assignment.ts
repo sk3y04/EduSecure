@@ -3,6 +3,8 @@ export interface AssignmentSummary {
   title: string
   dueAt: string
   open: boolean
+  latestSubmissionId: string | null
+  latestSubmittedAt: string | null
 }
 
 export interface AssignmentResponse extends AssignmentSummary {

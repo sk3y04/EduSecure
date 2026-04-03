@@ -6,11 +6,15 @@ import edusecure.edusecure.dto.assignment.AssignmentSummaryResponse;
 import edusecure.edusecure.dto.assignment.CreateAssignmentRequest;
 import edusecure.edusecure.entity.assignment.Assignment;
 import edusecure.edusecure.entity.audit.AuditActionType;
+import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.repository.assignment.AssignmentRepository;
+import edusecure.edusecure.repository.submission.SubmissionRepository;
 import edusecure.edusecure.repository.auth.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,6 +26,7 @@ import java.util.List;
 public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
+    private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
 
@@ -49,14 +54,37 @@ public class AssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<AssignmentSummaryResponse> listAssignments() {
+    public List<AssignmentSummaryResponse> listAssignments(Authentication authentication) {
+        User currentUser = findUserByEmail(authentication.getName());
+        boolean studentView = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> ("ROLE_" + RoleName.STUDENT.name()).equals(authority));
+
         return assignmentRepository.findAllByOrderByDueAtAsc().stream()
-                .map(assignment -> new AssignmentSummaryResponse(
-                        assignment.getId(),
-                        assignment.getTitle(),
-                        assignment.getDueAt(),
-                        assignment.isOpen()
-                ))
+                .map(assignment -> {
+                    java.util.UUID latestSubmissionId = null;
+                    java.time.Instant latestSubmittedAt = null;
+
+                    if (studentView) {
+                        var latestSubmission = submissionRepository
+                                .findFirstByAssignmentIdAndStudentUserIdOrderBySubmittedAtDescIdDesc(assignment.getId(), currentUser.getId())
+                                .orElse(null);
+
+                        if (latestSubmission != null) {
+                            latestSubmissionId = latestSubmission.getId();
+                            latestSubmittedAt = latestSubmission.getSubmittedAt();
+                        }
+                    }
+
+                    return new AssignmentSummaryResponse(
+                            assignment.getId(),
+                            assignment.getTitle(),
+                            assignment.getDueAt(),
+                            assignment.isOpen(),
+                            latestSubmissionId,
+                            latestSubmittedAt
+                    );
+                })
                 .toList();
     }
 

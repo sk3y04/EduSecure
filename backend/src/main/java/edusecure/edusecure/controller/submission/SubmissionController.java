@@ -36,6 +36,21 @@ public class SubmissionController {
                 .body(submissionService.createSubmission(authentication.getName(), assignmentId, file));
     }
 
+    @GetMapping("/api/assignments/{assignmentId}/submissions/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<SubmissionResponse> getCurrentStudentSubmissionForAssignment(
+            @PathVariable UUID assignmentId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(submissionService.getLatestSubmissionForAssignment(authentication.getName(), assignmentId));
+    }
+
+    @GetMapping("/api/assignments/{assignmentId}/submissions")
+    @PreAuthorize("hasAnyRole('LECTURER', 'ADMIN')")
+    public ResponseEntity<java.util.List<SubmissionResponse>> listSubmissionsForAssignment(@PathVariable UUID assignmentId) {
+        return ResponseEntity.ok(submissionService.listSubmissionsForAssignment(assignmentId));
+    }
+
     @GetMapping("/api/submissions/{submissionId}")
     public ResponseEntity<SubmissionResponse> getSubmission(
             @PathVariable UUID submissionId,

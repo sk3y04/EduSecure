@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-grade-percentage
+      author: copilot
+      preConditions:
+        onFail: MARK_RAN
+        onError: HALT
+        - tableExists:
+            tableName: grades
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE grades ALTER COLUMN grade_value TYPE INTEGER USING NULLIF(TRIM(grade_value), '')::INTEGER;
+        - addNotNullConstraint:
+            tableName: grades
+            columnName: grade_value
+            columnDataType: INTEGER
+        - addCheckConstraint:
+            tableName: grades
+            constraintName: ck_grades_grade_value_percentage
+            checkConstraint: grade_value >= 0 AND grade_value <= 100
+

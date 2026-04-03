@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -80,6 +81,15 @@ public class ApiExceptionHandler {
 
         return ResponseEntity.status(HttpStatusCode.valueOf(413))
                 .body(new ValidationErrorResponse("Upload too large", errors));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ValidationErrorResponse> handleMultipartException(MultipartException ex) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+        errors.put("file", List.of("Submission upload must be sent as multipart/form-data"));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ValidationErrorResponse("Malformed multipart upload", errors));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

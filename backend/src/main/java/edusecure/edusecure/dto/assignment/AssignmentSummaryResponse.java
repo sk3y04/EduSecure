@@ -7,7 +7,9 @@ public record AssignmentSummaryResponse(
         UUID id,
         String title,
         Instant dueAt,
-        boolean open
+        boolean open,
+        UUID latestSubmissionId,
+        Instant latestSubmittedAt
 ) {
 }
 

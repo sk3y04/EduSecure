@@ -36,9 +36,16 @@ Current defaults:
 - username: `postgres`
 - password: `postgres`
 - host port: `5432`
-- persistent Docker volume: `postgres_data`
+- persistent Docker volume key: `postgres_data`
+- effective Docker volume name: `edusecure_dev_postgres_data` by default, overridable with `POSTGRES_DATA_VOLUME_NAME`
 
 These defaults are acceptable only for **single-developer local study use** and should be overridden before any shared deployment.
+
+Persistence behaviour for local development:
+
+- `docker compose up`, `docker compose stop`, and `docker compose down` keep the database contents
+- the data is reset only if the named volume is removed explicitly, for example with `docker compose down -v` or `docker volume rm edusecure_dev_postgres_data`
+- using an explicit volume name avoids accidental database loss if the Compose project name changes between runs
 
 ### 2.2 Backend connection properties
 
@@ -62,6 +69,22 @@ Example local workflow:
 docker compose up -d postgres
 Set-Location .\backend
 .\gradlew.bat bootRun --no-daemon
+```
+
+Example persistence check:
+
+```powershell
+docker compose up -d postgres
+docker compose exec postgres psql -U postgres -d edusecure -c "CREATE TABLE IF NOT EXISTS dev_persistence_check(id int primary key);"
+docker compose down
+docker compose up -d postgres
+docker compose exec postgres psql -U postgres -d edusecure -c "\dt dev_persistence_check"
+```
+
+Intentional reset when you want a clean local database:
+
+```powershell
+docker compose down -v
 ```
 
 If the backend is started from the repository root through Gradle tooling, ensure the same datasource environment variables are available to that process.

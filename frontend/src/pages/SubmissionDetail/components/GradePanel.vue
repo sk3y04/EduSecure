@@ -13,12 +13,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'create', payload: { value: string; feedback: string }): void
-  (e: 'update', payload: { value: string; feedback: string }): void
+  (e: 'create', payload: { value: number; feedback: string }): void
+  (e: 'update', payload: { value: number; feedback: string }): void
 }>()
 
 const form = reactive({
-  value: props.existingGrade?.value ?? '',
+  value: props.existingGrade?.value ?? null as number | null,
   feedback: props.existingGrade?.feedback ?? '',
 })
 
@@ -29,15 +29,24 @@ watch(
     if (grade) {
       form.value = grade.value
       form.feedback = grade.feedback
+    } else {
+      form.value = null
+      form.feedback = ''
     }
   },
 )
 
 function handleSubmit() {
+  if (form.value === null) {
+    return
+  }
+
+  const gradeValue = Number(form.value)
+
   if (props.existingGrade) {
-    emit('update', { ...form })
+    emit('update', { value: gradeValue, feedback: form.feedback })
   } else {
-    emit('create', { ...form })
+    emit('create', { value: gradeValue, feedback: form.feedback })
   }
 }
 
@@ -60,8 +69,8 @@ function formatDate(value: string | null): string {
         {{ props.existingGrade ? 'Update grade' : 'Grade submission' }}
       </h3>
       <p class="mt-2 text-sm leading-6 text-slate-600">
-        Only verified submissions can be graded. One grade per submission — use the update
-        form once a grade already exists for this session.
+        Only verified submissions can be graded. Grades are stored as whole-number percentages
+        from 0 to 100. One grade per submission — use the update form once a grade already exists.
       </p>
     </div>
 
@@ -80,8 +89,8 @@ function formatDate(value: string | null): string {
           <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ props.existingGrade.id }}</dd>
         </div>
         <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Current value</dt>
-          <dd class="mt-2 text-sm font-semibold text-slate-900">{{ props.existingGrade.value }}</dd>
+          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Current percentage</dt>
+          <dd class="mt-2 text-sm font-semibold text-slate-900">{{ props.existingGrade.value }}%</dd>
         </div>
         <div class="data-card">
           <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Graded at</dt>
@@ -95,14 +104,18 @@ function formatDate(value: string | null): string {
 
       <form class="grid gap-5 lg:grid-cols-2" @submit.prevent="handleSubmit">
         <label class="block lg:col-span-1">
-          <span class="field-label">Grade value</span>
+          <span class="field-label">Grade percentage</span>
           <input
-            v-model="form.value"
-            type="text"
+            v-model.number="form.value"
+            type="number"
             required
+            min="0"
+            max="100"
+            step="1"
             class="form-input"
-            placeholder="A, 85, Pass…"
+            placeholder="0 - 100"
           />
+          <span class="mt-2 block text-xs text-slate-500">Enter a whole-number percentage between 0 and 100.</span>
         </label>
 
         <label class="block lg:col-span-2">

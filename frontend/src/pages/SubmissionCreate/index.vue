@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { extractErrorMessage } from '@/services/http'
 import { submissionsService } from '@/services/submissions'
-import { SubmissionCreateHeader, SubmissionUploadForm } from './components'
+import type { SubmissionResponse } from '@/types/submission'
+import { ExistingSubmissionPanel, SubmissionCreateHeader, SubmissionUploadForm } from './components'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +15,27 @@ const assignmentId = computed(() => String(route.params.assignmentId ?? ''))
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
+const existingSubmission = ref<SubmissionResponse | null>(null)
+const isLoadingExistingSubmission = ref(true)
+const existingSubmissionErrorMessage = ref<string | null>(null)
+
+async function loadExistingSubmission() {
+  isLoadingExistingSubmission.value = true
+  existingSubmissionErrorMessage.value = null
+
+  try {
+    existingSubmission.value = await submissionsService.getMyLatestForAssignment(assignmentId.value)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      existingSubmission.value = null
+      return
+    }
+
+    existingSubmissionErrorMessage.value = extractErrorMessage(error)
+  } finally {
+    isLoadingExistingSubmission.value = false
+  }
+}
 
 function handleFileChange(file: File | null) {
   selectedFile.value = file
@@ -37,11 +60,23 @@ async function handleSubmit() {
     isSubmitting.value = false
   }
 }
+
+onMounted(() => {
+  void loadExistingSubmission()
+})
 </script>
 
 <template>
   <section class="surface-panel p-8">
     <SubmissionCreateHeader :assignment-id="assignmentId" />
+    <ExistingSubmissionPanel
+      class="mt-8"
+      :assignment-id="assignmentId"
+      :submission="existingSubmission"
+      :is-loading="isLoadingExistingSubmission"
+      :load-error="existingSubmissionErrorMessage"
+    />
+
     <SubmissionUploadForm
       :error-message="errorMessage"
       :is-submitting="isSubmitting"

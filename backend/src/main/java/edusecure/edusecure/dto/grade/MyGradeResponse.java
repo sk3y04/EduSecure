@@ -6,7 +6,7 @@ import java.util.UUID;
 public record MyGradeResponse(
         UUID id,
         UUID submissionId,
-        String value,
+        Integer value,
         String feedback,
         Instant lastModifiedAt
 ) {

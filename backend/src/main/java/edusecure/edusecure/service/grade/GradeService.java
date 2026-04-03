@@ -46,7 +46,7 @@ public class GradeService {
 
         Grade grade = Grade.builder()
                 .submissionId(submissionId)
-                .value(request.value().trim())
+                .value(request.value())
                 .feedback(request.feedback().trim())
                 .gradedByLecturerId(actor.getId())
                 .gradedAt(Instant.now())
@@ -71,7 +71,7 @@ public class GradeService {
         Submission submission = findSubmission(grade.getSubmissionId());
         ensureSubmissionVerified(submission);
 
-        grade.setValue(request.value().trim());
+        grade.setValue(request.value());
         grade.setFeedback(request.feedback().trim());
         grade.setGradedByLecturerId(actor.getId());
         grade.setLastModifiedAt(Instant.now());
@@ -105,6 +105,16 @@ public class GradeService {
     }
 
     @Transactional(readOnly = true)
+    public GradeResponse getGradeForSubmission(UUID submissionId, Authentication authentication) {
+        ensurePrivileged(authentication);
+
+        Grade grade = gradeRepository.findBySubmissionId(submissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found for this submission"));
+
+        return toGradeResponse(grade);
+    }
+
+    @Transactional(readOnly = true)
     public MyGradeResponse getMyGrade(UUID gradeId, Authentication authentication) {
         User student = findUserByEmail(authentication.getName());
         Grade grade = gradeRepository.findById(gradeId)
@@ -114,6 +124,27 @@ public class GradeService {
         if (!submission.getStudentUserId().equals(student.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
         }
+
+        return new MyGradeResponse(
+                grade.getId(),
+                grade.getSubmissionId(),
+                grade.getValue(),
+                grade.getFeedback(),
+                grade.getLastModifiedAt()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public MyGradeResponse getMyGradeForSubmission(UUID submissionId, Authentication authentication) {
+        User student = findUserByEmail(authentication.getName());
+        Submission submission = findSubmission(submissionId);
+
+        if (!submission.getStudentUserId().equals(student.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
+        }
+
+        Grade grade = gradeRepository.findBySubmissionId(submissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found for this submission"));
 
         return new MyGradeResponse(
                 grade.getId(),
@@ -145,6 +176,17 @@ public class GradeService {
     private Submission findSubmission(UUID submissionId) {
         return submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
+    }
+
+    private void ensurePrivileged(Authentication authentication) {
+        boolean privileged = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
+                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
+
+        if (!privileged) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
+        }
     }
 
     private User findUserByEmail(String email) {

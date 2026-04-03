@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -11,14 +11,22 @@ const router = useRouter()
 
 const isSubmitting = ref(false)
 
+const shouldPreserveErrorMessage = computed(() => route.query.reason === 'session-expired')
+
 const redirectTarget = computed(() => {
   const redirect = route.query.redirect
   return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/assignments'
 })
 
-onMounted(() => {
-  authStore.clearError()
-})
+watch(
+  shouldPreserveErrorMessage,
+  (preserveErrorMessage) => {
+    if (!preserveErrorMessage) {
+      authStore.clearError()
+    }
+  },
+  { immediate: true },
+)
 
 async function handleSubmit(payload: { email: string; password: string }) {
   isSubmitting.value = true

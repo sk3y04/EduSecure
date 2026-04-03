@@ -12,6 +12,11 @@ export const gradesService = {
     return response.data
   },
 
+  async getForSubmission(submissionId: string): Promise<GradeResponse> {
+    const response = await http.get<GradeResponse>(`/submissions/${submissionId}/grade`)
+    return response.data
+  },
+
   async update(gradeId: string, payload: UpdateGradeRequest): Promise<GradeResponse> {
     const response = await http.put<GradeResponse>(`/grades/${gradeId}`, payload)
     return response.data
@@ -24,6 +29,11 @@ export const gradesService = {
 
   async getMyGrade(gradeId: string): Promise<MyGradeResponse> {
     const response = await http.get<MyGradeResponse>(`/my/grades/${gradeId}`)
+    return response.data
+  },
+
+  async getMyGradeForSubmission(submissionId: string): Promise<MyGradeResponse> {
+    const response = await http.get<MyGradeResponse>(`/my/submissions/${submissionId}/grade`)
     return response.data
   },
 }

@@ -156,6 +156,124 @@ class SubmissionFlowIntegrationTests {
     }
 
     @Test
+    void studentCanRetrieveLatestSubmissionForAssignment() throws Exception {
+        User lecturer = ensureUser("lecturer-latest-" + UUID.randomUUID() + "@example.com", "Lecturer Latest", RoleName.LECTURER);
+        User student = ensureUser("student-latest-" + UUID.randomUUID() + "@example.com", "Student Latest", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Latest Submission Coursework", "Latest submission should be returned.");
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "attempt-one.txt",
+                                "text/plain",
+                                "first attempt".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "attempt-two.txt",
+                                "text/plain",
+                                "second attempt".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions/me", assignmentId)
+                        .cookie(studentCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignmentId").value(assignmentId))
+                .andExpect(jsonPath("$.studentUserId").value(student.getId().toString()))
+                .andExpect(jsonPath("$.fileName").value("attempt-two.txt"));
+    }
+
+    @Test
+    void lecturerCanListSubmissionsForAssignment() throws Exception {
+        User lecturer = ensureUser("lecturer-list-submissions-" + UUID.randomUUID() + "@example.com", "Lecturer List Submissions", RoleName.LECTURER);
+        User student = ensureUser("student-list-submissions-" + UUID.randomUUID() + "@example.com", "Student List Submissions", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Listing Coursework", "Lecturers should see assignment submissions.");
+
+        MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "listing.txt",
+                                "text/plain",
+                                "submission for lecturer listing".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String submissionId = submissionIdFrom(submissionResult);
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(lecturerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(submissionId))
+                .andExpect(jsonPath("$[0].assignmentId").value(assignmentId))
+                .andExpect(jsonPath("$[0].studentUserId").value(student.getId().toString()))
+                .andExpect(jsonPath("$[0].graded").value(false))
+                .andExpect(jsonPath("$[0].gradeId").doesNotExist());
+    }
+
+    @Test
+    void studentAssignmentListIncludesLatestSubmissionMetadata() throws Exception {
+        User lecturer = ensureUser("lecturer-assignment-list-" + UUID.randomUUID() + "@example.com", "Lecturer Assignment List", RoleName.LECTURER);
+        User student = ensureUser("student-assignment-list-" + UUID.randomUUID() + "@example.com", "Student Assignment List", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Visible Submission Coursework", "Student should see latest submission metadata on assignment listing.");
+
+        MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "visible.txt",
+                                "text/plain",
+                                "visible submission".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String submissionId = submissionIdFrom(submissionResult);
+
+        mockMvc.perform(get("/api/assignments")
+                        .cookie(studentCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + assignmentId + "')].latestSubmissionId").value(org.hamcrest.Matchers.hasItem(submissionId)))
+                .andExpect(jsonPath("$[?(@.id=='" + assignmentId + "')].latestSubmittedAt").isNotEmpty());
+    }
+
+    @Test
+    void studentGetsNotFoundWhenNoSubmissionExistsForAssignment() throws Exception {
+        User lecturer = ensureUser("lecturer-nosub-" + UUID.randomUUID() + "@example.com", "Lecturer No Submission", RoleName.LECTURER);
+        User student = ensureUser("student-nosub-" + UUID.randomUUID() + "@example.com", "Student No Submission", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "No Submission Coursework", "No submission exists yet.");
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions/me", assignmentId)
+                        .cookie(studentCookie))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("No submission found for this assignment"))
+                .andExpect(jsonPath("$.errors._global[0]").value("No submission found for this assignment"));
+    }
+
+    @Test
     void studentCannotReadAnotherStudentsSubmission() throws Exception {
         User lecturer = ensureUser("lecturer-guard-" + UUID.randomUUID() + "@example.com", "Lecturer Guard", RoleName.LECTURER);
         User owner = ensureUser("student-owner-" + UUID.randomUUID() + "@example.com", "Student Owner", RoleName.STUDENT);

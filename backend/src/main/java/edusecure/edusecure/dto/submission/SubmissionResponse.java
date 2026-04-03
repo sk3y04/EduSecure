@@ -16,7 +16,9 @@ public record SubmissionResponse(
         String digitalSignature,
         String signatureAlgorithm,
         SubmissionVerificationStatus verificationStatus,
-        String verificationMessage
+        String verificationMessage,
+        boolean graded,
+        UUID gradeId
 ) {
 }
 

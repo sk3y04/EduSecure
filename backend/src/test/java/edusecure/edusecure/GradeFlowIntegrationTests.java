@@ -76,32 +76,32 @@ class GradeFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail(), "StrongPass123");
 
-        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload("78", "Strong work overall."));
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(78, "Strong work overall."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.submissionId").value(submission.getId().toString()))
-                .andExpect(jsonPath("$.value").value("78"))
+                .andExpect(jsonPath("$.value").value(78))
                 .andReturn();
 
         String gradeId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
 
-        String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload("81", "Updated after remarking."));
+        String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload(81, "Updated after remarking."));
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
                         .cookie(lecturerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.value").value("81"))
+                .andExpect(jsonPath("$.value").value(81))
                 .andExpect(jsonPath("$.lastModifiedAt").isNotEmpty());
 
         mockMvc.perform(get("/api/my/grades/{gradeId}", gradeId)
                         .cookie(studentCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(gradeId))
-                .andExpect(jsonPath("$.value").value("81"));
+                .andExpect(jsonPath("$.value").value(81));
 
         List<AuditLog> auditLogs = auditLogRepository.findByEntityTypeAndEntityIdOrderByEventTimestampAsc("Grade", UUID.fromString(gradeId));
         assertThat(auditLogs)
@@ -119,7 +119,7 @@ class GradeFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail(), "StrongPass123");
 
-        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload("70", "Initial feedback."));
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(70, "Initial feedback."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -134,7 +134,7 @@ class GradeFlowIntegrationTests {
                         .content(createPayload))
                 .andExpect(status().isForbidden());
 
-        String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload("75", "Student should not update grades."));
+        String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload(75, "Student should not update grades."));
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
                         .cookie(studentCookie)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,7 +149,7 @@ class GradeFlowIntegrationTests {
         Submission submission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.VERIFIED);
 
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
-        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload("65", "First grade."));
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(65, "First grade."));
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
@@ -171,7 +171,7 @@ class GradeFlowIntegrationTests {
         Submission failedSubmission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.FAILED_VERIFICATION);
 
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
-        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload("55", "Should fail because submission was not verified."));
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(55, "Should fail because submission was not verified."));
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", failedSubmission.getId())
                         .cookie(lecturerCookie)
@@ -190,7 +190,7 @@ class GradeFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
         Cookie otherStudentCookie = loginAndReturnAuthCookie(otherStudent.getEmail(), "StrongPass123");
 
-        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload("88", "Visible only to owner."));
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(88, "Visible only to owner."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -202,6 +202,111 @@ class GradeFlowIntegrationTests {
         mockMvc.perform(get("/api/my/grades/{gradeId}", gradeId)
                         .cookie(otherStudentCookie))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void lecturerCanRetrieveGradeBySubmissionId() throws Exception {
+        User lecturer = ensureUser("lecturer-grade-submission-" + UUID.randomUUID() + "@example.com", "Lecturer Submission Grade", RoleName.LECTURER);
+        User student = ensureUser("student-grade-submission-" + UUID.randomUUID() + "@example.com", "Student Submission Grade", RoleName.STUDENT);
+        Submission submission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.VERIFIED);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(100, "Excellent verified submission."));
+        mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissionId").value(submission.getId().toString()))
+                .andExpect(jsonPath("$.value").value(100));
+    }
+
+    @Test
+    void studentCanRetrieveOwnGradeBySubmissionId() throws Exception {
+        User lecturer = ensureUser("lect-grade-stu-sub-" + UUID.randomUUID() + "@example.com", "Lecturer Student Submission Grade", RoleName.LECTURER);
+        User student = ensureUser("stu-grade-own-sub-" + UUID.randomUUID() + "@example.com", "Student Own Submission Grade", RoleName.STUDENT);
+        Submission submission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.VERIFIED);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail(), "StrongPass123");
+
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(92, "Excellent cryptographic evaluation."));
+        mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/my/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(studentCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submissionId").value(submission.getId().toString()))
+                .andExpect(jsonPath("$.value").value(92))
+                .andExpect(jsonPath("$.feedback").value("Excellent cryptographic evaluation."));
+    }
+
+    @Test
+    void gradedSubmissionAppearsAsGradedInLecturerAssignmentSubmissionList() throws Exception {
+        User lecturer = ensureUser("lecturer-grade-badge-" + UUID.randomUUID() + "@example.com", "Lecturer Grade Badge", RoleName.LECTURER);
+        User student = ensureUser("student-grade-badge-" + UUID.randomUUID() + "@example.com", "Student Grade Badge", RoleName.STUDENT);
+        Submission submission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.VERIFIED);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+
+        String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(67, "Marked submission."));
+        MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createPayload))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String gradeId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions", submission.getAssignmentId())
+                        .cookie(lecturerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(submission.getId().toString()))
+                .andExpect(jsonPath("$[0].graded").value(true))
+                .andExpect(jsonPath("$[0].gradeId").value(gradeId));
+    }
+
+    @Test
+    void gradePercentageMustBeBetweenZeroAndHundred() throws Exception {
+        User lecturer = ensureUser("lecturer-grade-bounds-" + UUID.randomUUID() + "@example.com", "Lecturer Bounds", RoleName.LECTURER);
+        User student = ensureUser("student-grade-bounds-" + UUID.randomUUID() + "@example.com", "Student Bounds", RoleName.STUDENT);
+        Submission submission = ensureSubmissionForStudent(student, SubmissionVerificationStatus.VERIFIED);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+
+        String negativePayload = objectMapper.writeValueAsString(new CreateGradePayload(-1, "Below range."));
+        mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(negativePayload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.value[0]").value("Grade percentage must be between 0 and 100"));
+
+        String oversizedPayload = objectMapper.writeValueAsString(new CreateGradePayload(101, "Above range."));
+        mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(oversizedPayload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.value[0]").value("Grade percentage must be between 0 and 100"));
+
+        String zeroPayload = objectMapper.writeValueAsString(new CreateGradePayload(0, "Valid lower boundary."));
+        mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(zeroPayload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.value").value(0));
     }
 
     private Submission ensureSubmissionForStudent(User student, SubmissionVerificationStatus verificationStatus) {
@@ -265,10 +370,10 @@ class GradeFlowIntegrationTests {
     private record LoginPayload(String email, String password) {
     }
 
-    private record CreateGradePayload(String value, String feedback) {
+    private record CreateGradePayload(Integer value, String feedback) {
     }
 
-    private record UpdateGradePayload(String value, String feedback) {
+    private record UpdateGradePayload(Integer value, String feedback) {
     }
 
     private Cookie authCookieFrom(MvcResult result) {

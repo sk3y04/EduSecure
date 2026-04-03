@@ -5,4 +5,6 @@ databaseChangeLog:
       file: db/changelog/changes/002-submission-aes-storage.yaml
   - include:
       file: db/changelog/changes/003-space-management.yaml
+  - include:
+      file: db/changelog/changes/004-grade-percentage.yaml
 

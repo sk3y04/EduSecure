@@ -18,8 +18,10 @@ Practical implication:
 | Endpoint | Method | Intended role | Status | Purpose |
 |---|---|---|---|---|
 | `/api/submissions/{submissionId}/grade` | POST | Lecturer/Admin | Implemented | Create grade for a submission |
+| `/api/submissions/{submissionId}/grade` | GET | Lecturer/Admin | Implemented | Retrieve the existing grade for a submission |
 | `/api/grades/{gradeId}` | PUT | Lecturer/Admin | Implemented | Update existing grade |
 | `/api/grades/{gradeId}` | GET | Lecturer/Admin | Implemented | View full grade details |
+| `/api/my/submissions/{submissionId}/grade` | GET | Student | Implemented | View own grade directly from a submission |
 | `/api/my/grades/{gradeId}` | GET | Student | Implemented | View own grade |
 | `/api/audit/grades/{gradeId}` | GET | Admin/Lecturer | Deferred | Optional read endpoint for grade-related audit trail |
 
@@ -46,10 +48,13 @@ A dedicated audit endpoint remains optional because audit records are currently 
 ### Request body
 ```json
 {
-  "value": "78",
+  "value": 78,
   "feedback": "Good integrity discussion and strong cryptographic reasoning."
 }
 ```
+
+### Grade rule
+- `value` must be a whole-number percentage from `0` to `100`
 
 ### Success response
 Status: `201 Created`
@@ -58,7 +63,7 @@ Status: `201 Created`
 {
   "id": "grade-uuid",
   "submissionId": "submission-uuid",
-  "value": "78",
+  "value": 78,
   "feedback": "Good integrity discussion and strong cryptographic reasoning.",
   "gradedByLecturerId": "lecturer-uuid",
   "gradedAt": "2026-03-15T18:00:00Z"
@@ -69,6 +74,7 @@ Status: `201 Created`
 - `401 Unauthorized` if no valid authenticated session is present
 - `403 Forbidden` if role is not allowed
 - `404 Not Found` if submission does not exist
+- `400 Bad Request` if the percentage is outside `0..100` or omitted
 - `409 Conflict` if a grade already exists and duplicate creation is not allowed
 - `422 Unprocessable Entity` if the design enforces verified-submission-only grading and the submission is not verified
 
@@ -77,7 +83,7 @@ Status: `201 Created`
 ### Request body
 ```json
 {
-  "value": "81",
+  "value": 81,
   "feedback": "Updated after remarking. Stronger final evaluation."
 }
 ```
@@ -89,7 +95,7 @@ Status: `200 OK`
 {
   "id": "grade-uuid",
   "submissionId": "submission-uuid",
-  "value": "81",
+  "value": 81,
   "feedback": "Updated after remarking. Stronger final evaluation.",
   "gradedByLecturerId": "lecturer-uuid",
   "gradedAt": "2026-03-15T18:00:00Z",
@@ -102,7 +108,7 @@ Status: `200 OK`
 - the old values do not disappear from accountability, because the update must create a new audit event
 - no silent mutation is acceptable
 
-## C. `GET /api/my/grades/{gradeId}`
+## C. `GET /api/submissions/{submissionId}/grade`
 
 ### Success response
 Status: `200 OK`
@@ -111,7 +117,45 @@ Status: `200 OK`
 {
   "id": "grade-uuid",
   "submissionId": "submission-uuid",
-  "value": "81",
+  "value": 81,
+  "feedback": "Updated after remarking. Stronger final evaluation.",
+  "gradedByLecturerId": "lecturer-uuid",
+  "gradedAt": "2026-03-15T18:00:00Z",
+  "lastModifiedAt": "2026-03-16T09:00:00Z"
+}
+```
+
+### Visibility rule
+Lecturer/admin users can reload the existing grade for a submission when revisiting the grading screen.
+
+## D. `GET /api/my/submissions/{submissionId}/grade`
+
+### Success response
+Status: `200 OK`
+
+```json
+{
+  "id": "grade-uuid",
+  "submissionId": "submission-uuid",
+  "value": 81,
+  "feedback": "Updated after remarking. Stronger final evaluation.",
+  "lastModifiedAt": "2026-03-16T09:00:00Z"
+}
+```
+
+### Visibility rule
+Students should only be able to view the grade attached to their own submission.
+
+## E. `GET /api/my/grades/{gradeId}`
+
+### Success response
+Status: `200 OK`
+
+```json
+{
+  "id": "grade-uuid",
+  "submissionId": "submission-uuid",
+  "value": 81,
   "feedback": "Updated after remarking. Stronger final evaluation.",
   "lastModifiedAt": "2026-03-16T09:00:00Z"
 }

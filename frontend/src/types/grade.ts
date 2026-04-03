@@ -1,7 +1,7 @@
 export interface GradeResponse {
   id: string
   submissionId: string
-  value: string
+  value: number
   feedback: string
   gradedByLecturerId: string
   gradedAt: string
@@ -11,18 +11,18 @@ export interface GradeResponse {
 export interface MyGradeResponse {
   id: string
   submissionId: string
-  value: string
+  value: number
   feedback: string
   lastModifiedAt: string | null
 }
 
 export interface CreateGradeRequest {
-  value: string
+  value: number
   feedback: string
 }
 
 export interface UpdateGradeRequest {
-  value: string
+  value: number
   feedback: string
 }
 

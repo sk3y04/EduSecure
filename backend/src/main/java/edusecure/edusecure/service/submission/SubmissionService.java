@@ -7,10 +7,12 @@ import edusecure.edusecure.dto.submission.SubmissionResponse;
 import edusecure.edusecure.entity.assignment.Assignment;
 import edusecure.edusecure.entity.audit.AuditActionType;
 import edusecure.edusecure.entity.auth.RoleName;
+import edusecure.edusecure.entity.grade.Grade;
 import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.entity.submission.Submission;
 import edusecure.edusecure.entity.submission.SubmissionVerificationStatus;
 import edusecure.edusecure.repository.auth.UserRepository;
+import edusecure.edusecure.repository.grade.GradeRepository;
 import edusecure.edusecure.repository.submission.SubmissionRepository;
 import edusecure.edusecure.service.assignment.AssignmentService;
 import edusecure.edusecure.service.crypto.ICryptoService;
@@ -34,7 +36,10 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,7 @@ public class SubmissionService {
 
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
+    private final GradeRepository gradeRepository;
     private final AssignmentService assignmentService;
     private final AuditService auditService;
     private final ICryptoService cryptoService;
@@ -120,6 +126,33 @@ public class SubmissionService {
             cleanupStoredContent(storedFileReference);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Submission content could not be protected for storage", ex);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public SubmissionResponse getLatestSubmissionForAssignment(String currentUserEmail, UUID assignmentId) {
+        User student = findUserByEmail(currentUserEmail);
+        assignmentService.getAssignmentOrThrow(assignmentId);
+
+        Submission submission = submissionRepository
+                .findFirstByAssignmentIdAndStudentUserIdOrderBySubmittedAtDescIdDesc(assignmentId, student.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No submission found for this assignment"));
+
+        return toResponse(submission);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<SubmissionResponse> listSubmissionsForAssignment(UUID assignmentId) {
+        assignmentService.getAssignmentOrThrow(assignmentId);
+
+        java.util.List<Submission> submissions = submissionRepository.findAllByAssignmentIdOrderBySubmittedAtDesc(assignmentId);
+        Map<UUID, Grade> gradesBySubmissionId = gradeRepository.findAllBySubmissionIdIn(
+                        submissions.stream().map(Submission::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(Grade::getSubmissionId, Function.identity()));
+
+        return submissions.stream()
+                .map(submission -> toResponse(submission, gradesBySubmissionId.get(submission.getId())))
+                .toList();
     }
 
     private UploadedSubmission validateAndReadUpload(MultipartFile file) {
@@ -250,6 +283,11 @@ public class SubmissionService {
     }
 
     private SubmissionResponse toResponse(Submission submission) {
+        Grade grade = gradeRepository.findBySubmissionId(submission.getId()).orElse(null);
+        return toResponse(submission, grade);
+    }
+
+    private SubmissionResponse toResponse(Submission submission, Grade grade) {
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getAssignmentId(),
@@ -261,7 +299,9 @@ public class SubmissionService {
                 submission.getDigitalSignature(),
                 submission.getSignatureAlgorithm(),
                 submission.getVerificationStatus(),
-                submission.getVerificationMessage()
+                submission.getVerificationMessage(),
+                grade != null,
+                grade != null ? grade.getId() : null
         );
     }
 

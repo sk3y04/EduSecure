@@ -31,8 +31,8 @@ public class Grade {
     @Column(nullable = false, unique = true)
     private UUID submissionId;
 
-    @Column(name = "grade_value", nullable = false, length = 32)
-    private String value;
+    @Column(name = "grade_value", nullable = false)
+    private Integer value;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String feedback;
