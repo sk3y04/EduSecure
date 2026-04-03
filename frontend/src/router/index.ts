@@ -3,15 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { RoleName } from '@/types/auth'
-import AssignmentListView from '@/views/assignments/AssignmentListView.vue'
-import LoginView from '@/views/auth/LoginView.vue'
-import MfaChallengeView from '@/views/auth/MfaChallengeView.vue'
-import AccountSecurityView from '@/views/security/AccountSecurityView.vue'
-import SpaceDetailView from '@/views/spaces/SpaceDetailView.vue'
-import SpaceListView from '@/views/spaces/SpaceListView.vue'
-import SubmissionCreateView from '@/views/submissions/SubmissionCreateView.vue'
-import SubmissionDetailView from '@/views/submissions/SubmissionDetailView.vue'
-import UserManagementView from '@/views/users/UserManagementView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,7 +10,7 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: LoginView,
+      component: () => import('@/pages/Login/index.vue'),
       meta: {
         requiresAuth: false,
         guestOnly: true,
@@ -28,7 +19,7 @@ const router = createRouter({
     {
       path: '/mfa',
       name: 'mfa',
-      component: MfaChallengeView,
+      component: () => import('@/pages/MfaChallenge/index.vue'),
       meta: {
         requiresAuth: false,
         guestOnly: true,
@@ -49,22 +40,22 @@ const router = createRouter({
         {
           path: 'assignments',
           name: 'assignments',
-          component: AssignmentListView,
+          component: () => import('@/pages/AssignmentList/index.vue'),
         },
         {
           path: 'spaces',
           name: 'spaces',
-          component: SpaceListView,
+          component: () => import('@/pages/SpaceList/index.vue'),
         },
         {
           path: 'spaces/:spaceId',
           name: 'space-detail',
-          component: SpaceDetailView,
+          component: () => import('@/pages/SpaceDetail/index.vue'),
         },
         {
           path: 'assignments/:assignmentId/submit',
           name: 'submission-create',
-          component: SubmissionCreateView,
+          component: () => import('@/pages/SubmissionCreate/index.vue'),
           meta: {
             roles: ['STUDENT'] satisfies RoleName[],
           },
@@ -72,17 +63,17 @@ const router = createRouter({
         {
           path: 'submissions/:submissionId',
           name: 'submission-detail',
-          component: SubmissionDetailView,
+          component: () => import('@/pages/SubmissionDetail/index.vue'),
         },
         {
           path: 'security/mfa',
           name: 'account-security',
-          component: AccountSecurityView,
+          component: () => import('@/pages/AccountSecurity/index.vue'),
         },
         {
           path: 'users',
           name: 'user-management',
-          component: UserManagementView,
+          component: () => import('@/pages/UserManagement/index.vue'),
           meta: {
             roles: ['ADMIN', 'LECTURER'] satisfies RoleName[],
           },
