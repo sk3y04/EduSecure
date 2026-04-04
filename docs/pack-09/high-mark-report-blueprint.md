@@ -31,7 +31,7 @@ These are the themes that should carry the report:
 - submission integrity/authorship evidence using `SHA-256` and ECC-based signing/verification logic
 - submission confidentiality-at-rest using `AES-GCM`
 - grade integrity and accountability using verified-submission-only grading plus HMAC-backed audit evidence
-- a separate AES-GCM demo that proves symmetric encryption independently of the business flow
+- AES-GCM protection of MFA secrets and submission content at rest as the implemented symmetric-encryption evidence
 
 ### Best evidence order for major claims
 For important statements, cite in this order where possible:
@@ -98,7 +98,7 @@ Structure this section by control type and security goal:
 
 #### B. Symmetric encryption
 - explain the role of symmetric encryption in confidentiality
-- explain that TLS 1.3 (via Certbot/Let's Encrypt) handles secure transmission in deployment — this is the correct, complete solution
+- explain that TLS 1.3 (via Certbot/Let's Encrypt) is the intended deployment-side transport control in the secure design narrative
 - explain why `AES-GCM` matters because it adds authenticated encryption
 - connect `AES-GCM` to the two real business roles in EduSecure: MFA secret protection at rest and submission content encryption at rest
 
@@ -210,7 +210,7 @@ Recommended flow:
 2. secure auth design
 3. secure submission design
 4. secure grade-integrity design
-5. TLS deployment via Certbot/Let's Encrypt
+5. TLS transport design for deployment via Certbot/Let's Encrypt
 
 ### Diagrams to emphasize
 Use only the diagrams that help marks directly:
@@ -219,7 +219,7 @@ Use only the diagrams that help marks directly:
 - `docs/pack-04/uml/class-diagram-submission-addendum.puml`
 - `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml`
 - one insecure/secure deployment comparison from `docs/pack-02/uml/`
-- ~~`docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`~~ *(superseded — AES demo removed; TLS via Certbot/Let's Encrypt handles transmission)*
+- ~~`docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`~~ *(superseded — the retired standalone symmetric-transport slice was removed; TLS via Certbot/Let's Encrypt handles transmission)*
 
 ### Main evidence to cite
 - `docs/pack-09/final-doc-alignment-summary.md`
@@ -246,9 +246,9 @@ Use only the diagrams that help marks directly:
 - students can view only their own grades
 
 #### TLS deployment
-- enforced via Certbot/Let's Encrypt on deployment
-- protects all client-server traffic in transit
-- satisfies the "secure file/message transmission" artefact requirement through real infrastructure rather than a standalone demo
+- describe TLS 1.3 via Certbot/Let's Encrypt as the intended deployment-side transport control
+- avoid presenting HTTPS enforcement as repository-proven unless you include direct deployment evidence
+- keep the implemented symmetric-encryption evidence anchored in the AES-GCM at-rest controls already present in code and tests
 
 ### Outstanding-band differentiation
 When discussing each diagram, say what security property it proves.
@@ -304,7 +304,7 @@ That academic contrast reads strongly.
 Keep claim wording bounded:
 - do not say the ECC flow is enterprise PKI
 - do not conflate TLS (infrastructure) with application-layer AES-GCM encryption
-- TLS is deployment-proven via Certbot/Let's Encrypt and can be stated as implemented
+- only describe TLS as directly implemented if you include separate HTTPS deployment evidence beyond the current repository baseline
 
 ## Section 6. Implementation plan and considerations
 
@@ -380,7 +380,7 @@ A strong structure is control-by-control:
 - `bcrypt`
 - TOTP-based MFA
 - `TLS 1.3` in the design narrative
-- `AES-GCM` demo
+- `AES-GCM` protection of MFA secrets at rest
 - submission AES-at-rest protection
 - `SHA-256` digests
 - ECC-based signature workflow
@@ -391,7 +391,7 @@ A strong structure is control-by-control:
 - `docs/pack-02/cia-evaluation.md`
 - `docs/pack-06/submission-content-protection-and-retrieval.md`
 - `docs/pack-07/grade-phase-status-and-evidence.md`
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
+- `docs/pack-09/final-implementation-evidence-map.md`
 
 ### Outstanding-band differentiation
 State clearly that:
@@ -431,9 +431,9 @@ Present the artefact as a set of evidenced capability slices.
 - HMAC-backed audit trail
 
 #### Slice 4: TLS secure transmission
-- all client-server traffic encrypted via TLS 1.3 (Certbot/Let's Encrypt)
-- satisfies "secure file/message transmission" artefact requirement
-- no standalone demo endpoint needed — real infrastructure deployment is the evidence
+- explain TLS 1.3 via Certbot/Let's Encrypt as the intended deployment-side transport control
+- include HTTPS screenshots/output only if you have direct deployment evidence
+- do not treat TLS as stronger evidence than the implemented AES-GCM-at-rest controls unless the deployment proof is actually included
 
 #### Slice 5: delivery evidence
 - Liquibase schema
@@ -461,7 +461,7 @@ Choose only a few strong, readable items:
 2. submission response showing `hashDigest`, `digitalSignature`, `verificationStatus`
 3. content retrieval response from `/api/submissions/{submissionId}/content`
 4. grade create/update response
-5. browser showing HTTPS padlock / Certbot certificate proof
+5. browser showing HTTPS padlock / Certbot certificate proof *(only if you have direct deployment evidence)*
 6. one short test result summary or IDE/terminal proof that tests pass
 
 ### Outstanding-band differentiation

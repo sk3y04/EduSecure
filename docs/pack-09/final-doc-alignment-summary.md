@@ -46,7 +46,8 @@ These files are still valuable in the report, but they should be presented as **
 - `docs/pack-04/uml/sequence-submission-secure-pack04.puml`
 - `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml`
 - `docs/pack-09/uml/dfd-context-current-state.puml`
-- `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`
+
+The removed `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml` should be treated as historical planning only and should not be cited as active evidence in the report.
 
 Recommended wording in the report:
 
@@ -81,7 +82,7 @@ The Pack 09 DFD files can be used alongside those UML artefacts when you want on
 Do **not** overstate these areas:
 
 - the submission signature flow is a **study-project simulated signing model**, not a user-held PKI deployment
-- ~~the AES demo is a **separate artefact demonstration**~~ — the standalone AES demo has been removed; secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt; AES-GCM appears only in real at-rest business roles (MFA secrets, submission content)
+- ~~the retired standalone symmetric-crypto slice is a **separate artefact demonstration**~~ — that slice has been removed; TLS remains a deployment-side transport design control, while AES-GCM appears only in real at-rest business roles (MFA secrets, submission content)
 - the PostgreSQL/Liquibase path proves **versioned schema delivery and local verification**, not enterprise production hardening
 - default property fallbacks in `application.properties` should be described as **development/demo defaults**, with production secrets expected to be externalised
 

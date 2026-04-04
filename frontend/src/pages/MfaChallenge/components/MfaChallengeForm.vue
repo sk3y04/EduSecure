@@ -32,7 +32,7 @@ function handleVerify() {
         inputmode="numeric"
         autocomplete="one-time-code"
         required
-        class="form-input tracking-[0.35em]"
+          class="form-input font-mono text-lg"
         placeholder="123456"
       />
     </label>

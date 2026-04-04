@@ -34,5 +34,5 @@ Keep the diagrams aligned to current safe claims:
 - MFA is optional and TOTP-based
 - submission confidentiality at rest uses AES-GCM plus wrapped per-submission keys
 - grade integrity depends on verified submissions and audit recording
-- secure transmission claims are TLS/deployment based, not the deprecated Pack 08 AES demo
+- secure transmission claims are TLS/deployment based, not the deprecated Pack 08 standalone symmetric-transport slice
 

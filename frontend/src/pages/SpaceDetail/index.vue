@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { extractErrorMessage } from '@/services/http'
+import AssignmentWorkspace from '@/pages/AssignmentList/components/AssignmentWorkspace.vue'
 import { spacesService } from '@/services/spaces'
 import type { SpaceDetail, SpaceStudent } from '@/types/space'
 import {
@@ -116,10 +117,10 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
 
 <template>
   <section class="space-y-6">
-    <div class="surface-panel p-8">
+    <div class="page-hero">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="max-w-3xl">
-          <p class="section-kicker tracking-[0.3em]">Space detail</p>
+          <p class="section-kicker">Space detail</p>
           <h2 class="section-title">View metadata and manage membership</h2>
           <p class="section-copy">
             Staff can update metadata and maintain the student roster here. Student viewers remain
@@ -135,6 +136,8 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
 
     <template v-else-if="space">
       <SpaceMetaPanel :space="space" />
+
+      <AssignmentWorkspace embedded :space-id="space.id" :space-name="space.name" />
 
       <section v-if="space.canManage" class="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
         <SpaceUpdateForm
@@ -163,9 +166,9 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
         </div>
       </section>
 
-      <section v-else class="surface-panel p-8">
-        <h3 class="text-xl font-semibold text-slate-900">Read-only access</h3>
-        <p class="mt-3 text-sm leading-6 text-slate-600">
+      <section v-else class="page-section">
+        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Read-only access</h3>
+        <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
           You can view this space because you are enrolled in it. Roster management and metadata
           changes remain restricted to lecturers who own the space and administrators.
         </p>

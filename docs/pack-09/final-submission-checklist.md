@@ -23,7 +23,7 @@ Use `docs/pack-09/high-mark-report-blueprint.md` as the main writing-order and s
 - [x] submission/signature evidence is available
 - [x] audit-integrity evidence is available
 - [x] grade-integrity evidence is available
-- [x] AES-GCM demo evidence is available
+- [x] AES-GCM evidence for implemented at-rest controls is available
 - [x] Liquibase schema-migration evidence is available
 - [x] PostgreSQL/Testcontainers verification evidence is available
 - [x] cookie-auth hardening evidence is available

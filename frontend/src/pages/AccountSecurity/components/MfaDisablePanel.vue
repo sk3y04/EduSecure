@@ -19,10 +19,10 @@ function handleDisable() {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="border-b border-slate-200 pb-5">
-      <h3 class="text-xl font-semibold text-slate-900">Disable MFA</h3>
-      <p class="mt-2 text-sm leading-6 text-slate-600">
+  <section class="page-section">
+    <div class="panel-header">
+      <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Disable MFA</h3>
+      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
         The backend requires both the current password and a valid TOTP or recovery code to
         disable MFA, which helps prevent easy downgrade attacks.
       </p>

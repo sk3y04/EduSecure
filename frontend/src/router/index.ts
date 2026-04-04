@@ -35,7 +35,7 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: { name: 'assignments' },
+          redirect: { name: 'spaces' },
         },
         {
           path: 'assignments',
@@ -90,7 +90,7 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: { name: 'assignments' },
+      redirect: { name: 'spaces' },
     },
   ],
 })
@@ -107,7 +107,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    return { name: 'assignments' }
+    return { name: 'spaces' }
   }
 
   if (to.meta.requiresPendingChallenge && !authStore.pendingChallenge) {
@@ -122,7 +122,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.roles && !authStore.hasAnyRole(to.meta.roles)) {
-    return { name: 'assignments' }
+    return { name: 'spaces' }
   }
 
   return true

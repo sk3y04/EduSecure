@@ -78,5 +78,5 @@ Within the grade-integrity slice itself, the main still-open items are now:
 - final report packaging/evidence assembly
 - any later moderation or expanded academic workflow features beyond the current minimal grade flow
 
-The separate AES-demo phase is now implemented elsewhere in the project; the main remaining work is evidence assembly and optional audit-surface expansion.
+The main remaining work is evidence assembly and optional audit-surface expansion.
 

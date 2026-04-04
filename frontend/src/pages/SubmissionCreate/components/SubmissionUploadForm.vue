@@ -5,6 +5,7 @@ const props = defineProps<{
   errorMessage: string | null
   isSubmitting: boolean
   selectedFile: File | null
+  spaceId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -24,7 +25,7 @@ function formatFileSize(size: number): string {
 </script>
 
 <template>
-  <form class="mt-8 grid gap-5" @submit.prevent="emit('submit')">
+  <form class="page-section grid gap-5" @submit.prevent="emit('submit')">
     <div v-if="props.errorMessage" class="alert-error">{{ props.errorMessage }}</div>
 
     <label class="block">
@@ -38,24 +39,24 @@ function formatFileSize(size: number): string {
       />
     </label>
 
-    <div v-if="props.selectedFile" class="surface-panel-muted grid gap-4 p-4 text-sm text-slate-600 sm:grid-cols-3">
-      <div>
-        <p class="font-semibold text-slate-900">Selected file</p>
-        <p class="mt-2 break-all text-slate-700">{{ props.selectedFile.name }}</p>
+    <dl v-if="props.selectedFile" class="stats-grid">
+      <div class="stat-card bg-[var(--color-surface-offset)]">
+        <dt class="meta-label">Selected file</dt>
+        <dd class="meta-value break-all">{{ props.selectedFile.name }}</dd>
       </div>
-      <div>
-        <p class="font-semibold text-slate-900">Detected content type</p>
-        <p class="mt-2 text-slate-700">{{ props.selectedFile.type || 'Browser did not provide a type' }}</p>
+      <div class="stat-card">
+        <dt class="meta-label">Detected content type</dt>
+        <dd class="meta-value">{{ props.selectedFile.type || 'Browser did not provide a type' }}</dd>
       </div>
-      <div>
-        <p class="font-semibold text-slate-900">Size</p>
-        <p class="mt-2 text-slate-700">{{ formatFileSize(props.selectedFile.size) }}</p>
+      <div class="stat-card">
+        <dt class="meta-label">Size</dt>
+        <dd class="meta-value">{{ formatFileSize(props.selectedFile.size) }}</dd>
       </div>
-    </div>
+    </dl>
 
-    <div class="surface-panel-muted p-4 text-sm text-slate-600">
-      <p class="font-semibold text-slate-900">What happens next</p>
-      <ul class="mt-3 list-disc space-y-2 pl-5">
+    <div class="surface-panel-muted p-4">
+      <p class="text-base font-semibold text-[var(--color-heading)]">What happens next</p>
+      <ul class="quiet-list">
         <li>The current upload flow is intentionally narrow: UTF-8 <code>text/plain</code> files only.</li>
         <li>The backend computes a SHA-256 digest over the uploaded file bytes.</li>
         <li>A digital signature is created and immediately verified.</li>
@@ -68,8 +69,11 @@ function formatFileSize(size: number): string {
       <button type="submit" class="btn-primary" :disabled="props.isSubmitting">
         {{ props.isSubmitting ? 'Submitting…' : 'Create secure submission' }}
       </button>
-      <RouterLink :to="{ name: 'assignments' }" class="btn-secondary">
-        Back to assignments
+      <RouterLink
+        :to="props.spaceId ? { name: 'space-detail', params: { spaceId: props.spaceId } } : { name: 'spaces' }"
+        class="btn-secondary"
+      >
+        {{ props.spaceId ? 'Back to space' : 'Back to spaces' }}
       </RouterLink>
     </div>
   </form>

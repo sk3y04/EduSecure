@@ -82,5 +82,5 @@ npm run build
   while the frontend only keeps the MFA challenge state in `sessionStorage`.
 - MFA is standard TOTP: users can enroll with a normal smartphone authenticator app by scanning a QR code derived from the backend `otpauth://` URI or by entering the returned manual key.
 - Admins and lecturers now have a user-management screen; admins can create lecturer and student accounts, while lecturers are limited to student account creation.
-- The AES demo remains a separate artefact-evidence slice; the real submission confidentiality control is the AES-at-rest storage flow already present in the backend.
-- Grade and optional AES demo screens can still be expanded in the frontend if additional screenshots/report evidence are useful.
+- Symmetric-encryption evidence now comes from the backend AES-GCM-at-rest flows for MFA secrets and submission storage rather than from a separate frontend AES demo screen.
+- Grade screens can still be expanded in the frontend if additional screenshots/report evidence are useful.

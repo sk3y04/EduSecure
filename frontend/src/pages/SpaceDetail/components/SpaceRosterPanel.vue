@@ -22,11 +22,11 @@ function formatDate(value: string): string {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+  <section class="page-section">
+    <div class="panel-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h3 class="text-xl font-semibold text-slate-900">Student roster</h3>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
+        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Student roster</h3>
+        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
           Students are listed only for users with management permission on this space.
         </p>
       </div>
@@ -36,17 +36,17 @@ function formatDate(value: string): string {
       No students are assigned to this space yet.
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="record-list">
       <article
         v-for="membership in props.memberships"
         :key="membership.studentUserId"
-        class="rounded-sm border border-slate-300 bg-slate-50 p-4"
+        class="record-card"
       >
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="record-card-frame">
           <div>
-            <p class="text-sm font-semibold text-slate-900">{{ membership.studentFullName }}</p>
-            <p class="mt-1 text-sm text-slate-600">{{ membership.studentEmail }}</p>
-            <p class="mt-2 text-xs uppercase tracking-[0.25em] text-slate-500">
+            <p class="text-base font-semibold text-[var(--color-heading)]">{{ membership.studentFullName }}</p>
+            <p class="mt-1 text-base text-[var(--color-text-soft)]">{{ membership.studentEmail }}</p>
+            <p class="mt-2 text-sm text-[var(--color-text-soft)]">
               Added {{ formatDate(membership.addedAt) }}
             </p>
           </div>

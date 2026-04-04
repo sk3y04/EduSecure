@@ -12,6 +12,10 @@ const route = useRoute()
 const router = useRouter()
 
 const assignmentId = computed(() => String(route.params.assignmentId ?? ''))
+const spaceId = computed(() => {
+  const value = route.query.spaceId
+  return typeof value === 'string' && value.length > 0 ? value : null
+})
 const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 const selectedFile = ref<File | null>(null)
@@ -67,11 +71,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
+  <section class="space-y-6">
     <SubmissionCreateHeader :assignment-id="assignmentId" />
     <ExistingSubmissionPanel
-      class="mt-8"
       :assignment-id="assignmentId"
+      :space-id="spaceId"
       :submission="existingSubmission"
       :is-loading="isLoadingExistingSubmission"
       :load-error="existingSubmissionErrorMessage"
@@ -81,6 +85,7 @@ onMounted(() => {
       :error-message="errorMessage"
       :is-submitting="isSubmitting"
       :selected-file="selectedFile"
+      :space-id="spaceId"
       @submit="handleSubmit"
       @file-change="handleFileChange"
     />

@@ -9,7 +9,6 @@ const router = useRouter()
 
 const navigationItems = computed(() => {
   const items = [
-    { label: 'Assignments', to: { name: 'assignments' } },
     { label: 'Spaces', to: { name: 'spaces' } },
   ]
 
@@ -29,68 +28,52 @@ async function handleLogout() {
 
 <template>
   <div class="app-page">
-    <header class="border-b border-slate-800 bg-slate-900 text-slate-100">
-      <div class="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-brand-100">EduSecure</p>
-          <h1 class="mt-2 text-3xl font-semibold text-white">Security operations console</h1>
-          <p class="mt-2 max-w-2xl text-sm text-slate-300">
-            Frontend access to authentication, MFA state, assignment management, and submission
-            integrity evidence.
-          </p>
-        </div>
+    <header class="mx-auto max-w-7xl px-6 pt-6">
+      <div class="surface-panel px-5 py-4">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
+            <div>
+              <p class="text-lg font-semibold text-[var(--color-heading)]">EduSecure</p>
+              <p class="text-sm text-[var(--color-text-soft)]">Coursework and submission workspace</p>
+            </div>
 
-        <div class="rounded-sm border border-slate-700 bg-slate-800 px-5 py-4 shadow-panel">
-          <div class="flex flex-wrap items-center gap-2 text-sm text-slate-300">
-            <span class="font-semibold text-white">{{ authStore.user?.fullName }}</span>
-            <span class="text-slate-500">•</span>
-            <span>{{ authStore.user?.email }}</span>
+            <nav class="flex flex-wrap gap-2">
+              <RouterLink
+                v-for="item in navigationItems"
+                :key="item.label"
+                :to="item.to"
+                class="inline-flex rounded-full px-4 py-2 text-base font-medium text-[var(--color-text)] transition hover:bg-black/5 hover:text-[var(--color-heading)]"
+                active-class="bg-[var(--color-surface-offset)] text-[var(--color-heading)] shadow-panel"
+              >
+                {{ item.label }}
+              </RouterLink>
+            </nav>
           </div>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span
-              v-for="role in authStore.user?.roles ?? []"
-              :key="role"
-              class="rounded-sm border border-slate-600 bg-slate-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-100"
-            >
-              {{ role }}
-            </span>
+
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+            <div class="text-left">
+              <p class="text-base font-semibold text-[var(--color-heading)]">{{ authStore.user?.fullName }}</p>
+              <p class="text-sm text-[var(--color-text-soft)]">{{ authStore.user?.email }}</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                v-for="role in authStore.user?.roles ?? []"
+                :key="role"
+                class="status-pill status-pill-neutral"
+              >
+                {{ role.replaceAll('_', ' ') }}
+              </span>
+              <button type="button" class="btn-secondary" @click="handleLogout">
+                Sign out
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            class="mt-4 inline-flex items-center rounded-sm border border-slate-500 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white"
-            @click="handleLogout"
-          >
-            Sign out
-          </button>
         </div>
       </div>
     </header>
 
-    <div class="mx-auto grid max-w-7xl gap-8 px-6 py-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside class="surface-panel p-4">
-        <p class="px-3 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Navigation</p>
-        <nav class="mt-4 space-y-2">
-          <RouterLink
-            v-for="item in navigationItems"
-            :key="item.label"
-            :to="item.to"
-            class="block border-l-4 border-transparent px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-            active-class="border-brand-700 bg-slate-100 text-slate-900"
-          >
-            {{ item.label }}
-          </RouterLink>
-        </nav>
-
-        <div class="surface-panel-muted mt-6 p-4 text-sm text-slate-600">
-          <p class="font-semibold text-slate-900">Security evidence focus</p>
-          <ul class="mt-3 list-disc space-y-2 pl-5">
-            <li>Cookie-backed navigation after login</li>
-            <li>MFA setup and verification states</li>
-            <li>Submission digest and signature visibility</li>
-          </ul>
-        </div>
-      </aside>
-
+    <div class="mx-auto max-w-7xl px-6 py-[clamp(2rem,5vw,4rem)]">
       <main>
         <RouterView />
       </main>

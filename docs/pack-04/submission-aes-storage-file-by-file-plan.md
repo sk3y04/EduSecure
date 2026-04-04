@@ -11,7 +11,7 @@ Use it together with:
 The goal is to implement AES-GCM protection for submission content at rest while:
 - preserving the current submission API shape
 - preserving plaintext-based digest and signature semantics
-- keeping the AES demo service separate
+- keeping this storage flow separate from any retired standalone symmetric-crypto slice
 - maintaining audit and access-control behaviour
 
 ## 2. High-level change map
@@ -102,7 +102,7 @@ Acceptance points:
 
 ### `backend/src/main/resources/application.properties`
 Purpose in this feature:
-- configure submission-storage encryption separately from the AES demo
+- configure submission-storage encryption separately from other application secrets
 
 Recommended new properties:
 - `submission.storage.master-key`
@@ -112,7 +112,7 @@ Recommended new properties:
 - `submission.storage.base-path` (if local file/blob storage is used first)
 
 Important rule:
-- ~~do not reuse `aes.demo-key`~~ *(note: `aes.demo-key` and `AesGcmDemoService` have been removed; submission storage uses its own dedicated key material)*
+- do not reuse unrelated application secrets; submission storage should keep its own dedicated key material
 
 Acceptance points:
 - properties are environment-variable-backed in the same style as the current file
@@ -182,7 +182,7 @@ Planned responsibilities:
 - later support decryption if a content-access path is added
 
 Important rule:
-- ~~do not depend on demo controller DTOs or `AesGcmDemoService`~~ *(note: `AesGcmDemoService` has been removed from the project)*
+- do not depend on retired standalone-slice DTOs or services; keep submission storage self-contained
 
 Acceptance points:
 - uses `AES/GCM/NoPadding`

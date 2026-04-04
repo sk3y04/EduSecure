@@ -63,12 +63,12 @@ function formatDate(value: string | null): string {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="mb-6 border-b border-slate-200 pb-5">
-      <h3 class="text-xl font-semibold text-slate-900">
+  <section class="page-section">
+    <div class="panel-header">
+      <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">
         {{ props.existingGrade ? 'Update grade' : 'Grade submission' }}
       </h3>
-      <p class="mt-2 text-sm leading-6 text-slate-600">
+      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
         Only verified submissions can be graded. Grades are stored as whole-number percentages
         from 0 to 100. One grade per submission — use the update form once a grade already exists.
       </p>
@@ -76,29 +76,29 @@ function formatDate(value: string | null): string {
 
     <div v-if="!props.submissionVerified" class="empty-state">
       Grading is only available once the submission has a
-      <span class="font-semibold text-slate-900">VERIFIED</span> status.
+      <span class="font-semibold text-[var(--color-heading)]">verified</span> status.
     </div>
 
     <template v-else>
       <div v-if="props.errorMessage" class="alert-error mb-4">{{ props.errorMessage }}</div>
       <div v-if="props.successMessage" class="alert-success mb-4">{{ props.successMessage }}</div>
 
-      <div v-if="props.existingGrade" class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Grade ID</dt>
-          <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ props.existingGrade.id }}</dd>
+      <div v-if="props.existingGrade" class="stats-grid mb-6">
+        <div class="stat-card">
+          <dt class="meta-label">Grade ID</dt>
+          <dd class="meta-value break-all mono-meta">{{ props.existingGrade.id }}</dd>
         </div>
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Current percentage</dt>
-          <dd class="mt-2 text-sm font-semibold text-slate-900">{{ props.existingGrade.value }}%</dd>
+        <div class="stat-card bg-[var(--color-surface-offset)]">
+          <dt class="meta-label">Current percentage</dt>
+          <dd class="meta-value font-medium">{{ props.existingGrade.value }}%</dd>
         </div>
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Graded at</dt>
-          <dd class="mt-2 text-sm text-slate-900">{{ formatDate(props.existingGrade.gradedAt) }}</dd>
+        <div class="stat-card">
+          <dt class="meta-label">Graded at</dt>
+          <dd class="meta-value">{{ formatDate(props.existingGrade.gradedAt) }}</dd>
         </div>
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Last modified</dt>
-          <dd class="mt-2 text-sm text-slate-900">{{ formatDate(props.existingGrade.lastModifiedAt) }}</dd>
+        <div class="stat-card">
+          <dt class="meta-label">Last modified</dt>
+          <dd class="meta-value">{{ formatDate(props.existingGrade.lastModifiedAt) }}</dd>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ function formatDate(value: string | null): string {
             class="form-input"
             placeholder="0 - 100"
           />
-          <span class="mt-2 block text-xs text-slate-500">Enter a whole-number percentage between 0 and 100.</span>
+          <span class="mt-2 block text-sm text-[var(--color-text-soft)]">Enter a whole-number percentage between 0 and 100.</span>
         </label>
 
         <label class="block lg:col-span-2">

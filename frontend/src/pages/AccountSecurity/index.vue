@@ -101,8 +101,8 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <section class="surface-panel p-8">
-      <p class="section-kicker tracking-[0.3em]">Account security</p>
+    <section class="page-hero">
+      <p class="section-kicker">Account security</p>
       <h2 class="section-title">Manage optional TOTP MFA</h2>
       <p class="section-copy max-w-3xl">
         Review MFA status, generate enrollment material, complete the first-code verification flow,
@@ -124,19 +124,21 @@ onMounted(() => {
           @setup="handleSetup"
         />
 
-        <MfaEnablePanel
-          v-if="!status?.mfaEnabled"
-          :setup-data="setupData"
-          :enable-result="enableResult"
-          :is-enabling="isEnabling"
-          @enable="handleEnable"
-        />
+        <div class="space-y-6">
+          <MfaEnablePanel
+            v-if="!status?.mfaEnabled || enableResult?.recoveryCodes?.length"
+            :setup-data="setupData"
+            :enable-result="enableResult"
+            :is-enabling="isEnabling"
+            @enable="handleEnable"
+          />
 
-        <MfaDisablePanel
-          v-else
-          :is-disabling="isDisabling"
-          @disable="handleDisable"
-        />
+          <MfaDisablePanel
+            v-if="status?.mfaEnabled"
+            :is-disabling="isDisabling"
+            @disable="handleDisable"
+          />
+        </div>
       </div>
     </template>
   </div>

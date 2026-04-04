@@ -1,12 +1,14 @@
 # AES Secure Transmission Demo Design
 
+> **Historical planning note:** The standalone AES transmission demo described below was later removed from the codebase. Keep this file only as design history. The current implementation evidence for symmetric encryption comes from AES-GCM protection of MFA secrets and submission content at rest, while transport security is handled in the deployment narrative via TLS.
+
 This document defines the AES-based confidentiality demonstration that will support the technical artefact.
 
-## 1. Why this demo needs its own design note
+## 1. Why this demo originally needed its own design note
 
-The assignment asks for a functional artefact implementing at least three cryptographic techniques. Even though secure REST communication is already represented in the system design through `TLS`, the artefact should still include an explicit symmetric-encryption demonstration that can be tested and shown independently.
+At the time this note was written, the assignment was being satisfied with a standalone symmetric-encryption demo in addition to the broader secure-system design.
 
-## 2. Scope of the AES demo
+## 2. Scope of the retired standalone symmetric-crypto slice
 
 ### Selected recommendation
 Use a **small message/file-content encryption demonstration** that is separate from the main authenticated REST business flow.
@@ -39,7 +41,7 @@ The demo should show:
 
 ## 5. Nonce / IV rules
 
-For the AES demo:
+For that retired standalone slice:
 - generate a fresh nonce/IV for every encryption operation
 - never reuse the same nonce/IV with the same key
 - package the nonce/IV alongside the ciphertext for later decryption
@@ -62,7 +64,7 @@ Acceptable first artefact options:
 ### Important report note
 This is a cryptographic demonstration, not a production key-management deployment. The report should say so clearly.
 
-## 7. Relationship to TLS
+## 7. Historical relationship to TLS
 
 ### Important distinction
 - `TLS` protects normal client-server traffic in the secure deployment design
@@ -101,7 +103,7 @@ The later implementation should demonstrate:
 
 ## 10. Suggested implementation boundary
 
-Keep the AES demo in a dedicated crypto endpoint or service, not mixed into grade retrieval or auth endpoints.
+Keep that retired standalone slice in a dedicated crypto endpoint or service, not mixed into grade retrieval or auth endpoints.
 
 That keeps the artefact clearer and avoids confusing the pedagogical purpose of the demo.
 

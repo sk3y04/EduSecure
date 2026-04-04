@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
@@ -8,6 +9,7 @@ import type { SpaceSummary } from '@/types/space'
 import { SpaceCreateForm, SpaceListHeader, SpaceListItems } from './components'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const spaces = ref<SpaceSummary[]>([])
 const isLoading = ref(true)
@@ -54,6 +56,7 @@ async function handleCreate(payload: { name: string; code: string; description: 
     ]
 
     createSuccess.value = 'Space created successfully.'
+    await router.push({ name: 'space-detail', params: { spaceId: created.id } })
   } catch (error) {
     createError.value = extractErrorMessage(error)
   } finally {

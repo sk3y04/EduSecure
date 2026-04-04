@@ -161,7 +161,7 @@ This means:
 The current implementation uses a study-project key model that is stronger than a single plaintext content field but still simpler than enterprise KMS/HSM infrastructure.
 
 ### Current posture
-- submission-storage key configuration is separate from the AES demo key
+- submission-storage key configuration is separate from the other application secrets used for auth, MFA, and audit integrity
 - a per-submission content-encryption key is used for content encryption
 - the content key is wrapped before persistence
 - the submission row stores a key-version identifier for later selection/rotation logic
@@ -171,7 +171,7 @@ This is still a study-project design.
 
 It demonstrates:
 - real confidentiality-at-rest behavior
-- key separation between the AES demo and protected submission storage
+- key separation between protected submission storage and the other cryptographic secrets used in the application
 - a more realistic application of AES than blanket API-payload encryption
 
 It does **not** claim:
@@ -319,7 +319,6 @@ For the design rationale that led to this implementation, see:
 For the shorter catch-up summary, see:
 - `docs/pack-06/submission-phase-status-and-evidence.md`
 
-### Separate AES demo scope
-For the standalone AES transmission demonstration, see:
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
+### Historical note
+Pack 08's AES transmission demo note is now historical only. The current repository's implemented symmetric-encryption evidence for submissions comes from the AES-GCM-at-rest storage flow described in this document.
 

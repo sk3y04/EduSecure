@@ -61,7 +61,7 @@ For each submission, the backend now:
 - stores verification status and message with the submission
 
 Current implementation note:
-- the simulated RSA signing model now uses a stable configured demo keypair loaded from externalisable resource locations rather than a fresh runtime-generated keypair
+- the simulated ECC signing model now uses a stable configured demo keypair loaded from externalisable resource locations rather than a fresh runtime-generated keypair
 - this improves repeatability of report/test evidence while remaining a study-project simulation rather than a full user-held PKI model
 
 ### Submission confidentiality at rest
@@ -115,5 +115,5 @@ Within the submission slice itself, the main still-open items are now:
 - broader report/evidence assembly and final packaging
 - any future expansion beyond the current metadata/content retrieval contract
 
-Later phases already added grade-integrity and AES-demo capabilities elsewhere in the project, while the remaining work is now primarily about evidence assembly, optional audit exposure, and final refinement.
+Later phases added grade-integrity capabilities elsewhere in the project, while the remaining work is now primarily about evidence assembly, optional audit exposure, and final refinement.
 

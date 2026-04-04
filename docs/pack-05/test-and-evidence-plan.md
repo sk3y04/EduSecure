@@ -1,6 +1,8 @@
 # Test and Evidence Plan
 
-This document defines what the next grade-integrity and AES phases must prove through tests and report evidence.
+> **Historical planning note:** The AES-demo-specific expectations in this file describe an earlier artefact direction. The current repository's active symmetric-encryption evidence comes from AES-GCM protection of MFA secrets and submission content at rest.
+
+This document defines what the next grade-integrity and earlier AES-demo phases needed to prove through tests and report evidence.
 
 ## 1. Purpose
 
@@ -29,7 +31,7 @@ The report should later be able to show:
 - evidence of audit creation
 - explanation of how the audit record supports tamper-evident accountability
 
-## 3. AES demo evidence expectations
+## 3. Historical standalone symmetric-crypto evidence expectations
 
 ## Positive cases
 - encrypting a plaintext message produces ciphertext that differs from the plaintext
@@ -41,7 +43,7 @@ The report should later be able to show:
 - wrong key fails decryption
 - invalid input is rejected cleanly
 
-## Report evidence for AES demo
+## Report evidence for the retired standalone symmetric-crypto slice
 The report should later be able to show:
 - plaintext example
 - encrypted output example

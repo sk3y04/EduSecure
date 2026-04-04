@@ -15,7 +15,7 @@ const shouldPreserveErrorMessage = computed(() => route.query.reason === 'sessio
 
 const redirectTarget = computed(() => {
   const redirect = route.query.redirect
-  return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/assignments'
+  return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/spaces'
 })
 
 watch(
@@ -52,8 +52,8 @@ async function handleSubmit(payload: { email: string; password: string }) {
 </script>
 
 <template>
-  <div class="app-page px-6 py-10">
-    <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+  <div class="app-page px-6 py-[clamp(2rem,7vw,6rem)]">
+    <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.8fr)] lg:items-start">
       <LoginInfoPanel />
       <LoginForm
         :error-message="authStore.errorMessage"

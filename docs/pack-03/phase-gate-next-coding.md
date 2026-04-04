@@ -5,7 +5,7 @@ This checklist covered the MFA implementation phase and now records which parts 
 It should also continue to be used before larger later phases such as:
 - assignment submission features
 - hashing/signature workflows
-- AES-based secure transmission demo
+- transport-security design and AES-based at-rest protection work
 - grade-integrity logic
 - audit/tamper-evidence features
 

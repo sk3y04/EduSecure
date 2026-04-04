@@ -96,7 +96,7 @@ Coding may begin only when all of the following are accepted:
 - role rules are accepted
 - audit expectations are accepted
 - evidence/test plan is accepted
-- AES demo design is documented separately in this pack
+- the retired standalone symmetric-transport design is documented separately in this pack
 
 ## 9. No-Go condition for coding
 

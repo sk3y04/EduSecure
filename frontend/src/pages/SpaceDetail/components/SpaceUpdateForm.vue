@@ -38,10 +38,10 @@ function handleSubmit() {
 </script>
 
 <template>
-  <div class="surface-panel p-8">
-    <div class="mb-6 border-b border-slate-200 pb-5">
-      <h3 class="text-xl font-semibold text-slate-900">Update space</h3>
-      <p class="mt-2 text-sm leading-6 text-slate-600">
+  <div class="page-section">
+    <div class="panel-header">
+      <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Update space</h3>
+      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
         Ownership stays enforced on the backend. This form only appears when the API has
         already confirmed management access.
       </p>
@@ -66,7 +66,7 @@ function handleSubmit() {
         <textarea v-model="form.description" rows="5" required class="form-input" />
       </label>
 
-      <label class="flex items-center gap-3 rounded-sm border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+      <label class="flex items-center gap-3 rounded-md border border-black/10 bg-[var(--color-surface-2)] px-4 py-3 text-base text-[var(--color-text)]">
         <input v-model="form.archived" type="checkbox" class="h-4 w-4" />
         Archive this space
       </label>

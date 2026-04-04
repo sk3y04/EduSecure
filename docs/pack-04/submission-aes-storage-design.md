@@ -81,7 +81,7 @@ This document closes that gap.
 - later test/evidence expectations for the implementation
 
 ## Out of scope for this design
-- replacing the separate AES demo endpoints
+- transport-layer TLS deployment concerns and any standalone transmission-demo endpoint
 - full KMS/HSM integration
 - browser-side key exchange or end-to-end encryption
 - encrypted feedback delivery workflow
@@ -125,16 +125,16 @@ Reason:
 Use `AES/GCM/NoPadding` for submission storage encryption.
 
 Reason:
-- already consistent with the separate demo implementation
+- already consistent with the broader AES-GCM direction chosen for the project
 - gives confidentiality plus authenticated encryption
 - explicit nonce handling is straightforward to document and test
 
-### Decision 3: do **not** reuse the AES demo key
-Submission-storage encryption must use separate configuration and key material from the demo endpoint flow.
+### Decision 3: do **not** reuse unrelated application secrets
+Submission-storage encryption must use separate configuration and key material from the other cryptographic secrets used by the application.
 
 Reason:
-- the demo service exists for artefact evidence, not storage protection
-- using a distinct key avoids coupling real data protection to a teaching/demo endpoint
+- submission storage is a distinct protection domain from auth, MFA, and audit integrity
+- using a distinct key avoids coupling real data protection to a retired teaching/demo slice
 - it makes report claims more defensible
 
 ### Decision 4: use a per-submission DEK wrapped by a configured master key
@@ -263,9 +263,9 @@ Responsibility:
 These may be implemented as separate classes or a smaller combined service, but the responsibilities should remain conceptually distinct.
 
 ## Important boundary rule
-~~Do **not** overload `AesGcmDemoService` with submission-storage responsibilities.~~
+~~Do **not** overload the retired standalone symmetric-crypto slice with submission-storage responsibilities.~~
 
-> **Note (updated):** `AesGcmDemoService` and its associated demo endpoints have been removed. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level. Submission content encryption at rest remains in `SubmissionContentEncryptionService` as the only AES-GCM application-layer control for submissions.
+> **Note (updated):** The former standalone symmetric-crypto slice and its associated endpoints have been removed. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level. Submission content encryption at rest remains in `SubmissionContentEncryptionService` as the only AES-GCM application-layer control for submissions.
 
 ## 10. API impact
 
@@ -311,7 +311,7 @@ If encryption or storage fails before persistence completes, no successful submi
 Use a dedicated environment-configured submission-storage master key.
 
 Example intent:
-- property separate from the (now-removed) `aes.demo-key`
+- property separate from the other cryptographic secrets used by the application
 - versioned so future rotation is possible
 
 ### DEK lifecycle
@@ -401,11 +401,11 @@ The following are deliberately deferred until coding begins:
 
 ## 17. Phase gate for later coding
 
-> **Note (updated):** This phase gate has been completed. The AES-at-rest implementation is done. `AesGcmDemoService` has also been removed — secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt. The following original gate conditions are retained for historical reference only.
+> **Note (updated):** This phase gate has been completed. The AES-at-rest implementation is done. The former standalone symmetric-crypto slice has also been removed — secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt. The following original gate conditions are retained for historical reference only.
 
 ~~Do not start the AES-at-rest implementation until all of the following are accepted:~~
 - ~~plaintext digest/signature continues to be the canonical integrity/authorship path~~
-- ~~`AesGcmDemoService` remains separate from storage protection~~
+- ~~the retired standalone symmetric-crypto slice remains separate from storage protection~~
 - ~~per-submission DEK + wrapped-key design is accepted~~
 - ~~the minimum `Submission` metadata additions are accepted~~
 - ~~fail-closed behaviour for encryption/storage failures is accepted~~

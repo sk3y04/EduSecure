@@ -16,7 +16,7 @@ The backend now already covers the main cryptographic artefact areas:
 - `bcrypt` password hashing
 - JWT-backed auth foundation with `HttpOnly` cookie transport for browser clients
 - `SHA-256` digest generation
-- RSA-backed submission verification
+- ECC-based submission signing and verification
 - `HMAC-SHA-256` audit integrity
 - `AES-GCM` protection for MFA secrets and submission content at rest
 

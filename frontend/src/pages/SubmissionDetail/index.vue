@@ -163,10 +163,10 @@ onMounted(() => {
 
 <template>
   <section class="space-y-6">
-    <div class="surface-panel p-8">
+    <div class="page-hero">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="max-w-3xl">
-          <p class="section-kicker tracking-[0.3em]">Submission evidence</p>
+          <p class="section-kicker">Submission evidence</p>
           <h2 class="section-title">Review integrity and authorship metadata</h2>
           <p class="section-copy">
             This screen keeps the cryptographic evidence easy to inspect: digest, signature

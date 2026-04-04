@@ -22,10 +22,10 @@ Use:
 - `docs/pack-03/mfa-cryptography-implementation.md`
 - `docs/pack-02/cia-evaluation.md`
 - `docs/pack-09/final-cryptography-claims-matrix.md`
-- implemented examples from Pack 06 / 07 / 08 evidence notes
+- implemented examples from Pack 06 / 07 evidence notes plus Pack 09 claim-control docs
 
 Purpose:
-- explain why bcrypt, SHA-256, RSA, HMAC, and AES-GCM are used
+- explain how AES, RSA, ECC, SHA-256, bcrypt, and HMAC are compared, and why bcrypt, SHA-256, ECC, HMAC, and AES-GCM were implemented
 - distinguish confidentiality, integrity, and authenticity roles
 
 ## Section 3. Risk assessment
@@ -60,14 +60,14 @@ Suggested diagram emphasis:
 - secure login sequence
 - secure submission sequence
 - grade integrity sequence
-- ~~AES demo sequence~~ *(removed — TLS deployment via Certbot/Let's Encrypt is the transmission control)*
+- ~~retired standalone symmetric-transport sequence~~ *(removed — TLS deployment via Certbot/Let's Encrypt is the transmission control)*
 
 ## Section 5. Cryptographic controls and algorithm selection
 
 Use:
 - `docs/pack-02/crypto-decision-matrix.md`
 - `docs/pack-03/mfa-cryptography-implementation.md`
-- `docs/pack-05/aes-secure-transmission-demo-design.md`
+- `docs/pack-09/report-claims-audit-note.md`
 - `docs/pack-09/final-cryptography-claims-matrix.md`
 
 Purpose:
@@ -97,7 +97,7 @@ Purpose:
 
 Use:
 - `docs/pack-02/cia-evaluation.md`
-- evidence from implemented backend phases in `docs/pack-06/`, `docs/pack-07/`, `docs/pack-08/`
+- evidence from implemented backend phases in `docs/pack-06/`, `docs/pack-07/`, and Pack 09 wording-control docs
 
 Purpose:
 - show how each control supports confidentiality, integrity, or availability
@@ -114,7 +114,6 @@ Use:
 - `docs/pack-06/submission-phase-status-and-evidence.md`
 - `docs/pack-06/submission-content-protection-and-retrieval.md`
 - `docs/pack-07/grade-phase-status-and-evidence.md`
-- `docs/pack-08/aes-demo-phase-status-and-evidence.md`
 - test classes under `backend/src/test/java/edusecure/edusecure/`
 - `backend/src/test/java/edusecure/edusecure/LiquibasePostgresIntegrationTests.java`
 
@@ -128,7 +127,7 @@ Purpose:
 
 Use:
 - residual risks from `docs/pack-02/cia-evaluation.md`
-- implementation limits from Packs 06–08
+- implementation limits from Packs 06–07 and Pack 09 claim-boundary notes
 - appendix planning from this pack if useful
 
 Purpose:

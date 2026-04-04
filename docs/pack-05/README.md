@@ -7,14 +7,14 @@ Pack 05 is the next documentation-only gate after Pack 04.
 Pack 04 freezes the design for secure submission, signatures, hashing, and initial audit logging. However, two important areas still need to be documented before more feature work can continue in a disciplined way:
 
 1. grade integrity and grade update governance
-2. the AES-based secure transmission demo required for the technical artefact
+2. the earlier standalone symmetric-transport concept that was later superseded by TLS for transport and AES-GCM at-rest controls
 
 ## Purpose
 
 Pack 05 defines:
 - the minimum grade-integrity workflow
 - the grade API contract and update rules
-- the AES-GCM transmission demo boundary and assumptions
+- the historical AES-GCM transmission-demo boundary and assumptions
 - the test/evidence expectations for both areas
 - UML addenda for secure grade handling and AES transmission
 
@@ -34,7 +34,7 @@ Inherited auth baseline for this pack:
 
 ## Outcome expected from Pack 05
 
-After this pack, the remaining pre-coding uncertainty around grade integrity and the AES demonstration should be low enough to proceed without repeating the earlier code-first drift.
+After this pack, the remaining pre-coding uncertainty around grade integrity was low enough to proceed without repeating the earlier code-first drift. The AES-demo material is now retained mainly as historical planning because the standalone demo was later removed.
 
 The detailed auth transport rule for this pack remains the one defined in `../pack-03/api-auth-contract.md`.
 

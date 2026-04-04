@@ -133,7 +133,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 4.5 Secure transmission design
 
-[Explain that TLS 1.3 is enforced via Certbot/Let's Encrypt on deployment, protecting all client-server traffic in transit. This satisfies the "secure file/message transmission" artefact requirement through real infrastructure rather than a standalone demo endpoint.]
+[Explain that TLS 1.3 via Certbot/Let's Encrypt is the intended deployment-side transport control for protecting client-server traffic in transit. If you do not include direct HTTPS deployment evidence, present this as a secure design/deployment control rather than as repository-proven enforcement.]
 
 **Mini-conclusion:** [Summarize how the secure design addresses the brief’s major incidents.]
 
@@ -177,7 +177,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 6.3 Key handling assumptions
 
-[Differentiate JWT secret, MFA secret-encryption key, audit HMAC secret, and submission storage key material. Note that the (now-removed) AES demo key no longer exists.]
+[Differentiate JWT secret, MFA secret-encryption key, audit HMAC secret, and submission storage key material. Emphasize that these secrets should remain separated by purpose.]
 
 ## 6.4 Error handling and secure coding boundaries
 
@@ -195,7 +195,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 7.1 Confidentiality
 
-[Explain how bcrypt, MFA secret encryption, TLS 1.3 via Certbot/Let's Encrypt (transport), and submission AES-at-rest protection contribute to confidentiality. Note that the standalone AES demo has been removed — AES-GCM appears only in real business roles.]
+[Explain how bcrypt, MFA secret encryption, TLS 1.3 via Certbot/Let's Encrypt (transport), and submission AES-at-rest protection contribute to confidentiality. Note that the retired standalone symmetric-crypto slice has been removed — AES-GCM appears only in real business roles.]
 
 ## 7.2 Integrity
 
@@ -229,7 +229,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 8.4 Secure transmission evidence (TLS via Certbot/Let's Encrypt)
 
-[Explain that TLS 1.3 is enforced at the infrastructure level via Certbot/Let's Encrypt, protecting all client-server traffic. Reference the deployment configuration and browser HTTPS evidence. Note that the standalone AES demo was removed in favour of this real deployment control.]
+[Explain that TLS 1.3 via Certbot/Let's Encrypt is the intended deployment-side transport control. Reference browser HTTPS evidence only if you actually include direct deployment proof. Note that the retired standalone symmetric-crypto slice was removed, so the repository's implemented symmetric-encryption evidence now comes from the AES-GCM at-rest controls.]
 
 ## 8.5 Test and execution evidence
 

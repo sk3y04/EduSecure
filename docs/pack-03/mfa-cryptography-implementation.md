@@ -247,7 +247,7 @@ AES-GCM reduces that risk by binding integrity to the encrypted data.
 The implementation deliberately keeps the MFA secret-encryption key separate from other project secrets such as:
 - JWT signing secret
 - audit HMAC secret
-- AES demo key purpose
+- submission-storage key material
 
 This follows good cryptographic hygiene:
 - one key should not be reused for unrelated security functions

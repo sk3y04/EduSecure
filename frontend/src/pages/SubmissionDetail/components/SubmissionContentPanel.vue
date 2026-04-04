@@ -13,11 +13,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-start lg:justify-between">
+  <section class="page-section">
+    <div class="panel-header flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div class="max-w-3xl">
-        <h3 class="text-xl font-semibold text-slate-900">Protected submission content</h3>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
+        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Protected submission content</h3>
+        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
           Metadata remains visible by default. Uploaded text content is only fetched through
           the controlled retrieval endpoint so the backend can authorize and audit access.
         </p>
@@ -36,15 +36,15 @@ const emit = defineEmits<{
       {{ props.contentErrorMessage }}
     </div>
 
-    <div v-else-if="props.submissionContent" class="mt-6 rounded-sm border border-slate-300 bg-slate-50 p-5">
+    <div v-else-if="props.submissionContent" class="surface-panel-muted mt-6 p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-slate-900">{{ props.submissionContent.fileName }}</p>
-          <p class="mt-1 text-xs uppercase tracking-[0.25em] text-slate-500">
+          <p class="text-base font-semibold text-[var(--color-heading)]">{{ props.submissionContent.fileName }}</p>
+          <p class="mt-1 text-sm text-[var(--color-text-soft)]">
             {{ props.submissionContent.contentType }}
           </p>
         </div>
-        <p class="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-700">Audited retrieval</p>
+        <p class="status-pill status-pill-success">Audited retrieval</p>
       </div>
       <pre class="code-block mt-4">{{ props.submissionContent.content }}</pre>
     </div>

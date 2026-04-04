@@ -39,7 +39,7 @@ It should not become a large polished product.
 - student grade view if additional screenshots/evidence are needed
 - lecturer/admin grade create/update view if time permits
 
-> **Note (updated):** Phase D (AES demo view) has been removed. The standalone AES demo endpoints no longer exist. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level.
+> **Note (updated):** Phase D (the retired standalone symmetric-crypto view) has been removed. Secure transmission is handled by TLS 1.3 via Certbot/Let's Encrypt at the infrastructure level.
 
 ## 4. API integration targets
 

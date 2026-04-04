@@ -26,7 +26,7 @@ The backend now includes a first real security/domain slice aligned with the pla
 - append-oriented audit logging with HMAC-backed integrity values
 - grade creation, update, and retrieval foundation
 - verified-submission-only grading enforcement
-- AES-GCM secure transmission demo endpoints
+- AES-GCM protection of MFA secrets and submission content at rest
 
 ## What this first planning pack does
 
@@ -52,13 +52,13 @@ The current `docs/pack-03/` phase is a documentation catch-up layer added after 
 
 The `docs/pack-04/` phase now serves as the pre-implementation design gate for secure assignment submission, digital signatures, hash verification, and audit-integrity features.
 
-The `docs/pack-05/` phase now serves as the pre-implementation design gate for grade integrity and the AES-based secure transmission demonstration.
+The `docs/pack-05/` phase now serves mainly as the historical pre-implementation design gate for grade integrity and the earlier AES-based transmission-demo idea.
 
 The `docs/pack-06/` phase now records the implemented status and evidence for the secure submission and audit-integrity slice.
 
 The `docs/pack-07/` phase now records the implemented status and evidence for the grade-integrity slice.
 
-The `docs/pack-08/` phase now records the implemented status and evidence for the AES-GCM secure transmission demo.
+The `docs/pack-08/` phase is now retained as a historical record of the removed standalone symmetric-transport slice and should not be cited as active implementation evidence.
 
 The `docs/pack-09/` phase now serves as the final support pack for report evidence mapping, Vue frontend planning, and appendix planning for CI/CD and deployment.
 

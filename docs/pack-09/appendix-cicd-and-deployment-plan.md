@@ -67,8 +67,8 @@ The appendix should stay explicit that HTTPS at the reverse proxy does **not aut
 
 ### HTTPS note
 The report should make clear:
-- HTTPS via Certbot/Let's Encrypt is the deployed transport security control
-- it protects all client-server traffic in transit and satisfies the "secure file/message transmission" artefact requirement
+- HTTPS via Certbot/Let's Encrypt is the intended deployment-side transport security control
+- if separate deployment proof is included, it can be shown as protecting client-server traffic in transit and supporting the "secure file/message transmission" requirement
 - application-layer AES-GCM is used separately for MFA secrets and submission content at rest, not for general traffic encryption
 
 ## 5. Relationship to `homelab-blueprint`

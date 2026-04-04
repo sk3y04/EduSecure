@@ -121,17 +121,17 @@ What it proves:
 - grade-sensitive actions are audited
 - grade endpoints remain protected under the same cookie-authenticated session model
 
-## 5. Secure transmission — TLS via Certbot/Let's Encrypt
+## 5. Secure transmission design note — TLS via Certbot/Let's Encrypt
 
-The standalone AES-GCM demo endpoints (`AesDemoController`, `AesGcmDemoService`) have been removed. Secure message/file transmission is covered at the infrastructure level by TLS 1.3 enforced via Certbot and Let's Encrypt on deployment. This is the correct and complete solution: all client-server traffic is protected by TLS, which itself uses AES-GCM internally.
+The former standalone symmetric-crypto endpoints have been removed. Secure message/file transmission is now handled in the documentation as a deployment-side TLS 1.3 control via Certbot and Let's Encrypt rather than as a standalone application-layer endpoint slice.
 
 AES-GCM symmetric encryption remains evidenced in the codebase through two real business controls:
 - MFA secret protection at rest (`MfaSecretCryptoService`)
 - Submission content encryption at rest (`SubmissionContentEncryptionService`, `SubmissionKeyProtectionService`)
 
-What the deployment proves:
-- all client-server traffic is encrypted in transit (TLS 1.3, Certbot/Let's Encrypt)
-- the "secure file/message transmission" artefact requirement is satisfied by real infrastructure TLS rather than a standalone demo endpoint
+What the current repository supports claiming:
+- TLS 1.3 via Certbot/Let's Encrypt is the intended deployment control for client-server transport security
+- the codebase itself now evidences symmetric encryption through AES-GCM protection of MFA secrets and submission content at rest rather than through a separate transmission demo
 
 ## 6. Baseline availability / boot evidence
 
@@ -177,7 +177,7 @@ The implemented artefact now contains evidence for at least these techniques:
 - hashing with `SHA-256`
 - digital signature workflow with ECC-based signing/verification logic
 - HMAC-backed integrity for audit records
-- AES-GCM symmetric encryption demo
+- AES-GCM symmetric encryption for sensitive data at rest
 - AES-GCM protection of stored MFA secrets at rest
 - AES-GCM protection of stored submission content at rest
 

@@ -9,6 +9,7 @@ const props = defineProps<{
   loadError: string | null
   isStudent: boolean
   canReviewSubmissions: boolean
+  spaceId?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -31,11 +32,11 @@ function hasExistingSubmission(assignment: AssignmentSummary): boolean {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+  <section class="page-section">
+    <div class="panel-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h3 class="text-xl font-semibold text-slate-900">Visible assignments</h3>
-        <p class="mt-2 text-sm leading-6 text-slate-600">
+        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Visible assignments</h3>
+        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
           Students can open the secure submission form directly from an active assignment.
         </p>
       </div>
@@ -56,47 +57,55 @@ function hasExistingSubmission(assignment: AssignmentSummary): boolean {
       No assignments are available yet.
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else class="record-list">
       <article
         v-for="assignment in props.assignments"
         :key="assignment.id"
-        class="rounded-sm border border-slate-300 bg-white p-5"
+        class="record-card"
       >
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="record-card-frame">
           <div>
-            <h4 class="text-lg font-semibold text-slate-900">{{ assignment.title }}</h4>
-            <p class="mt-2 text-sm text-slate-600">Due {{ formatDate(assignment.dueAt) }}</p>
-            <p v-if="props.isStudent && assignment.latestSubmittedAt" class="mt-2 text-sm text-slate-600">
+            <h4 class="font-display text-xl font-semibold text-[var(--color-heading)]">{{ assignment.title }}</h4>
+            <p class="mt-2 text-base text-[var(--color-text-soft)]">Due {{ formatDate(assignment.dueAt) }}</p>
+            <p v-if="props.isStudent && assignment.latestSubmittedAt" class="mt-2 text-base text-[var(--color-text-soft)]">
               Latest submission: {{ formatDate(assignment.latestSubmittedAt) }}
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
             <span
               class="status-pill"
-              :class="assignment.open ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-amber-300 bg-amber-50 text-amber-800'"
+              :class="assignment.open ? 'status-pill-success' : 'status-pill-warning'"
             >
               {{ assignment.open ? 'Open' : 'Closed' }}
             </span>
             <span
               v-if="props.isStudent && hasExistingSubmission(assignment)"
-              class="status-pill border-sky-300 bg-sky-50 text-sky-800"
+              class="status-pill status-pill-neutral"
             >
               Submitted
             </span>
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+        <div class="record-card-footer">
           <template v-if="props.isStudent">
             <RouterLink
-              :to="{ name: 'submission-create', params: { assignmentId: assignment.id } }"
+              :to="{
+                name: 'submission-create',
+                params: { assignmentId: assignment.id },
+                query: props.spaceId ? { spaceId: props.spaceId } : undefined,
+              }"
               class="btn-primary"
             >
               Submit work
             </RouterLink>
             <RouterLink
               v-if="assignment.latestSubmissionId"
-              :to="{ name: 'submission-detail', params: { submissionId: assignment.latestSubmissionId } }"
+              :to="{
+                name: 'submission-detail',
+                params: { submissionId: assignment.latestSubmissionId },
+                query: props.spaceId ? { spaceId: props.spaceId } : undefined,
+              }"
               class="btn-secondary"
             >
               View latest submission
@@ -104,12 +113,16 @@ function hasExistingSubmission(assignment: AssignmentSummary): boolean {
           </template>
           <RouterLink
             v-else-if="props.canReviewSubmissions"
-            :to="{ name: 'assignment-submissions', params: { assignmentId: assignment.id } }"
+            :to="{
+              name: 'assignment-submissions',
+              params: { assignmentId: assignment.id },
+              query: props.spaceId ? { spaceId: props.spaceId } : undefined,
+            }"
             class="btn-secondary"
           >
             View submissions
           </RouterLink>
-          <span v-else class="text-sm text-slate-500">
+          <span v-else class="text-base text-[var(--color-text-soft)]">
             Submission action is reserved for authenticated students.
           </span>
         </div>

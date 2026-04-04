@@ -18,11 +18,11 @@ function handleSubmit() {
 </script>
 
 <template>
-  <section class="surface-panel p-8 lg:p-10">
-    <div class="mb-6 border-b border-slate-200 pb-5">
-      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Sign in</p>
-      <h2 class="mt-3 text-2xl font-semibold text-slate-900">Authenticate against the API</h2>
-      <p class="mt-2 text-sm leading-6 text-slate-600">
+  <section class="page-section lg:p-10">
+    <div class="panel-header">
+      <p class="section-kicker">Sign in</p>
+      <h2 class="section-title">Authenticate against the API</h2>
+      <p class="section-copy max-w-none">
         Use an existing backend account. If MFA is enabled, the next step will request a TOTP
         verification code.
       </p>

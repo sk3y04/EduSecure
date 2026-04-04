@@ -8,22 +8,20 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div class="mt-6 grid gap-4 md:grid-cols-3">
-    <div class="data-card">
-      <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Method</p>
-      <p class="mt-2 text-sm font-semibold text-slate-900">{{ props.challenge?.mfaMethod }}</p>
+  <dl class="stats-grid mt-8">
+    <div class="stat-card">
+      <dt class="meta-label">Method</dt>
+      <dd class="meta-value font-medium">{{ props.challenge?.mfaMethod }}</dd>
     </div>
-    <div class="data-card">
-      <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Attempts remaining</p>
-      <p class="mt-2 text-sm font-semibold text-slate-900">
-        {{ props.challenge?.remainingAttempts ?? 'Unknown' }}
-      </p>
+    <div class="stat-card">
+      <dt class="meta-label">Attempts remaining</dt>
+      <dd class="meta-value font-medium">{{ props.challenge?.remainingAttempts ?? 'Unknown' }}</dd>
     </div>
-    <div class="data-card">
-      <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Expires</p>
-      <p class="mt-2 text-sm font-semibold text-slate-900">{{ props.expiresAtLabel }}</p>
+    <div class="stat-card bg-[var(--color-surface-offset)]">
+      <dt class="meta-label">Expires</dt>
+      <dd class="meta-value font-medium">{{ props.expiresAtLabel }}</dd>
     </div>
-  </div>
+  </dl>
 </template>
 
 

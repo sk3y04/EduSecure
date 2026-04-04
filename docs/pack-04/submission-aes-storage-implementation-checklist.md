@@ -25,7 +25,7 @@ Before touching code, confirm the following are still accepted:
 - plaintext content remains the canonical input for `hashDigest`
 - signature generation/verification remains based on the plaintext-derived digest
 - AES-at-rest does not replace TLS, JWT auth, or audit integrity
-- ~~`AesGcmDemoService` remains separate from submission-storage protection~~ *(removed — `AesGcmDemoService` no longer exists; TLS via Certbot/Let's Encrypt handles transmission)*
+- ~~the retired standalone symmetric-crypto slice remains separate from submission-storage protection~~ *(removed — that slice no longer exists; TLS via Certbot/Let's Encrypt handles transmission)*
 - the first implementation keeps the existing submission API contract stable unless a change becomes unavoidable
 - the later implementation fails closed if encryption, DEK wrapping, or ciphertext persistence fails
 
@@ -70,7 +70,7 @@ Checklist:
 File:
 - `backend/src/main/resources/application.properties`
 
-Add separate properties from the AES demo key, for example conceptually:
+Add separate submission-storage properties, for example conceptually:
 - `submission.storage.master-key`
 - `submission.storage.master-key-version`
 - `submission.storage.key-wrap-algorithm`
@@ -78,7 +78,7 @@ Add separate properties from the AES demo key, for example conceptually:
 - optional storage-path/base-location property if using local blob/file storage
 
 Checklist:
-- [ ] submission-storage keys are separate from any demo key material *(note: `aes.demo-key` has been removed from the project)*
+- [ ] submission-storage keys are separate from the other cryptographic secrets used by the application
 - [ ] use environment-variable-backed values in the same style as the existing config
 - [ ] define a key version for later rotation support
 - [ ] document any local development defaults carefully and honestly
@@ -238,7 +238,7 @@ Checklist:
 - [ ] rerun auth tests
 - [ ] rerun submission tests
 - [ ] rerun grade tests that depend on verified submissions
-- [ ] rerun AES demo tests to confirm the demo service remains unaffected
+- [ ] confirm no historical standalone-slice assumptions remain in tests or docs after the storage changes
 
 ## Phase 8 — Documentation follow-up
 
@@ -279,6 +279,6 @@ Do not consider the feature complete until all of the following are true:
 - [ ] submission creation fails safely if encryption/storage fails
 - [ ] audit records do not leak plaintext or key material
 - [ ] integration tests prove the encrypted-storage path works
-- [ ] configuration is separated from the AES demo key
+- [ ] configuration is separated from other auth/MFA/audit secrets
 - [ ] documentation is updated to match the actual implementation
 

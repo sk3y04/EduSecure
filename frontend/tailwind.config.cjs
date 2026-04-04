@@ -3,19 +3,26 @@ module.exports = {
   content: ['./index.html', './src/**/*.{vue,ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-body)', 'Segoe UI', 'sans-serif'],
+        body: ['var(--font-body)', 'Segoe UI', 'sans-serif'],
+        display: ['var(--font-display)', 'Segoe UI', 'sans-serif'],
+      },
       colors: {
-        brand: {
-          50: '#eef4ff',
-          100: '#d9e7ff',
-          200: '#b9d0ff',
-          500: '#446fbe',
-          600: '#355b9e',
-          700: '#28497f',
-          800: '#203a67',
-        },
+        canvas: 'var(--color-bg)',
+        surface: 'var(--color-surface)',
+        'surface-2': 'var(--color-surface-2)',
+        border: 'var(--color-border)',
+        text: 'var(--color-text)',
+        heading: 'var(--color-heading)',
+        primary: 'var(--color-primary)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        danger: 'var(--color-danger)',
       },
       boxShadow: {
-        panel: '0 14px 30px -24px rgba(15, 23, 42, 0.4)',
+        panel: 'var(--shadow-soft)',
+        elevated: 'var(--shadow-hover)',
       },
     },
   },

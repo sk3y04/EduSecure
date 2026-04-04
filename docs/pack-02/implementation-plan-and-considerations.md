@@ -176,7 +176,7 @@ Why this matters:
 
 ## TOTP secret, if MFA is used
 - store encrypted at rest rather than plaintext
-- do not reuse the AES demo key for MFA secret protection
+- do not reuse unrelated application secrets for MFA secret protection
 - keep the MFA secret-encryption key externalised in environment configuration
 - treat recovery codes as separate secrets and store only their hashes
 

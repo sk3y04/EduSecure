@@ -22,10 +22,10 @@ The following claims are supported by repository evidence and can be described a
 - EduSecure also includes a small Vue frontend MVP that demonstrates the implemented auth, MFA, assignment, and submission flows.
 - The backend implements authentication, MFA hardening, assignment/submission handling, audit integrity, and grade integrity.
 - The backend uses AES-GCM in two real business roles: MFA secret protection at rest and submission content encryption at rest.
-- Secure client-server transmission is enforced by TLS 1.3 via Certbot/Let's Encrypt on deployment.
+- The repository documents TLS 1.3 via Certbot/Let's Encrypt as the intended secure transport control for deployment.
 - Browser-facing authentication uses an `HttpOnly` cookie-backed session rather than frontend-managed JWT storage.
 - The submission-signature workflow now uses a stable configured demo ECC keypair within the existing simulated signing model.
-- The artefact contains evidence for `bcrypt`, `TOTP`, `SHA-256`, `RSA`-based signing/verification, `HMAC-SHA-256`, and `AES-GCM`.
+- The artefact contains evidence for `bcrypt`, `TOTP`, `SHA-256`, ECC-based signing/verification, `HMAC-SHA-256`, and `AES-GCM`.
 - PostgreSQL is the intended runtime database path.
 - Schema delivery is now represented in Liquibase changelogs rather than relying only on Hibernate schema mutation.
 - The repository contains a dedicated PostgreSQL/Testcontainers smoke test that verifies the Liquibase baseline against a real PostgreSQL instance.
@@ -153,7 +153,7 @@ Primary supporting references:
 
 ## 6. AES and TLS wording boundary
 
-The standalone AES-GCM demo endpoints (`AesDemoController`, `AesGcmDemoService`, `AesDemoIntegrationTests`) have been removed. Secure transmission is now covered by real infrastructure TLS via Certbot/Let's Encrypt.
+The former standalone symmetric-crypto endpoints have been removed. Secure transmission is now handled in the documentation as a deployment-side TLS control via Certbot/Let's Encrypt rather than as a standalone application-layer crypto slice.
 
 AES-GCM remains in the codebase in two real business roles only:
 - MFA secret encryption at rest
@@ -162,18 +162,18 @@ AES-GCM remains in the codebase in two real business roles only:
 Supported claims:
 
 - EduSecure uses AES-GCM as a confidentiality-at-rest control for both MFA secrets and stored submission content.
-- Secure client-server transmission is enforced by TLS 1.3 via Certbot/Let's Encrypt, which itself uses AES-GCM internally.
+- The secure-system design documents TLS 1.3 via Certbot/Let's Encrypt as the intended transport control for deployment.
 
 Safe wording:
 
 - "AES-GCM is used in EduSecure as the encryption mechanism for MFA secrets and submission content at rest."
-- "Secure transmission in EduSecure is enforced by TLS 1.3 via Certbot/Let's Encrypt rather than a separate application-layer AES demo."
-- "The 'secure file/message transmission' artefact requirement is satisfied by real infrastructure TLS rather than a standalone demo endpoint."
+- "Secure transmission in EduSecure is addressed in the deployment design through TLS 1.3 via Certbot/Let's Encrypt rather than a retired standalone application-layer crypto slice."
+- "If direct HTTPS deployment evidence is not included, present TLS as the intended transport control rather than as repository-proven enforcement."
 
 Unsafe wording:
 
-- "EduSecure includes a standalone AES demo endpoint." *(removed)*
-- "The AES demo proves symmetric encryption." *(no longer present)*
+- "EduSecure includes a standalone symmetric-encryption endpoint." *(removed)*
+- "The retired standalone symmetric-crypto slice is still active evidence." *(wrong)*
 - "There is no evidence of AES usage beyond key wrapping." *(wrong — AES-GCM is used for MFA secrets and submission content)*
 
 Primary supporting references:

@@ -13,7 +13,7 @@ const isSubmitting = ref(false)
 
 const redirectTarget = computed(() => {
   const redirect = route.query.redirect
-  return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/assignments'
+  return typeof redirect === 'string' && redirect.length > 0 ? redirect : '/spaces'
 })
 
 const expiresAtLabel = computed(() => {
@@ -54,10 +54,10 @@ async function handleStartOver() {
 </script>
 
 <template>
-  <div class="app-page px-6 py-10">
-    <div class="mx-auto max-w-3xl surface-panel p-8 lg:p-10">
-      <p class="section-kicker tracking-[0.3em]">MFA challenge</p>
-      <h1 class="section-title">Complete sign-in with your authenticator code</h1>
+  <div class="app-page px-6 py-[clamp(2rem,7vw,6rem)]">
+    <div class="mx-auto max-w-4xl page-hero lg:p-[clamp(2.5rem,6vw,5rem)]">
+      <p class="section-kicker">MFA challenge</p>
+      <h1 class="hero-title mt-4 max-w-3xl">Complete sign-in with your authenticator code.</h1>
       <p class="section-copy">
         The authenticated session is only issued after the second factor is verified. This keeps the
         frontend aligned with the backend MFA contract and makes the sign-in process explicit.

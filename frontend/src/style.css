@@ -1,3 +1,5 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=general-sans@400,500,600,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,98 +7,242 @@
 @layer base {
   :root {
     color-scheme: light;
+    --font-display: 'Satoshi', 'Segoe UI', sans-serif;
+    --font-body: 'General Sans', 'Segoe UI', sans-serif;
+    --color-bg: oklch(0.975 0.004 85);
+    --color-surface: oklch(0.993 0.002 85);
+    --color-surface-2: oklch(0.968 0.004 85);
+    --color-surface-offset: color-mix(in oklch, var(--color-surface) 86%, var(--color-primary) 2%);
+    --color-border: oklch(0.22 0.01 80 / 0.1);
+    --color-heading: oklch(0.24 0.012 80);
+    --color-text: oklch(0.32 0.01 80);
+    --color-text-soft: oklch(0.5 0.01 80);
+    --color-primary: oklch(0.48 0.14 192);
+    --color-primary-hover: oklch(0.42 0.13 192);
+    --color-primary-soft: color-mix(in oklch, var(--color-primary) 10%, white);
+    --color-success: oklch(0.58 0.13 154);
+    --color-success-soft: color-mix(in oklch, var(--color-success) 14%, white);
+    --color-warning: oklch(0.72 0.14 78);
+    --color-warning-soft: color-mix(in oklch, var(--color-warning) 16%, white);
+    --color-danger: oklch(0.58 0.18 28);
+    --color-danger-soft: color-mix(in oklch, var(--color-danger) 14%, white);
+    --shadow-soft: 0 1px 2px oklch(0.2 0.01 80 / 0.06), 0 4px 16px oklch(0.2 0.01 80 / 0.04);
+    --shadow-hover: 0 1px 3px oklch(0.2 0.01 80 / 0.08), 0 12px 28px oklch(0.2 0.01 80 / 0.06);
   }
 
   html {
-    @apply bg-stone-100;
+    background: var(--color-bg);
   }
 
   body {
-    @apply m-0 bg-stone-100 font-sans text-slate-800 antialiased;
+    margin: 0;
+    min-width: 320px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body), sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   * {
     box-sizing: border-box;
   }
 
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-heading);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
   button,
   input,
-  textarea {
+  textarea,
+  select {
     font: inherit;
   }
 }
 
 @layer components {
   .app-page {
-    @apply min-h-screen bg-stone-100 text-slate-800;
+    @apply min-h-screen bg-[var(--color-bg)] text-[var(--color-text)];
+  }
+
+  .page-hero {
+    @apply rounded-[1.75rem] border border-black/10 bg-[var(--color-surface)] p-[clamp(2rem,6vw,5rem)];
+    box-shadow: var(--shadow-soft);
+  }
+
+  .page-section {
+    @apply rounded-2xl border border-black/10 bg-[var(--color-surface)] p-6 md:p-8;
+    box-shadow: var(--shadow-soft);
   }
 
   .surface-panel {
-    @apply rounded-sm border border-slate-300 bg-white shadow-panel;
+    @apply rounded-2xl border border-black/10 bg-[var(--color-surface)];
+    box-shadow: var(--shadow-soft);
   }
 
   .surface-panel-muted {
-    @apply rounded-sm border border-slate-300 bg-slate-50;
+    @apply rounded-xl border border-black/10 bg-[var(--color-surface-2)];
   }
 
   .section-kicker {
-    @apply text-xs font-semibold uppercase tracking-wider text-brand-700;
+    @apply text-sm font-medium text-[var(--color-text-soft)];
   }
 
   .section-title {
-    @apply mt-2 text-3xl font-semibold tracking-tight text-slate-900;
+    @apply mt-3 font-display text-[clamp(1.5rem,1.2rem+1.25vw,2.25rem)] font-semibold leading-tight tracking-tight text-[var(--color-heading)];
+  }
+
+  .hero-title {
+    @apply font-display text-[clamp(2rem,1.2rem+2.5vw,3.5rem)] font-semibold leading-[1.05] tracking-tight text-[var(--color-heading)];
   }
 
   .section-copy {
-    @apply mt-3 text-sm leading-7 text-slate-600;
+    @apply mt-4 max-w-3xl text-left text-base leading-7 text-[var(--color-text-soft)];
+  }
+
+  .panel-header {
+    @apply mb-6 border-b border-black/10 pb-5;
   }
 
   .field-label {
-    @apply mb-2 block text-sm font-semibold text-slate-700;
+    @apply mb-2 block text-sm font-medium text-[var(--color-heading)];
   }
 
   .form-input {
-    @apply w-full rounded-sm border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100;
+    @apply w-full rounded-md border border-black/10 bg-[var(--color-surface)] px-4 py-3 text-base text-[var(--color-heading)] outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-black/5;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-sm border border-brand-700 bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition hover:border-brand-800 hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center rounded-md bg-[var(--color-primary)] px-4 py-3 text-base font-medium text-white transition hover:bg-[var(--color-primary-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-sm border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900;
+    @apply inline-flex items-center justify-center rounded-md border border-black/10 bg-transparent px-4 py-3 text-base font-medium text-[var(--color-heading)] transition hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center rounded-sm border border-rose-700 bg-rose-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center rounded-md bg-[var(--color-danger)] px-5 py-3 text-base font-medium text-white transition hover:bg-[color:color-mix(in_oklch,var(--color-danger)_86%,black)] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .alert-error {
-    @apply rounded-sm border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800;
+    @apply rounded-xl border border-black/10 bg-[var(--color-danger-soft)] px-4 py-3 text-base text-[var(--color-heading)];
   }
 
   .alert-success {
-    @apply rounded-sm border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
+    @apply rounded-xl border border-black/10 bg-[var(--color-success-soft)] px-4 py-3 text-base text-[var(--color-heading)];
   }
 
   .empty-state {
-    @apply rounded-sm border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm text-slate-500;
+    @apply rounded-xl border border-dashed border-black/10 bg-[var(--color-surface)] px-6 py-8 text-left text-base text-[var(--color-text-soft)];
   }
 
-  .info-card {
-    @apply rounded-sm border border-slate-300 bg-slate-50 p-4;
+  .info-card,
+  .data-card,
+  .subtle-card {
+    @apply rounded-xl border border-black/10 bg-[var(--color-surface-2)] p-4;
   }
 
   .status-pill {
-    @apply inline-flex rounded-sm border px-3 py-1 text-xs font-semibold uppercase tracking-wide;
+    @apply inline-flex items-center rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-[var(--color-heading)];
   }
 
-  .data-card {
-    @apply rounded-sm border border-slate-300 bg-slate-50 p-4;
+  .status-pill-success {
+    background: var(--color-success-soft);
+    color: oklch(0.38 0.09 154);
+  }
+
+  .status-pill-warning {
+    background: var(--color-warning-soft);
+    color: oklch(0.44 0.08 78);
+  }
+
+  .status-pill-danger {
+    background: var(--color-danger-soft);
+    color: oklch(0.4 0.12 28);
+  }
+
+  .status-pill-neutral {
+    background: var(--color-surface-offset);
+    color: var(--color-heading);
+  }
+
+  .meta-label {
+    @apply text-xs font-medium text-[var(--color-text-soft)];
+  }
+
+  .meta-value {
+    @apply mt-2 text-base text-[var(--color-heading)];
+  }
+
+  .mono-meta {
+    @apply font-mono text-sm;
+  }
+
+  .quiet-list {
+    @apply mt-3 list-disc space-y-2 pl-5 text-left text-base leading-7 text-[var(--color-text-soft)];
+  }
+
+  .record-list {
+    @apply space-y-4;
+  }
+
+  .record-card {
+    @apply rounded-xl border border-black/10 bg-[var(--color-surface)] p-5;
+    box-shadow: var(--shadow-soft);
+    container-type: inline-size;
+  }
+
+  .record-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
+
+  .record-card-frame {
+    @apply grid gap-4;
+  }
+
+  .record-card-footer {
+    @apply mt-5 flex flex-wrap items-center gap-3 border-t border-black/10 pt-4;
+  }
+
+  .stats-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    grid-template-rows: auto 1fr;
+  }
+
+  .stat-card {
+    @apply rounded-xl border border-black/10 bg-[var(--color-surface-2)] p-4;
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 2;
+    align-content: start;
   }
 
   .code-block {
-    @apply overflow-x-auto rounded-sm border border-slate-300 bg-slate-900 p-4 text-sm leading-6 text-slate-100 whitespace-pre-wrap;
+    @apply overflow-x-auto rounded-xl border border-black/10 p-4 text-sm leading-7 text-white whitespace-pre-wrap;
+    background: oklch(0.24 0.01 80);
+  }
+
+  .inline-note {
+    @apply text-sm text-[var(--color-text-soft)];
+  }
+
+  @container (min-width: 42rem) {
+    .record-card-frame {
+      grid-template-columns: minmax(0, 1.25fr) auto;
+      align-items: start;
+    }
   }
 }
 

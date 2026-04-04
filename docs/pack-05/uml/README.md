@@ -3,12 +3,14 @@
 These PlantUML files refine the remaining two major design areas that were still only partially documented after Pack 04:
 
 - secure grade update and retrieval
-- AES-GCM secure transmission demonstration
+- the earlier standalone symmetric-transport concept
 
 ## Included diagrams
 
 - `sequence-grade-integrity-secure-pack05.puml`
 - `sequence-aes-secure-transmission-demo.puml`
+
+The AES transmission sequence is now historical only because the standalone demo was removed from the codebase. It should not be cited as active implementation evidence.
 
 ## Relationship to earlier UML
 

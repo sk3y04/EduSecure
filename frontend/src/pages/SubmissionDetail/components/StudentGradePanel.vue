@@ -20,10 +20,10 @@ function formatDate(value: string | null): string {
 </script>
 
 <template>
-  <section class="surface-panel p-8">
-    <div class="mb-6 border-b border-slate-200 pb-5">
-      <h3 class="text-xl font-semibold text-slate-900">Your grade</h3>
-      <p class="mt-2 text-sm leading-6 text-slate-600">
+  <section class="page-section">
+    <div class="panel-header">
+      <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Your grade</h3>
+      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
         If your submission has been marked, the awarded percentage and feedback appear here.
       </p>
     </div>
@@ -32,24 +32,24 @@ function formatDate(value: string | null): string {
     <div v-else-if="props.isLoading" class="empty-state">Loading your grade…</div>
     <div v-else-if="!props.grade" class="empty-state">Your submission has not been graded yet.</div>
     <template v-else>
-      <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Grade</dt>
-          <dd class="mt-2 text-lg font-semibold text-slate-900">{{ props.grade.value }}%</dd>
+      <div class="stats-grid mb-6">
+        <div class="stat-card bg-[var(--color-surface-offset)]">
+          <dt class="meta-label">Grade</dt>
+          <dd class="meta-value text-lg font-semibold">{{ props.grade.value }}%</dd>
         </div>
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Grade ID</dt>
-          <dd class="mt-2 break-all font-mono text-sm text-slate-900">{{ props.grade.id }}</dd>
+        <div class="stat-card">
+          <dt class="meta-label">Grade ID</dt>
+          <dd class="meta-value break-all mono-meta">{{ props.grade.id }}</dd>
         </div>
-        <div class="data-card">
-          <dt class="text-xs uppercase tracking-[0.25em] text-slate-500">Feedback updated</dt>
-          <dd class="mt-2 text-sm text-slate-900">{{ formatDate(props.grade.lastModifiedAt) }}</dd>
+        <div class="stat-card">
+          <dt class="meta-label">Feedback updated</dt>
+          <dd class="meta-value">{{ formatDate(props.grade.lastModifiedAt) }}</dd>
         </div>
       </div>
 
       <div class="surface-panel-muted p-4">
-        <p class="text-xs uppercase tracking-[0.25em] text-slate-500">Feedback</p>
-        <p class="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{{ props.grade.feedback }}</p>
+        <p class="meta-label">Feedback</p>
+        <p class="mt-3 whitespace-pre-wrap text-base leading-7 text-[var(--color-text)]">{{ props.grade.feedback }}</p>
       </div>
     </template>
   </section>

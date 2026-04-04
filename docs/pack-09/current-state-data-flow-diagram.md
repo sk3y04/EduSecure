@@ -57,7 +57,7 @@ This DFD is intentionally aligned to the **implemented** repository state and cu
 - browser-side JWT storage
 - enterprise KMS or HSM integration
 - end-to-end encryption between browser clients and lecturers
-- revival of the removed Pack 08 AES demo flow
+- revival of the removed Pack 08 standalone symmetric-transport flow
 
 ## 4. Current implementation evidence this DFD maps to
 
