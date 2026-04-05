@@ -34,9 +34,12 @@ function formatFileSize(size: number): string {
         type="file"
         required
         class="form-input"
-        accept=".txt,text/plain"
+        accept=".txt,text/plain,.pdf,application/pdf"
         @change="handleFileChange"
       />
+      <p class="mt-2 text-sm text-[var(--color-text-soft)]">
+        Accepted formats: TXT or PDF. Maximum file size: 5 MB.
+      </p>
     </label>
 
     <dl v-if="props.selectedFile" class="stats-grid">
@@ -57,11 +60,11 @@ function formatFileSize(size: number): string {
     <div class="surface-panel-muted p-4">
       <p class="text-base font-semibold text-[var(--color-heading)]">What happens next</p>
       <ul class="quiet-list">
-        <li>The current upload flow is intentionally narrow: UTF-8 <code>text/plain</code> files only.</li>
+        <li>The current upload flow supports UTF-8 <code>text/plain</code> files and validated <code>application/pdf</code> uploads up to 5 MB.</li>
         <li>The backend computes a SHA-256 digest over the uploaded file bytes.</li>
         <li>A digital signature is created and immediately verified.</li>
         <li>The submission content is encrypted at rest before durable storage.</li>
-        <li>The detail page exposes metadata first and content through a separate audited retrieval.</li>
+        <li>The detail page exposes metadata first and retrieves the protected file through a separate audited download.</li>
       </ul>
     </div>
 

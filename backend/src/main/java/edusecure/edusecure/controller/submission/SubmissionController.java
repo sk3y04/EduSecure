@@ -4,7 +4,10 @@ import edusecure.edusecure.dto.submission.SubmissionContentResponse;
 import edusecure.edusecure.dto.submission.SubmissionResponse;
 import edusecure.edusecure.service.submission.SubmissionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequiredArgsConstructor
@@ -61,12 +65,21 @@ public class SubmissionController {
     }
 
     @GetMapping("/api/submissions/{submissionId}/content")
-    public ResponseEntity<SubmissionContentResponse> getSubmissionContent(
+    public ResponseEntity<byte[]> getSubmissionContent(
             @PathVariable UUID submissionId,
             Authentication authentication
     ) {
         SubmissionContentResponse response = submissionService.getSubmissionContent(submissionId, authentication);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(response.contentType()))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(response.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString()
+                )
+                .body(response.content());
     }
 }
 

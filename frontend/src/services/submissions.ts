@@ -1,5 +1,5 @@
 import http from '@/services/http'
-import type { SubmissionContentResponse, SubmissionResponse } from '@/types/submission'
+import type { SubmissionDownloadResult, SubmissionResponse } from '@/types/submission'
 
 export const submissionsService = {
   async create(assignmentId: string, file: File): Promise<SubmissionResponse> {
@@ -25,9 +25,19 @@ export const submissionsService = {
     return response.data
   },
 
-  async getContent(submissionId: string): Promise<SubmissionContentResponse> {
-    const response = await http.get<SubmissionContentResponse>(`/submissions/${submissionId}/content`)
-    return response.data
+  async downloadContent(submissionId: string, fileName: string, contentType: string): Promise<SubmissionDownloadResult> {
+    const response = await http.get<Blob>(`/submissions/${submissionId}/content`, {
+      responseType: 'blob',
+      headers: {
+        Accept: `${contentType},application/octet-stream`,
+      },
+    })
+
+    return {
+      fileName,
+      contentType: response.headers['content-type'] ?? contentType,
+      content: response.data,
+    }
   },
 }
 

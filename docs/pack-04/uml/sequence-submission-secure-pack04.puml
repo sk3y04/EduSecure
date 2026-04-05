@@ -11,11 +11,16 @@ participant "AuditService" as Audit
 database DB
 participant Lecturer
 
-Student -> Browser : choose assignment file
+Student -> Browser : choose assignment TXT or PDF file
 Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\ncredentialed cookie request over HTTPS
 Controller -> SubmissionService : createSubmission(student, assignmentId, file, metadata)
 SubmissionService -> DB : load assignment and check access
 DB --> SubmissionService : assignment
+alt upload is text/plain
+    SubmissionService -> SubmissionService : validate UTF-8 text bytes
+else upload is application/pdf
+    SubmissionService -> SubmissionService : validate %PDF- header and PDF media type
+end
 SubmissionService -> Crypto : hash(fileBytes) with SHA-256
 Crypto --> SubmissionService : hashDigest
 SubmissionService -> Crypto : sign(hashDigest) in simulated signing model
@@ -60,13 +65,17 @@ SubmissionService -> Encrypt : decrypt(ciphertext, nonce, DEK)
 Encrypt --> SubmissionService : plaintext content
 SubmissionService -> Audit : log SUBMISSION_CONTENT_ACCESSED
 Audit --> SubmissionService : audit recorded
-SubmissionService --> Controller : decrypted content response
-Controller --> Lecturer : plaintext content
+SubmissionService --> Controller : decrypted file bytes + contentType + fileName
+Controller --> Lecturer : binary-safe download response\nContent-Type + Content-Disposition
 
 note right of SubmissionService
 The implemented backend still performs immediate
 verification during submission creation, but now also
 encrypts submission content before durable storage.
+
+The current scoped file support is:
+- UTF-8 text/plain
+- validated application/pdf
 end note
 
 note right of Crypto

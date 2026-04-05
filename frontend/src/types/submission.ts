@@ -17,10 +17,9 @@ export interface SubmissionResponse {
   gradeId: string | null
 }
 
-export interface SubmissionContentResponse {
-  submissionId: string
+export interface SubmissionDownloadResult {
   fileName: string
   contentType: string
-  content: string
+  content: Blob
 }
 

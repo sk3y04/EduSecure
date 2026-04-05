@@ -101,8 +101,10 @@ The current backend now uses a deliberately narrow multipart upload contract:
 
 - content type: `multipart/form-data`
 - required part: `file`
-- currently supported upload type: UTF-8 `text/plain`
-- current size bound: small evidence-friendly text uploads only
+- currently supported upload types:
+  - UTF-8 `text/plain`
+  - validated `application/pdf`
+- current size bound: up to `5MB` per uploaded file
 
 ### Success response
 Status: `201 Created`
@@ -111,7 +113,7 @@ Status: `201 Created`
 POST /api/assignments/{assignmentId}/submissions
 Content-Type: multipart/form-data
 
-file=<coursework.txt>
+file=<coursework.txt or coursework.pdf>
 ```
 
 ### Implementation note
@@ -119,16 +121,16 @@ file=<coursework.txt>
 - the backend computes the digest itself from uploaded file bytes
 - the backend creates and verifies the signature metadata in the current simulated signing model
 - the backend encrypts submission content before durable storage
-- the current repository state does **not** implement broader binary upload handling yet
+- the current repository state supports a minimal binary-safe PDF path but not general arbitrary binary uploads
 
 ### Failure cases
 - `400 Bad Request` for invalid request structure
-- `400 Bad Request` for empty uploads or non-UTF-8 text input
+- `400 Bad Request` for empty uploads or non-UTF-8 text input when the upload is `text/plain`
 - `401 Unauthorized` for missing/invalid authenticated session cookie, including malformed, expired, or signature-invalid JWTs
 - `403 Forbidden` if role is not allowed
 - `404 Not Found` if assignment does not exist
 - `413 Payload Too Large` if the uploaded file exceeds the current bounded limit
-- `415 Unsupported Media Type` if the uploaded file is not within the current supported text-upload scope
+- `415 Unsupported Media Type` if the uploaded file is not within the current supported TXT/PDF upload scope or a claimed PDF fails header validation
 - `500 Internal Server Error` if the submission content cannot be protected for storage
 
 ### Storage note
@@ -234,14 +236,21 @@ Provide controlled access to decrypted submission content without overloading th
 ### Success response
 Status: `200 OK`
 
-```json
-{
-  "submissionId": "submission-uuid",
-  "fileName": "coursework.txt",
-  "contentType": "text/plain",
-  "content": "Decrypted submission content"
-}
+```http
+GET /api/submissions/{submissionId}/content
+
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="coursework.pdf"
+
+<binary file bytes>
 ```
+
+### Binary response note
+- this endpoint now returns the decrypted file bytes directly
+- `Content-Type` matches the stored submission content type
+- `Content-Disposition` is set for audited file download
+- this keeps PDF retrieval binary-safe without forcing file content into a JSON string field
 
 ### Access rule
 - allowed for the submission owner

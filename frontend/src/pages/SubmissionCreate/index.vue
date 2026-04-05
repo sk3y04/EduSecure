@@ -48,7 +48,7 @@ function handleFileChange(file: File | null) {
 
 async function handleSubmit() {
   if (!selectedFile.value) {
-    errorMessage.value = 'Select a UTF-8 text/plain file before submitting.'
+    errorMessage.value = 'Select a supported TXT or PDF file before submitting.'
     return
   }
 

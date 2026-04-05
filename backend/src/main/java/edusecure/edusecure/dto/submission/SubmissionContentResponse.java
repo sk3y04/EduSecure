@@ -6,7 +6,7 @@ public record SubmissionContentResponse(
         UUID submissionId,
         String fileName,
         String contentType,
-        String content
+        byte[] content
 ) {
 }
 

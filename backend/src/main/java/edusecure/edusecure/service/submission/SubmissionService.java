@@ -35,6 +35,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Locale;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -44,6 +46,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SubmissionService {
+
+    private static final String PDF_SIGNATURE = "%PDF-";
 
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
@@ -157,7 +161,6 @@ public class SubmissionService {
 
     private UploadedSubmission validateAndReadUpload(MultipartFile file) {
         String fileName = resolveFileName(file);
-        String contentType = resolveContentType(file, fileName);
 
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submission file must not be empty");
@@ -171,17 +174,11 @@ public class SubmissionService {
             );
         }
 
-        if (!isSupportedContentType(contentType)) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-                    "Only " + submissionUploadProperties.getAllowedContentType() + " uploads are supported in the current submission flow"
-            );
-        }
-
         try {
             byte[] contentBytes = file.getBytes();
-            ensureUtf8Text(contentBytes);
-            return new UploadedSubmission(fileName, contentType, contentBytes);
+            String declaredContentType = resolveContentType(file, fileName);
+            String normalizedContentType = validateSupportedUploadType(fileName, declaredContentType, contentBytes);
+            return new UploadedSubmission(fileName, normalizedContentType, contentBytes);
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submission file could not be read", ex);
         }
@@ -212,14 +209,59 @@ public class SubmissionService {
         return MediaType.APPLICATION_OCTET_STREAM_VALUE;
     }
 
-    private boolean isSupportedContentType(String contentType) {
+    private String validateSupportedUploadType(String fileName, String contentType, byte[] contentBytes) {
+        if (isPdfUpload(fileName, contentType, contentBytes)) {
+            return MediaType.APPLICATION_PDF_VALUE;
+        }
+
+        if (isSupportedContentType(contentType, MediaType.TEXT_PLAIN_VALUE)) {
+            ensureUtf8Text(contentBytes);
+            return MediaType.TEXT_PLAIN_VALUE;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Only " + supportedContentTypesDescription() + " uploads are supported in the current submission flow"
+        );
+    }
+
+    private boolean isPdfUpload(String fileName, String contentType, byte[] contentBytes) {
+        boolean pdfByContentType = isSupportedContentType(contentType, MediaType.APPLICATION_PDF_VALUE);
+        boolean pdfByFileName = fileName.toLowerCase(Locale.ROOT).endsWith(".pdf");
+
+        if (!pdfByContentType && !pdfByFileName) {
+            return false;
+        }
+
+        ensurePdfSignature(contentBytes);
+        return true;
+    }
+
+    private boolean isSupportedContentType(String actualContentType, String supportedContentType) {
+        if (!isConfiguredSupportedContentType(supportedContentType)) {
+            return false;
+        }
+
         try {
-            MediaType actualContentType = MediaType.parseMediaType(contentType);
-            MediaType supportedContentType = MediaType.parseMediaType(submissionUploadProperties.getAllowedContentType());
-            return supportedContentType.isCompatibleWith(actualContentType);
+            MediaType parsedActualContentType = MediaType.parseMediaType(actualContentType);
+            MediaType parsedSupportedContentType = MediaType.parseMediaType(supportedContentType);
+            return parsedSupportedContentType.isCompatibleWith(parsedActualContentType);
         } catch (InvalidMediaTypeException ex) {
             return false;
         }
+    }
+
+    private boolean isConfiguredSupportedContentType(String supportedContentType) {
+        return submissionUploadProperties.getAllowedContentTypes().stream()
+                .anyMatch(configuredContentType -> {
+                    try {
+                        MediaType parsedConfiguredContentType = MediaType.parseMediaType(configuredContentType);
+                        MediaType parsedSupportedContentType = MediaType.parseMediaType(supportedContentType);
+                        return parsedConfiguredContentType.isCompatibleWith(parsedSupportedContentType);
+                    } catch (InvalidMediaTypeException ex) {
+                        return false;
+                    }
+                });
     }
 
     private void ensureUtf8Text(byte[] contentBytes) {
@@ -233,7 +275,38 @@ public class SubmissionService {
         }
     }
 
+    private void ensurePdfSignature(byte[] contentBytes) {
+        byte[] pdfSignatureBytes = PDF_SIGNATURE.getBytes(StandardCharsets.US_ASCII);
+        if (contentBytes.length < pdfSignatureBytes.length) {
+            throw invalidPdfUpload();
+        }
+
+        for (int index = 0; index < pdfSignatureBytes.length; index++) {
+            if (contentBytes[index] != pdfSignatureBytes[index]) {
+                throw invalidPdfUpload();
+            }
+        }
+    }
+
+    private ResponseStatusException invalidPdfUpload() {
+        return new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Uploaded PDF files must include a valid PDF header");
+    }
+
+    private String supportedContentTypesDescription() {
+        List<String> allowedContentTypes = submissionUploadProperties.getAllowedContentTypes();
+        if (allowedContentTypes.size() == 1) {
+            return allowedContentTypes.getFirst();
+        }
+
+        return String.join(" and ", allowedContentTypes);
+    }
+
     private String formatUploadLimit(long sizeBytes) {
+        long megabyte = 1024L * 1024L;
+        if (sizeBytes % megabyte == 0) {
+            return (sizeBytes / megabyte) + "MB";
+        }
+
         if (sizeBytes % 1024 == 0) {
             return (sizeBytes / 1024) + "KB";
         }
@@ -254,7 +327,7 @@ public class SubmissionService {
 
         try {
             byte[] ciphertext = submissionContentStore.read(submission.getStoredFileReference());
-            byte[] plaintext = submissionContentEncryptionService.decrypt(
+            byte[] decryptedContent = submissionContentEncryptionService.decrypt(
                     ciphertext,
                     submission.getStorageEncryptionNonce(),
                     submissionKeyProtectionService.unwrap(
@@ -275,7 +348,7 @@ public class SubmissionService {
                     submission.getId(),
                     submission.getFileName(),
                     submission.getContentType(),
-                    new String(plaintext, StandardCharsets.UTF_8)
+                    decryptedContent
             );
         } catch (RuntimeException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Submission content could not be decrypted", ex);

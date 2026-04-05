@@ -146,6 +146,14 @@ The implemented submission record now combines
 integrity/authorship metadata with encrypted-at-rest
 storage metadata while keeping ciphertext retrieval
 behind a separate controlled service boundary.
+
+Current implemented upload scope:
+- UTF-8 text/plain
+- validated application/pdf
+
+Current retrieval posture:
+- metadata remains separate from content
+- decrypted file access uses a controlled binary-safe path
 end note
 
 note right of AuditLog

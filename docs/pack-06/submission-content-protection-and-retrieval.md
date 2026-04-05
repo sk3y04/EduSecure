@@ -67,7 +67,7 @@ This endpoint exists so plaintext retrieval is:
 `POST /api/assignments/{assignmentId}/submissions`
 
 Purpose:
-- accept an authenticated student's uploaded UTF-8 text submission file
+- accept an authenticated student's uploaded submission file within the current supported scope
 - compute integrity/authorship metadata
 - encrypt the stored content before durable persistence
 
@@ -107,19 +107,23 @@ It also makes the confidentiality story clearer in the report:
 
 The current submission creation path follows this effective order.
 
-### Step 1: authenticated student submits plaintext content
+### Step 1: authenticated student submits file content
 The current implementation now accepts a deliberately narrow multipart upload:
 - one required `file` part
-- UTF-8 `text/plain` only in the current scope
-- a bounded small upload size suitable for report/evidence workflows
+- UTF-8 `text/plain` or validated `application/pdf` in the current scope
+- a bounded upload size of up to `5MB` per file
 
-The browser selects a local text file, while the backend derives the effective file metadata and reads the uploaded bytes.
+The browser selects a local submission file, while the backend derives the effective file metadata and reads the uploaded bytes.
 
-### Step 2: digest is computed on uploaded plaintext bytes
-The backend validates the uploaded bytes as UTF-8 text and computes a `SHA-256` digest over those uploaded plaintext bytes.
+### Step 2: digest is computed on uploaded file bytes
+The backend validates uploaded bytes according to the selected type:
+- `text/plain` uploads must be valid UTF-8
+- PDF uploads must match the claimed PDF type and include a valid `%PDF-` file signature
+
+The backend then computes a `SHA-256` digest over the uploaded file bytes.
 
 This preserves the original integrity model:
-- the digest reflects the actual submitted plaintext
+- the digest reflects the actual submitted file bytes
 - encryption does not redefine what is being signed or verified
 
 ### Step 3: signature is created and verified
@@ -132,11 +136,11 @@ The resulting values are still stored with the submission metadata:
 - `verificationStatus`
 - `verificationMessage`
 
-### Step 4: plaintext content is encrypted for storage
+### Step 4: submitted content is encrypted for storage
 After digest/signature processing:
 - a per-submission content-encryption key is generated
 - a fresh AES-GCM nonce is generated
-- plaintext content is encrypted using `AES/GCM/NoPadding`
+- submitted file bytes are encrypted using `AES/GCM/NoPadding`
 
 ### Step 5: DEK is protected
 The per-submission content-encryption key is wrapped/protected under dedicated submission-storage key material.
@@ -153,7 +157,7 @@ The persisted submission metadata now includes fields such as:
 Ciphertext is written through the submission content store and referenced internally by `storedFileReference`.
 
 This means:
-- plaintext is not persisted directly in the `Submission` row
+- submitted file bytes are not persisted directly in the `Submission` row
 - standard client responses do not need to know where ciphertext is stored
 
 ## 6. Current key-handling posture
@@ -251,6 +255,7 @@ If the submission does not exist or the actor is not allowed to view it:
 If ciphertext cannot be read or decrypted:
 - the content endpoint fails cleanly
 - internal crypto/storage details should not be leaked in the response
+- partially decoded text or corrupted binary data should not be returned
 
 ## 10. Evidence currently available in tests
 
@@ -266,7 +271,7 @@ They collectively prove that:
 - submission content is encrypted before durable storage
 - stored ciphertext differs from plaintext
 - the metadata response does not expose the internal storage reference
-- authorized actors can retrieve content through the separate endpoint
+- authorized actors can retrieve TXT or PDF content through the separate endpoint
 - unrelated students cannot retrieve another student's content
 - successful content retrieval creates a dedicated audit event
 - the submission AES-at-rest schema change exists in Liquibase-backed PostgreSQL verification
@@ -296,13 +301,13 @@ The current implementation is deliberately scoped.
 
 ### It does implement
 - encrypted submission storage at rest
-- separate metadata and plaintext retrieval paths
+- separate metadata and audited file-download retrieval paths
 - audited successful content access
 
 ### It does not yet implement
 - public audit review endpoints
-- download/stream handling for richer binary file workflows
-- broader multipart binary upload workflows beyond the current UTF-8 `text/plain` cut
+- richer inline preview workflows beyond the current download-first approach
+- broader multipart binary upload workflows beyond the current TXT/PDF cut
 - enterprise key management
 - end-to-end encrypted submission transport
 - a final report-ready audit viewer

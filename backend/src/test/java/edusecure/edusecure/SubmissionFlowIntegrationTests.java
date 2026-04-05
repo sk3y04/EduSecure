@@ -31,9 +31,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -136,15 +139,16 @@ class SubmissionFlowIntegrationTests {
         mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
                         .cookie(studentCookie))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.submissionId").value(submissionId))
-                .andExpect(jsonPath("$.content").value(submittedContent));
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("coursework.txt")))
+                .andExpect(content().contentType(MediaType.TEXT_PLAIN))
+                .andExpect(content().bytes(submittedContent.getBytes(StandardCharsets.UTF_8)));
 
         mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
                         .cookie(lecturerCookie))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.submissionId").value(submissionId))
-                .andExpect(jsonPath("$.fileName").value("coursework.txt"))
-                .andExpect(jsonPath("$.content").value(submittedContent));
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("coursework.txt")))
+                .andExpect(content().contentType(MediaType.TEXT_PLAIN))
+                .andExpect(content().bytes(submittedContent.getBytes(StandardCharsets.UTF_8)));
 
         List<AuditLog> auditLogs = auditLogRepository.findByEntityTypeAndEntityIdOrderByEventTimestampAsc("Submission", UUID.fromString(submissionId));
         org.assertj.core.api.Assertions.assertThat(auditLogs)
@@ -341,6 +345,41 @@ class SubmissionFlowIntegrationTests {
     }
 
     @Test
+    void studentCanUploadAndDownloadPdfSubmission() throws Exception {
+        User lecturer = ensureUser("lecturer-pdf-" + UUID.randomUUID() + "@example.com", "Lecturer PDF", RoleName.LECTURER);
+        User student = ensureUser("student-pdf-" + UUID.randomUUID() + "@example.com", "Student PDF", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Coursework", "PDF uploads should be accepted.");
+
+        byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF".getBytes(StandardCharsets.US_ASCII);
+
+        MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "coursework.pdf",
+                                "application/pdf",
+                                pdfBytes
+                        )))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fileName").value("coursework.pdf"))
+                .andExpect(jsonPath("$.contentType").value(MediaType.APPLICATION_PDF_VALUE))
+                .andReturn();
+
+        String submissionId = submissionIdFrom(submissionResult);
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
+                        .cookie(studentCookie))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("coursework.pdf")))
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(content().bytes(pdfBytes));
+    }
+
+    @Test
     void studentCannotUploadUnsupportedSubmissionType() throws Exception {
         User lecturer = ensureUser("lecturer-upload-" + UUID.randomUUID() + "@example.com", "Lecturer Upload", RoleName.LECTURER);
         User student = ensureUser("student-upload-" + UUID.randomUUID() + "@example.com", "Student Upload", RoleName.STUDENT);
@@ -349,8 +388,8 @@ class SubmissionFlowIntegrationTests {
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
-                "Text Upload Only Coursework",
-                "Only text/plain uploads are supported in the current implementation.",
+                "Supported Upload Coursework",
+                "Only text and validated PDF uploads are supported in the current implementation.",
                 Instant.now().plusSeconds(86400)
         ));
 
@@ -363,19 +402,44 @@ class SubmissionFlowIntegrationTests {
 
         String assignmentId = submissionIdFrom(assignmentResult);
 
-        MockMultipartFile pdfUpload = new MockMultipartFile(
+        MockMultipartFile imageUpload = new MockMultipartFile(
                 "file",
-                "coursework.pdf",
-                "application/pdf",
-                "%PDF-simulated".getBytes(StandardCharsets.UTF_8)
+                "coursework.png",
+                "image/png",
+                new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47}
         );
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
-                        .file(pdfUpload))
+                        .file(imageUpload))
                 .andExpect(status().isUnsupportedMediaType())
-                .andExpect(jsonPath("$.message").value("Only text/plain uploads are supported in the current submission flow"))
-                .andExpect(jsonPath("$.errors._global[0]").value("Only text/plain uploads are supported in the current submission flow"));
+                .andExpect(jsonPath("$.message").value("Only text/plain and application/pdf uploads are supported in the current submission flow"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Only text/plain and application/pdf uploads are supported in the current submission flow"));
+    }
+
+    @Test
+    void studentCannotUploadPdfWithoutValidHeader() throws Exception {
+        User lecturer = ensureUser("lecturer-pdf-header-" + UUID.randomUUID() + "@example.com", "Lecturer PDF Header", RoleName.LECTURER);
+        User student = ensureUser("student-pdf-header-" + UUID.randomUUID() + "@example.com", "Student PDF Header", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Validation Coursework", "Malformed PDF uploads should be rejected.");
+
+        MockMultipartFile invalidPdfUpload = new MockMultipartFile(
+                "file",
+                "coursework.pdf",
+                "application/pdf",
+                "not-a-real-pdf".getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(invalidPdfUpload))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.message").value("Uploaded PDF files must include a valid PDF header"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Uploaded PDF files must include a valid PDF header"));
     }
 
     @Test
@@ -442,15 +506,15 @@ class SubmissionFlowIntegrationTests {
                 "file",
                 "large.txt",
                 "text/plain",
-                new byte[300 * 1024]
+                new byte[6 * 1024 * 1024]
         );
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
                         .file(oversizedUpload))
                 .andExpect(status().isPayloadTooLarge())
-                .andExpect(jsonPath("$.message").value("Submission file exceeds the current 256KB limit"))
-                .andExpect(jsonPath("$.errors._global[0]").value("Submission file exceeds the current 256KB limit"));
+                .andExpect(jsonPath("$.message").value("Submission file exceeds the current 5MB limit"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Submission file exceeds the current 5MB limit"));
     }
 
     private String createAssignmentAndReturnId(Cookie lecturerCookie, String title, String description) throws Exception {

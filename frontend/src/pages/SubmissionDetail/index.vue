@@ -8,7 +8,7 @@ import { gradesService } from '@/services/grades'
 import { submissionsService } from '@/services/submissions'
 import { useAuthStore } from '@/stores/auth'
 import type { GradeResponse, MyGradeResponse } from '@/types/grade'
-import type { SubmissionContentResponse, SubmissionResponse } from '@/types/submission'
+import type { SubmissionDownloadResult, SubmissionResponse } from '@/types/submission'
 import {
   GradePanel,
   StudentGradePanel,
@@ -21,7 +21,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const submission = ref<SubmissionResponse | null>(null)
-const submissionContent = ref<SubmissionContentResponse | null>(null)
+const downloadedSubmission = ref<SubmissionDownloadResult | null>(null)
 const isLoading = ref(true)
 const isLoadingContent = ref(false)
 const errorMessage = ref<string | null>(null)
@@ -106,11 +106,28 @@ async function loadSubmission() {
 }
 
 async function loadSubmissionContent() {
+  if (!submission.value) {
+    return
+  }
+
   isLoadingContent.value = true
   contentErrorMessage.value = null
 
   try {
-    submissionContent.value = await submissionsService.getContent(submissionId.value)
+    const download = await submissionsService.downloadContent(
+      submissionId.value,
+      submission.value.fileName,
+      submission.value.contentType,
+    )
+
+    downloadedSubmission.value = download
+
+    const objectUrl = URL.createObjectURL(download.content)
+    const anchor = document.createElement('a')
+    anchor.href = objectUrl
+    anchor.download = download.fileName
+    anchor.click()
+    URL.revokeObjectURL(objectUrl)
   } catch (error) {
     contentErrorMessage.value = extractErrorMessage(error)
   } finally {
@@ -192,7 +209,8 @@ onMounted(() => {
       <SubmissionContentPanel
         :is-loading-content="isLoadingContent"
         :content-error-message="contentErrorMessage"
-        :submission-content="submissionContent"
+        :submission="submission"
+        :downloaded-submission="downloadedSubmission"
         @retrieve="loadSubmissionContent"
       />
 
