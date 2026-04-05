@@ -32,23 +32,30 @@ The backend now includes a minimal Pack 04-aligned implementation for:
 ### Assignment creation
 - allowed for `LECTURER` and `ADMIN`
 - denied for `STUDENT`
+- assignments are now linked to a lecturer-managed `spaceId`
+- lecturers can create assignments only for spaces they own, unless acting as `ADMIN`
 
 ### Submission creation
 - allowed for `STUDENT`
 - requires the authenticated browser session established by the backend-issued `HttpOnly` auth cookie
 - now accepts a multipart browser upload rather than pasted JSON submission text
 - currently bounded to small UTF-8 `text/plain` uploads for evidence-friendly scope control
+- allowed only when the assignment is visible through the student's current space membership
 
 ### Submission retrieval
-- allowed for submission owner
-- allowed for privileged lecturer/admin review
+- allowed for submission owner while the related assignment remains visible through the student's current space membership
+- allowed for the lecturer who owns the related assignment
+- allowed for admin review
 - denied to unrelated students
+- denied to unrelated lecturers
 
 ### Submission content retrieval
 - exposed through a separate endpoint rather than the standard metadata response
-- allowed for submission owner
-- allowed for privileged lecturer/admin review
+- allowed for submission owner while the related assignment remains visible through the student's current space membership
+- allowed for the lecturer who owns the related assignment
+- allowed for admin review
 - denied to unrelated students
+- denied to unrelated lecturers
 - audited on successful access
 
 ## 4. Implemented cryptographic behavior in this phase
@@ -97,12 +104,15 @@ Implemented actions currently include:
 
 This currently proves:
 - lecturer can create an assignment
+- student sees only assignments for spaces they currently belong to
 - student can upload a text submission file to an assignment
 - submission response contains digest, signature, algorithm, and verification status without exposing the internal storage reference
-- lecturer can review submission metadata
-- lecturer can retrieve decrypted submission content through the separate controlled endpoint
+- owning lecturer can review submission metadata
+- owning lecturer can retrieve decrypted submission content through the separate controlled endpoint
 - unrelated student cannot view another student's submission
 - unrelated student cannot retrieve another student's submission content
+- unrelated lecturer cannot list, view, or download another lecturer's assignment submissions
+- student-owned submission reads are revoked when assignment-space membership is removed
 - unsupported non-text uploads are rejected within the current bounded scope
 - student cannot create assignments
 - audit entries are created for submission events

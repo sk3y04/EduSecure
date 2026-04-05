@@ -10,8 +10,8 @@ The backend now includes a minimal grade-integrity implementation for:
 - grade create/update/retrieve endpoints
 - verified-submission-only grading enforcement
 - audit records for grade create and update actions
-- student-only own-grade retrieval
-- lecturer/admin review retrieval
+- student-only own-grade retrieval while the related assignment remains visible through current space membership
+- assignment-owner-scoped lecturer review retrieval with admin override
 
 ## 2. Implemented endpoints in this phase
 
@@ -23,14 +23,17 @@ The backend now includes a minimal grade-integrity implementation for:
 ## 3. Implemented security behavior
 
 ### Grade creation and update
-- allowed for `LECTURER` and `ADMIN`
+- allowed for the lecturer who owns the related assignment
+- allowed for `ADMIN`
 - denied for `STUDENT`
 - requires the authenticated browser session established by the backend-issued `HttpOnly` auth cookie
 
 ### Grade retrieval
-- lecturer/admin can view full grade details
-- student can view only their own grade via `/api/my/grades/{gradeId}`
+- owning lecturer can view full grade details for their assignments
+- admin can view full grade details globally
+- student can view only their own grade via `/api/my/grades/{gradeId}` while the related assignment remains visible through current space membership
 - unrelated students are denied access
+- unrelated lecturers are denied access
 
 ## 4. Implemented integrity behavior
 
@@ -63,11 +66,14 @@ Implemented actions currently include:
 This currently proves:
 - lecturer can create a grade for a verified submission
 - lecturer can update an existing grade
-- student can retrieve only their own grade
+- student can retrieve only their own grade while the related assignment remains visible through current space membership
 - student cannot create or update grades
 - duplicate grade creation is rejected
 - non-verified submission cannot be graded
 - unrelated student cannot read another student's grade
+- unrelated lecturer cannot create, read, or update another lecturer's grades
+- admin retains cross-assignment grade access for oversight
+- student self-service grade reads are revoked when assignment-space membership is removed
 - audit entries are created for grade-sensitive actions
 - audit entries contain non-empty integrity values
 

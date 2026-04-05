@@ -2,6 +2,12 @@
 
 This document links the current EduSecure backend implementation to concrete evidence that can be reused in the report.
 
+Companion test-coverage notes:
+- `docs/pack-09/unit-test-coverage-summary.md`
+- `docs/pack-09/integration-test-coverage-summary.md`
+- `docs/pack-09/manual-test-coverage-summary.md`
+- `docs/pack-09/test-evidence-collection-template.md`
+
 ## 1. Implemented backend surface
 
 ### Auth foundation and MFA hardening
@@ -71,6 +77,8 @@ Evidence/tests:
 
 What it proves:
 - lecturer can create assignments
+- assignments are linked to spaces through `spaceId`
+- students see only assignments for spaces they currently belong to
 - student can upload a bounded UTF-8 `text/plain` submission file through the browser-facing multipart contract
 - `SHA-256` digest metadata is created
 - digital signature metadata is created
@@ -80,6 +88,9 @@ What it proves:
 - submission metadata and plaintext retrieval are separated into different endpoints
 - successful plaintext retrieval is auditable
 - unrelated student cannot read another student's submission
+- student-owned submission access is re-checked against current assignment-space membership
+- unrelated lecturer cannot list, read, or download submissions for another lecturer's assignments
+- assignment-owning lecturer access is enforced for submission review while `ADMIN` retains oversight access
 - unsupported non-text uploads are rejected
 - empty uploads are rejected
 - invalid UTF-8 uploads are rejected
@@ -114,14 +125,38 @@ Evidence/tests:
 - `backend/src/test/java/edusecure/edusecure/GradeFlowIntegrationTests.java`
 
 What it proves:
-- only lecturer/admin can create or update grades
-- students can retrieve only their own grades
+- assignment-owning lecturers can create or update grades for their own assignments
+- admins can create or update grades globally
+- students can retrieve only their own grades while the related assignment remains visible through current space membership
 - duplicate grade creation is rejected
 - non-verified submissions cannot be graded
+- unrelated lecturers cannot create, read, or update another lecturer's grades
+- student self-service grade reads are revoked after assignment-space membership removal
 - grade-sensitive actions are audited
 - grade endpoints remain protected under the same cookie-authenticated session model
 
-## 5. Secure transmission design note — TLS via Certbot/Let's Encrypt
+## 5. Space ownership and membership authorization
+
+Controller:
+- `backend/src/main/java/edusecure/edusecure/controller/space/SpaceController.java`
+
+Service / domain:
+- `SpaceService.java`
+- `Space.java`
+- `SpaceMembership.java`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/SpaceFlowIntegrationTests.java`
+- `docs/pack-10/space-management-technical-specification.md`
+
+What it proves:
+- lecturers can create and manage only spaces they own
+- admins can manage any space globally
+- students can view only spaces they belong to
+- non-manager student members do not receive full roster disclosure
+- space management actions are audited
+
+## 6. Secure transmission design note — TLS via Certbot/Let's Encrypt
 
 The former standalone symmetric-crypto endpoints have been removed. Secure message/file transmission is now handled in the documentation as a deployment-side TLS 1.3 control via Certbot and Let's Encrypt rather than as a standalone application-layer endpoint slice.
 
@@ -133,7 +168,7 @@ What the current repository supports claiming:
 - TLS 1.3 via Certbot/Let's Encrypt is the intended deployment control for client-server transport security
 - the codebase itself now evidences symmetric encryption through AES-GCM protection of MFA secrets and submission content at rest rather than through a separate transmission demo
 
-## 6. Baseline availability / boot evidence
+## 7. Baseline availability / boot evidence
 
 Evidence/tests:
 - `backend/src/test/java/edusecure/edusecure/EduSecureApplicationTests.java`
@@ -142,7 +177,7 @@ What it proves:
 - application context loads
 - health endpoint is public and working
 
-## 7. Database delivery and PostgreSQL verification
+## 8. Database delivery and PostgreSQL verification
 
 Configuration / delivery evidence:
 - `compose.yaml`
@@ -169,7 +204,7 @@ What it does not prove:
 - broad API-level PostgreSQL coverage across the whole suite
 - operational backup/restore maturity
 
-## 8. Minimum cryptographic techniques now evidenced
+## 9. Minimum cryptographic techniques now evidenced
 
 The implemented artefact now contains evidence for at least these techniques:
 - password hashing with `bcrypt`
@@ -183,7 +218,7 @@ The implemented artefact now contains evidence for at least these techniques:
 
 This exceeds the brief's minimum of three implemented cryptographic technique areas.
 
-## 9. Browser-session hardening evidence
+## 10. Browser-session hardening evidence
 
 Additional documentation/evidence worth citing in the report:
 - `frontend/src/services/http.ts` shows credentialed requests with `withCredentials: true`

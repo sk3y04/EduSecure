@@ -40,6 +40,9 @@ public class Assignment {
     @Column(nullable = false)
     private UUID createdByLecturerId;
 
+    @Column
+    private UUID spaceId;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean open = true;

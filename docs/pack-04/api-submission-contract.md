@@ -24,10 +24,10 @@ Practical implication:
 | `/api/assignments` | POST | Lecturer/Admin | Implemented | Create a basic assignment |
 | `/api/assignments` | GET | Lecturer/Admin/Student | Implemented | List visible assignments, including student-specific latest submission metadata when available |
 | `/api/assignments/{assignmentId}/submissions` | POST | Student | Implemented | Create submission with integrity/authorship metadata and encrypted-at-rest storage |
-| `/api/assignments/{assignmentId}/submissions` | GET | Lecturer/Admin | Implemented | List all submissions for one assignment for review and grading |
+| `/api/assignments/{assignmentId}/submissions` | GET | Assignment-owning Lecturer/Admin | Implemented | List all submissions for one owned assignment for review and grading |
 | `/api/assignments/{assignmentId}/submissions/me` | GET | Student | Implemented | Retrieve the current student's latest submission for one assignment |
-| `/api/submissions/{submissionId}` | GET | Student/Lecturer/Admin | Implemented | View submission metadata and verification status |
-| `/api/submissions/{submissionId}/content` | GET | Submission owner or Lecturer/Admin | Implemented | Retrieve decrypted submission content through a separate audited path |
+| `/api/submissions/{submissionId}` | GET | Submission owner / Assignment-owning Lecturer / Admin | Implemented | View submission metadata and verification status |
+| `/api/submissions/{submissionId}/content` | GET | Submission owner / Assignment-owning Lecturer / Admin | Implemented | Retrieve decrypted submission content through a separate audited path |
 | `/api/assignments/{assignmentId}` | GET | Lecturer/Admin/Student | Deferred | Optional single-assignment retrieval |
 | `/api/submissions/{submissionId}/verify` | POST | Lecturer/Admin or system-internal trigger | Deferred | Optional re-verification path |
 | `/api/audit/submissions/{submissionId}` | GET | Lecturer/Admin | Deferred | Optional audit-trail read endpoint |
@@ -55,7 +55,8 @@ The verify and audit endpoints remain deferred because verification already occu
 {
   "title": "Cryptography Coursework 1",
   "description": "Submit your signed PDF report.",
-  "dueAt": "2026-04-15T18:00:00Z"
+  "dueAt": "2026-04-15T18:00:00Z",
+  "spaceId": "space-uuid"
 }
 ```
 
@@ -68,7 +69,9 @@ Status: `201 Created`
   "title": "Cryptography Coursework 1",
   "description": "Submit your signed PDF report.",
   "dueAt": "2026-04-15T18:00:00Z",
-  "createdByLecturerId": "lecturer-uuid"
+  "createdByLecturerId": "lecturer-uuid",
+  "spaceId": "space-uuid",
+  "open": true
 }
 ```
 
@@ -83,6 +86,7 @@ Status: `200 OK`
     "id": "assignment-uuid",
     "title": "Cryptography Coursework 1",
     "dueAt": "2026-04-15T18:00:00Z",
+    "spaceId": "space-uuid",
     "open": true,
     "latestSubmissionId": "submission-uuid-or-null",
     "latestSubmittedAt": "2026-04-14T15:30:00Z"
@@ -91,6 +95,9 @@ Status: `200 OK`
 ```
 
 ### Student-view note
+- lecturers see only assignments they created
+- admins see all assignments
+- students see only assignments whose `spaceId` matches a space they are currently enrolled in
 - for lecturers/admins, `latestSubmissionId` and `latestSubmittedAt` are currently `null`
 - for students, those fields are populated when they already have a submission for the assignment
 
@@ -127,7 +134,7 @@ file=<coursework.txt or coursework.pdf>
 - `400 Bad Request` for invalid request structure
 - `400 Bad Request` for empty uploads or non-UTF-8 text input when the upload is `text/plain`
 - `401 Unauthorized` for missing/invalid authenticated session cookie, including malformed, expired, or signature-invalid JWTs
-- `403 Forbidden` if role is not allowed
+- `403 Forbidden` if role is not allowed or the student is not currently enrolled in the assignment's space
 - `404 Not Found` if assignment does not exist
 - `413 Payload Too Large` if the uploaded file exceeds the current bounded limit
 - `415 Unsupported Media Type` if the uploaded file is not within the current supported TXT/PDF upload scope or a claimed PDF fails header validation
@@ -161,13 +168,13 @@ Status: `200 OK`
 
 ### Failure cases
 - `401 Unauthorized` if no valid authenticated session is present
-- `403 Forbidden` if the caller is not a student
+- `403 Forbidden` if the caller is not a student or the assignment is outside the student's current space memberships
 - `404 Not Found` if the assignment does not exist or the student has not submitted anything for it yet
 
 ## E. `GET /api/assignments/{assignmentId}/submissions`
 
 ### Purpose
-Allow lecturers/admins to review all submitted work for one assignment and navigate into grading.
+Allow the lecturer who owns an assignment, or an admin, to review all submitted work for that assignment and navigate into grading.
 
 ### Success response
 Status: `200 OK`
@@ -193,10 +200,16 @@ Status: `200 OK`
 
 ### Failure cases
 - `401 Unauthorized` if no valid authenticated session is present
-- `403 Forbidden` if the caller is not a lecturer/admin
+- `403 Forbidden` if the caller is not the owning lecturer for the assignment or an admin
 - `404 Not Found` if the assignment does not exist
 
 ## F. `GET /api/submissions/{submissionId}`
+
+### Access rule
+- allowed for the submission owner while the related assignment remains visible through the student's current space membership
+- allowed for the lecturer who owns the related assignment
+- allowed for `ADMIN`
+- denied to unrelated students and unrelated lecturers
 
 ### Success response
 Status: `200 OK`
@@ -253,9 +266,10 @@ Content-Disposition: attachment; filename="coursework.pdf"
 - this keeps PDF retrieval binary-safe without forcing file content into a JSON string field
 
 ### Access rule
-- allowed for the submission owner
-- allowed for privileged lecturer/admin review
-- denied to unrelated students
+- allowed for the submission owner while the related assignment remains visible through the student's current space membership
+- allowed for the lecturer who owns the related assignment
+- allowed for `ADMIN`
+- denied to unrelated students and unrelated lecturers
 
 ### Audit rule
 Every successful content retrieval should create a dedicated audit event.

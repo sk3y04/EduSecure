@@ -29,7 +29,8 @@ The current Pack 09 DFD set is:
 ### A. Context DFD
 Shows EduSecure as one system process interacting with:
 - student browser clients
-- lecturer/admin browser clients
+- lecturer browser clients for owned submissions, grades, and spaces
+- admin browser clients for global oversight
 - a TOTP authenticator app
 
 ### B. Level-1 DFD
@@ -38,6 +39,7 @@ Breaks the implemented system into the main backend-facing responsibilities:
 - MFA challenge handling
 - submission protection and retrieval
 - grade integrity handling
+- space ownership and membership handling
 - append-oriented audit recording
 
 ## 3. Scope and trust-boundary rules
@@ -49,6 +51,7 @@ This DFD is intentionally aligned to the **implemented** repository state and cu
 - backend-issued `HttpOnly` cookie session transport for browser authentication
 - optional MFA with encrypted-at-rest TOTP secrets, challenge records, and hashed recovery codes
 - student-uploaded UTF-8 text submission content entering the backend, then being hashed, signature-processed, encrypted at rest, and split between metadata storage and ciphertext storage
+- owner-scoped lecturer access to submissions, grades, and spaces with admin override
 - grade creation/update constrained by previously verified submissions
 - audit events written through an HMAC-backed append-oriented integrity chain
 

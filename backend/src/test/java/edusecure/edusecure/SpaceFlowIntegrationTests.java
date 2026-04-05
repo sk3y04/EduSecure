@@ -239,6 +239,48 @@ class SpaceFlowIntegrationTests {
     }
 
     @Test
+    void studentMemberCanViewSpaceWithoutRosterDisclosure() throws Exception {
+        User lecturer = ensureUser("lect-space-conf-" + UUID.randomUUID() + "@example.com", "Lecturer Space Confidentiality", RoleName.LECTURER);
+        User memberStudent = ensureUser("stu-space-member-" + UUID.randomUUID() + "@example.com", "Student Space Member", RoleName.STUDENT);
+        User secondStudent = ensureUser("stu-space-second-" + UUID.randomUUID() + "@example.com", "Student Space Second", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+        Cookie memberStudentCookie = loginAndReturnAuthCookie(memberStudent.getEmail(), "StrongPass123");
+
+        MvcResult createResult = mockMvc.perform(post("/api/spaces")
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateSpacePayload(
+                                "Space Confidentiality Lab",
+                                "SPACE-CONF",
+                                "Membership viewers should not receive the full roster."
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String spaceId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
+
+        mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AddStudentPayload(memberStudent.getEmail()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AddStudentPayload(secondStudent.getEmail()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/spaces/{spaceId}", spaceId)
+                        .cookie(memberStudentCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.memberCount").value(2))
+                .andExpect(jsonPath("$.canManage").value(false))
+                .andExpect(jsonPath("$.isMember").value(true))
+                .andExpect(jsonPath("$.memberships.length()").value(0));
+    }
+
+    @Test
     void duplicateSpaceCodeAndDuplicateMembershipAreRejected() throws Exception {
         User lecturer = ensureUser("lecturer-space-dup-" + UUID.randomUUID() + "@example.com", "Lecturer Dup", RoleName.LECTURER);
         User student = ensureUser("student-space-dup-" + UUID.randomUUID() + "@example.com", "Student Dup", RoleName.STUDENT);

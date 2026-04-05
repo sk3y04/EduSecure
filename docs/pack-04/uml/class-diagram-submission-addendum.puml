@@ -30,7 +30,21 @@ package "Pack 04 Submission and Integrity Design" {
     +description: String
     +dueAt: DateTime
     +createdByLecturerId: UUID
+    +spaceId: UUID
     +isOpen: boolean
+  }
+
+  class Space {
+    +id: UUID
+    +createdByUserId: UUID
+    +archived: boolean
+  }
+
+  class SpaceMembership {
+    +id: UUID
+    +spaceId: UUID
+    +studentUserId: UUID
+    +addedByUserId: UUID
   }
 
   class Submission {
@@ -119,7 +133,11 @@ Role --> RoleName
 User "*" -- "*" Role
 User "1" -- "*" Submission : submits >
 User "1" -- "*" Assignment : creates >
+User "1" -- "*" Space : manages >
 Assignment "1" -- "*" Submission
+Space "1" -- "*" Assignment
+Space "1" -- "*" SpaceMembership
+User "1" -- "*" SpaceMembership : enrolled by >
 Submission "0..1" -- "1" Grade
 Submission "1" -- "*" AuditLog : audited by >
 Grade "1" -- "*" AuditLog : later grade actions >
@@ -154,6 +172,13 @@ Current implemented upload scope:
 Current retrieval posture:
 - metadata remains separate from content
 - decrypted file access uses a controlled binary-safe path
+end note
+
+note right of Assignment
+Assignments are now linked to lecturer-managed spaces.
+Student assignment visibility and student self-service
+submission/grade access depend on current membership
+in the related space.
 end note
 
 note right of AuditLog

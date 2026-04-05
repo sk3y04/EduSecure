@@ -5,8 +5,9 @@
 Introduce `Space` as an academic collaboration area used to group students for coursework, resources, and activity coordination.
 
 The first delivery scope is intentionally narrow:
-- privileged staff can create and manage spaces
-- students can be added to and removed from spaces by privileged staff
+- lecturers can create spaces they own and manage
+- admins can create or manage any space for oversight
+- students can be added to and removed from spaces only by the owning lecturer or an admin
 - students can view spaces they belong to
 - roster management is auditable and role-constrained
 
@@ -39,6 +40,7 @@ This feature inherits the existing backend-issued `HttpOnly` cookie authenticati
 - An admin is authorized to manage any space.
 - A student is authorized to view only spaces where a membership exists for their user id.
 - Students cannot self-enroll, update metadata, or manipulate memberships.
+- Full roster visibility is limited to the space owner or an admin.
 
 ## 3. Domain model
 
@@ -336,7 +338,7 @@ Shared requirements:
 
 Privileged staff requirements:
 - show create-space form
-- show manage-oriented explanatory copy
+- show manage-oriented explanatory copy that reflects owner-scoped lecturer control and admin override
 
 Student requirements:
 - no create or management controls
@@ -354,6 +356,7 @@ Privileged staff requirements:
 - add-student form using student email
 - roster list with remove action
 - success and failure alerts for roster changes
+- lecturer-facing controls appear only for spaces they own; admin can manage any space
 
 Student requirements:
 - read-only metadata view only
@@ -369,6 +372,7 @@ Student requirements:
 
 - duplicate space code after normalization must be rejected
 - lecturer must not manage another lecturer's space
+- lecturer must not view roster data for another lecturer's space
 - student must not open detail for a space they are not a member of
 - archived spaces remain visible but reject new additions
 - adding a lecturer or admin as a member must fail with `422`
@@ -409,7 +413,13 @@ The first implementation does not include:
 - lecturer co-ownership or delegated moderators
 - bulk CSV enrollment
 - search, pagination, or invite workflows
-- automatic assignment-to-space linkage
+
+### Implemented follow-on integration note
+Assignments are now linked to spaces through `Assignment.spaceId` in the backend.
+This means:
+- students see assignments only for spaces they currently belong to
+- lecturers can create assignments only in spaces they own, unless acting as `ADMIN`
+- assignment-linked student submission/grade self-service now depends on current space membership
 
 ## 10. Implementation order
 

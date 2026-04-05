@@ -5,8 +5,8 @@ import edusecure.edusecure.dto.grade.CreateGradeRequest;
 import edusecure.edusecure.dto.grade.GradeResponse;
 import edusecure.edusecure.dto.grade.MyGradeResponse;
 import edusecure.edusecure.dto.grade.UpdateGradeRequest;
+import edusecure.edusecure.entity.assignment.Assignment;
 import edusecure.edusecure.entity.audit.AuditActionType;
-import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.entity.grade.Grade;
 import edusecure.edusecure.entity.submission.Submission;
@@ -14,10 +14,10 @@ import edusecure.edusecure.entity.submission.SubmissionVerificationStatus;
 import edusecure.edusecure.repository.auth.UserRepository;
 import edusecure.edusecure.repository.grade.GradeRepository;
 import edusecure.edusecure.repository.submission.SubmissionRepository;
+import edusecure.edusecure.service.assignment.AssignmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,12 +32,14 @@ public class GradeService {
     private final GradeRepository gradeRepository;
     private final SubmissionRepository submissionRepository;
     private final UserRepository userRepository;
+    private final AssignmentService assignmentService;
     private final AuditService auditService;
 
     @Transactional
-    public GradeResponse createGrade(String currentUserEmail, UUID submissionId, CreateGradeRequest request) {
+    public GradeResponse createGrade(String currentUserEmail, UUID submissionId, CreateGradeRequest request, Authentication authentication) {
         User actor = findUserByEmail(currentUserEmail);
         Submission submission = findSubmission(submissionId);
+        requireGradeAccess(submission, actor, authentication);
         ensureSubmissionVerified(submission);
 
         if (gradeRepository.findBySubmissionId(submissionId).isPresent()) {
@@ -64,11 +66,12 @@ public class GradeService {
     }
 
     @Transactional
-    public GradeResponse updateGrade(String currentUserEmail, UUID gradeId, UpdateGradeRequest request) {
+    public GradeResponse updateGrade(String currentUserEmail, UUID gradeId, UpdateGradeRequest request, Authentication authentication) {
         User actor = findUserByEmail(currentUserEmail);
         Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found"));
         Submission submission = findSubmission(grade.getSubmissionId());
+        requireGradeAccess(submission, actor, authentication);
         ensureSubmissionVerified(submission);
 
         grade.setValue(request.value());
@@ -89,24 +92,20 @@ public class GradeService {
 
     @Transactional(readOnly = true)
     public GradeResponse getGrade(UUID gradeId, Authentication authentication) {
+        User actor = findUserByEmail(authentication.getName());
         Grade grade = gradeRepository.findById(gradeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found"));
-
-        boolean privileged = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
-                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
-
-        if (!privileged) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
-        }
+        Submission submission = findSubmission(grade.getSubmissionId());
+        requireGradeAccess(submission, actor, authentication);
 
         return toGradeResponse(grade);
     }
 
     @Transactional(readOnly = true)
     public GradeResponse getGradeForSubmission(UUID submissionId, Authentication authentication) {
-        ensurePrivileged(authentication);
+        User actor = findUserByEmail(authentication.getName());
+        Submission submission = findSubmission(submissionId);
+        requireGradeAccess(submission, actor, authentication);
 
         Grade grade = gradeRepository.findBySubmissionId(submissionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found for this submission"));
@@ -121,9 +120,7 @@ public class GradeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found"));
         Submission submission = findSubmission(grade.getSubmissionId());
 
-        if (!submission.getStudentUserId().equals(student.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
-        }
+        ensureStudentOwnsVisibleSubmission(student, submission);
 
         return new MyGradeResponse(
                 grade.getId(),
@@ -139,9 +136,7 @@ public class GradeService {
         User student = findUserByEmail(authentication.getName());
         Submission submission = findSubmission(submissionId);
 
-        if (!submission.getStudentUserId().equals(student.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
-        }
+        ensureStudentOwnsVisibleSubmission(student, submission);
 
         Grade grade = gradeRepository.findBySubmissionId(submissionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Grade not found for this submission"));
@@ -178,13 +173,23 @@ public class GradeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
     }
 
-    private void ensurePrivileged(Authentication authentication) {
-        boolean privileged = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
-                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
+    private void requireGradeAccess(Submission submission, User actor, Authentication authentication) {
+        Assignment assignment = assignmentService.getAssignmentOrThrow(submission.getAssignmentId());
+        assignmentService.requireLecturerOrAdminAssignmentAccess(
+                assignment,
+                actor,
+                authentication,
+                "You cannot access this grade"
+        );
+    }
 
-        if (!privileged) {
+    private void ensureStudentOwnsVisibleSubmission(User student, Submission submission) {
+        if (!submission.getStudentUserId().equals(student.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
+        }
+
+        Assignment assignment = assignmentService.getAssignmentOrThrow(submission.getAssignmentId());
+        if (!assignmentService.isVisibleToStudent(student.getId(), assignment)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this grade");
         }
     }

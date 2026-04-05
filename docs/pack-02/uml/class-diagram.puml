@@ -91,15 +91,27 @@ class MfaRecoveryCode {
   +createdAt: DateTime
 }
 
-class Course {
+class Space {
   +id: UUID
-  +title: String
+  +name: String
+  +code: String
+  +createdByUserId: UUID
+}
+
+class SpaceMembership {
+  +id: UUID
+  +spaceId: UUID
+  +studentUserId: UUID
+  +addedByUserId: UUID
 }
 
 class Assignment {
   +id: UUID
   +title: String
-  +dueDate: DateTime
+  +dueAt: DateTime
+  +createdByLecturerId: UUID
+  +spaceId: UUID
+  +open: boolean
 }
 
 class Submission {
@@ -154,7 +166,9 @@ User --> MfaMethod
 User "1" -- "0..*" MfaChallenge
 User "1" -- "0..*" MfaRecoveryCode
 Role --> RoleName
-Course "1" -- "*" Assignment
+Space "1" -- "*" Assignment
+Space "1" -- "*" SpaceMembership
+User "1" -- "*" SpaceMembership
 User "1" -- "*" Submission
 Assignment "1" -- "*" Submission
 Submission "0..1" -- "1" Grade
@@ -186,6 +200,13 @@ note right of AuthApiException
   Used for non-validation auth-domain outcomes
   while preserving HTTP status codes such as
   401, 404, 409, 410, and 429.
+end note
+
+note right of Assignment
+Current implementation links assignments to spaces.
+Students see assignments only through current space
+memberships, while lecturers remain owner-scoped and
+admins retain global oversight.
 end note
 @enduml
 

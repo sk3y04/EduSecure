@@ -190,23 +190,25 @@ It does **not** claim:
 `GET /api/submissions/{submissionId}`
 
 Allowed:
-- submission owner
-- lecturer
+- submission owner while the related assignment remains visible through the student's current space membership
+- owning lecturer for the related assignment
 - admin
 
 Denied:
 - unrelated student
+- unrelated lecturer
 
 ### Submission content endpoint
 `GET /api/submissions/{submissionId}/content`
 
 Allowed:
-- submission owner
-- lecturer
+- submission owner while the related assignment remains visible through the student's current space membership
+- owning lecturer for the related assignment
 - admin
 
 Denied:
 - unrelated student
+- unrelated lecturer
 
 ### Important note
 The content endpoint does not relax authorization relative to metadata.
@@ -273,6 +275,7 @@ They collectively prove that:
 - the metadata response does not expose the internal storage reference
 - authorized actors can retrieve TXT or PDF content through the separate endpoint
 - unrelated students cannot retrieve another student's content
+- student-owned submission access is re-checked against current assignment-space membership
 - successful content retrieval creates a dedicated audit event
 - the submission AES-at-rest schema change exists in Liquibase-backed PostgreSQL verification
 

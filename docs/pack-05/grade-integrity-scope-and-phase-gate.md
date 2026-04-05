@@ -18,15 +18,15 @@ The grade-integrity phase should demonstrate that:
 - only authorised actors can create or update grades
 - grade changes are auditable
 - sensitive grade actions are recorded with tamper-evident integrity support
-- students can retrieve their own grades through an authenticated, role-aware flow
+- students can retrieve their own grades through an authenticated, role-aware flow while the related assignment remains visible through current space membership
 
 ## 3. In-scope items
 
 ### Core grade workflow
 - create a grade for a verified submission
-- update a grade as an authorised lecturer/admin action
-- retrieve a grade for the owning student
-- retrieve grade details for lecturer/admin review where authorised
+- update a grade as an authorised assignment-owning lecturer or admin action
+- retrieve a grade for the owning student while the related assignment remains visible to that student
+- retrieve grade details for the owning lecturer or admin where authorised
 
 ### Integrity and audit scope
 - create audit records for grade creation and updates
@@ -34,8 +34,8 @@ The grade-integrity phase should demonstrate that:
 - record enough metadata to support later dispute review
 
 ### Access-control scope
-- Student: can view only own grade data
-- Lecturer: can create/update grades for relevant academic records
+- Student: can view only own grade data while the related assignment remains visible through current space membership
+- Lecturer: can create/update/read grades only for assignments they own/manage
 - Admin: can review grade-related audit history and sensitive actions
 
 ## 4. Explicitly out of scope

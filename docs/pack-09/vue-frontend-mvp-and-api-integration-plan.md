@@ -94,10 +94,10 @@ The browser-facing frontend now uses the implemented auth model from Pack 03:
 
 ### Student
 - login
-- assignment list
-- submit work
+- assignment list filtered by current space memberships
+- submit work for assignments visible through current space membership
 - view submission verification result
-- view own grades
+- view own grades while the related assignment remains visible through current space membership
 
 ### Lecturer
 - login

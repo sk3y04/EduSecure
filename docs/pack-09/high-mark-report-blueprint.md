@@ -243,7 +243,7 @@ Use only the diagrams that help marks directly:
 #### Grade integrity
 - only verified submissions may be graded
 - create/update actions always write audit entries
-- students can view only their own grades
+- students can view only their own grades while the related assignment remains visible through current space membership
 
 #### TLS deployment
 - describe TLS 1.3 via Certbot/Let's Encrypt as the intended deployment-side transport control
@@ -418,6 +418,7 @@ Present the artefact as a set of evidenced capability slices.
 
 #### Slice 2: submission integrity and confidentiality
 - assignment creation
+- assignment-to-space linkage
 - submission digest/signature workflow
 - verification-state persistence
 - AES-GCM encrypted-at-rest storage
@@ -427,7 +428,7 @@ Present the artefact as a set of evidenced capability slices.
 #### Slice 3: grade integrity
 - create/update grade
 - verified-submission-only rule
-- own-grade student retrieval
+- own-grade student retrieval while the assignment remains visible through current space membership
 - HMAC-backed audit trail
 
 #### Slice 4: TLS secure transmission

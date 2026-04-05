@@ -1,28 +1,35 @@
 @startuml
-actor Lecturer
+actor "Assignment-owning Lecturer" as Lecturer
 participant "EduSecure API" as API
 participant "GradeService" as GradeService
 participant "AuditService" as Audit
 database DB
 actor Student
 
-Lecturer -> API : update grade over HTTPS
-API -> GradeService : validate role + request
-GradeService -> DB : update grade record
+ Lecturer -> API : update grade over HTTPS
+ API -> GradeService : validate role + owner scope request
+ GradeService -> DB : load related submission / assignment\nand update grade record
 GradeService -> Audit : create audit entry
 Audit -> Audit : compute HMAC / hash integrity value
 Audit -> DB : store audit record
 API --> Lecturer : success
-Student -> API : request own grade over HTTPS
-API -> GradeService : authorise access
-GradeService -> DB : read grade
-DB --> GradeService : grade
+ Student -> API : request own grade over HTTPS
+ API -> GradeService : authorise ownership + current assignment visibility
+ GradeService -> DB : read grade, submission, and assignment visibility
+ DB --> GradeService : grade + current visibility
 GradeService --> API : grade
 API --> Student : grade response
 
 note right of Audit
 Sensitive change is logged with
 tamper-evident integrity support.
+end note
+
+note right of GradeService
+Lecturer access is owner-scoped by assignment.
+Student grade reads are allowed only while the
+related assignment remains visible through
+current space membership.
 end note
 @enduml
 

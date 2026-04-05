@@ -30,8 +30,8 @@ Planned system roles for EduSecure:
   - register/login
   - complete MFA challenge if enabled
   - access course materials
-  - submit assignments
-  - view own grades
+  - submit assignments visible through current space membership
+  - view own grades while the related assignment remains visible through current space membership
 - **Lecturer**
   - upload materials
   - view submissions

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record CreateAssignmentRequest(
         @NotBlank(message = "Title is required")
@@ -13,7 +14,9 @@ public record CreateAssignmentRequest(
         String description,
         @NotNull(message = "Due date is required")
         @Future(message = "Due date must be in the future")
-        Instant dueAt
+        Instant dueAt,
+        @NotNull(message = "Space is required")
+        UUID spaceId
 ) {
 }
 

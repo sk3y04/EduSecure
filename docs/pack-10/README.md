@@ -5,8 +5,9 @@ Pack 10 defines the new academic space-management feature before implementation.
 ## Purpose
 
 This pack freezes the design for introducing academic collaboration spaces where:
-- `LECTURER` and `ADMIN` users can create and manage spaces
-- `STUDENT` users can be assigned into spaces by privileged staff
+- `LECTURER` users can create and manage only spaces they own
+- `ADMIN` users can create and manage any space for oversight
+- `STUDENT` users can be assigned into spaces only by the owning lecturer or an admin
 - all authenticated users interact through the existing cookie-backed browser session model
 
 ## What this pack covers

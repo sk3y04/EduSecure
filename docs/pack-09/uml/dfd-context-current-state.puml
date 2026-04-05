@@ -15,16 +15,20 @@ skinparam note {
 title EduSecure Current-State Data Flow Diagram - Context
 
 rectangle "Student Browser\n<<External Entity>>" as Student #E0F2FE
-rectangle "Lecturer / Admin Browser\n<<External Entity>>" as Staff #E0F2FE
+rectangle "Lecturer Browser\n(owner-scoped resources)\n<<External Entity>>" as Lecturer #E0F2FE
+rectangle "Admin Browser\n(global oversight)\n<<External Entity>>" as Admin #E0F2FE
 rectangle "Authenticator App\n(TOTP)\n<<External Entity>>" as Authenticator #E0F2FE
 
 rectangle "P0 EduSecure Platform\nVue frontend + Spring Boot API" as System #DBEAFE
 
-Student --> System : registration/login credentials\nassignment plaintext\ncredentialed API requests
-System --> Student : Set-Cookie auth session\nsubmission metadata\nsubmission plaintext on explicit retrieval\nown-grade data
+Student --> System : registration/login credentials\nspace-scoped assignment interactions\ncredentialed API requests
+System --> Student : Set-Cookie auth session\nassignments visible through current spaces\nsubmission/grade data only while still authorised
 
-Staff --> System : login credentials\ncredentialed review/grading requests
-System --> Staff : Set-Cookie auth session\nsubmission metadata\ngrade data
+Lecturer --> System : login credentials\ncredentialed requests for owned submissions, grades, and spaces
+System --> Lecturer : Set-Cookie auth session\nowned submission/grade/space data
+
+Admin --> System : login credentials\ncredentialed oversight and management requests
+System --> Admin : Set-Cookie auth session\nsubmission, grade, and space oversight data
 
 System --> Authenticator : MFA setup secret\notpauth URI / manual-entry key
 Authenticator --> System : TOTP verification code\nor recovery-code-backed verification
@@ -33,6 +37,11 @@ note bottom of System
 Current transport claims are deployment/TLS based.
 The browser does not persist the JWT in JavaScript storage.
 Only MFA pending-challenge data is kept in sessionStorage.
+Assignments are space-scoped for students and owner-scoped for lecturers.
+Student self-service submission and grade reads are re-checked against
+current assignment-space membership.
+Lecturer access is owner-scoped for submissions, grades, and spaces;
+admin access remains global for oversight.
 end note
 @enduml
 

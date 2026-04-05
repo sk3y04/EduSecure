@@ -127,7 +127,7 @@ This report aims to [analyze risks, justify cryptographic control selection, exp
 
 ## 4.4 Grade-integrity design
 
-[Explain verified-submission-only grading, lecturer/admin restrictions, own-grade student access, append-oriented audit evidence.]
+[Explain verified-submission-only grading, assignment-owner-scoped lecturer restrictions with admin override, student own-grade access while the related assignment remains visible through current space membership, and append-oriented audit evidence.]
 
 **Refer to:** [grade-integrity UML]
 

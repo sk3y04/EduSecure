@@ -151,7 +151,7 @@ public class MfaService {
         );
     }
  
-    @Transactional
+    @Transactional(noRollbackFor = AuthApiException.class)
     public AuthResponse verify(MfaVerifyRequest request) {
         MfaChallenge challenge = mfaChallengeRepository.findById(request.challengeId())
                 .orElseThrow(() -> new AuthApiException(HttpStatus.UNAUTHORIZED, "Invalid MFA challenge"));

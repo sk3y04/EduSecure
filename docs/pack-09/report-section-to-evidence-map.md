@@ -107,6 +107,12 @@ Purpose:
 
 Use:
 - `docs/pack-09/final-implementation-evidence-map.md`
+- `docs/pack-09/unit-test-coverage-summary.md`
+- `docs/pack-09/integration-test-coverage-summary.md`
+- `docs/pack-09/manual-test-coverage-summary.md`
+- `docs/pack-09/test-evidence-collection-template.md`
+- `docs/pack-09/test-evidence-worked-examples.md`
+- `docs/pack-09/security-review-evidence-log.md`
 - `docs/pack-09/final-cryptography-claims-matrix.md`
 - `docs/pack-09/report-claims-audit-note.md`
 - `frontend/README.md`

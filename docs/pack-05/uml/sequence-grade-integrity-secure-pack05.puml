@@ -1,5 +1,5 @@
 @startuml
-actor Lecturer
+actor "Assignment-owning Lecturer" as Lecturer
 participant "GradeController" as Controller
 participant "GradeService" as GradeService
 participant "AuditService" as Audit
@@ -9,9 +9,10 @@ actor Student
 actor Admin
 
  Lecturer -> Controller : POST /api/submissions/{submissionId}/grade or PUT /api/grades/{gradeId}\ncredentialed cookie request
-Controller -> GradeService : validate role + request
+Controller -> GradeService : validate role + owner-scoped request
 GradeService -> DB : load submission / grade
 DB --> GradeService : submission / grade state
+GradeService -> GradeService : verify lecturer owns related assignment
 GradeService -> GradeService : ensure submission is VERIFIED\n(recommended rule)
 GradeService -> DB : create or update Grade
 GradeService -> Audit : record grade-sensitive action
@@ -27,18 +28,31 @@ Controller --> Lecturer : 200/201 success
 
  Student -> Controller : GET /api/my/grades/{gradeId}\ncredentialed cookie request
 Controller -> GradeService : authorise ownership + read grade
-GradeService -> DB : load grade for owning student
-DB --> GradeService : grade
+ GradeService -> DB : load grade, submission, and assignment visibility
+ DB --> GradeService : grade + submission + current visibility
 GradeService --> Controller : grade
 Controller --> Student : grade response
 
- Admin -> DB : inspect grade-related audit history through repository/database review
- DB --> Admin : audit trail for review/investigation
+ Admin -> Controller : POST/PUT/GET privileged grade endpoints\nwith global admin oversight permission
+Controller -> GradeService : validate admin override
+GradeService --> Controller : grade response
+Controller --> Admin : authorised oversight response
+
+Admin -> DB : inspect grade-related audit history through repository/database review
+DB --> Admin : audit trail for review/investigation
 
 note right of GradeService
 Pack 05 recommends that grades be created or updated
 only for verified submissions to keep the integrity
 story consistent.
+
+The implemented code now also scopes lecturer grade
+access to assignments they own, while `ADMIN`
+retains global oversight permission.
+
+Student self-service grade reads are also limited
+to submissions that still belong to the student's
+currently visible assignment spaces.
 end note
 
 note right of Audit

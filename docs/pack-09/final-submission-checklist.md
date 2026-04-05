@@ -30,6 +30,9 @@ Use `docs/pack-09/high-mark-report-blueprint.md` as the main writing-order and s
 - [x] implemented frontend MVP evidence is available
 - [x] automated test results are available and readable
 - [ ] screenshots or sample outputs are selected if helpful
+- [ ] manual security-review evidence records are filled in using `docs/pack-09/test-evidence-collection-template.md` where relevant
+- [x] worked example evidence records are available in `docs/pack-09/test-evidence-worked-examples.md`
+- [ ] the live review log in `docs/pack-09/security-review-evidence-log.md` is populated for the scenarios actually executed
 
 ## 3. Documentation consistency checklist
 

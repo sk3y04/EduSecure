@@ -63,7 +63,7 @@ public class SubmissionService {
     @Transactional
     public SubmissionResponse createSubmission(String currentUserEmail, UUID assignmentId, MultipartFile file) {
         User student = findUserByEmail(currentUserEmail);
-        Assignment assignment = assignmentService.getAssignmentOrThrow(assignmentId);
+        Assignment assignment = assignmentService.getStudentAccessibleAssignmentOrThrow(currentUserEmail, assignmentId);
         if (!assignment.isOpen()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Assignment is closed");
         }
@@ -135,7 +135,7 @@ public class SubmissionService {
     @Transactional(readOnly = true)
     public SubmissionResponse getLatestSubmissionForAssignment(String currentUserEmail, UUID assignmentId) {
         User student = findUserByEmail(currentUserEmail);
-        assignmentService.getAssignmentOrThrow(assignmentId);
+        assignmentService.getStudentAccessibleAssignmentOrThrow(currentUserEmail, assignmentId);
 
         Submission submission = submissionRepository
                 .findFirstByAssignmentIdAndStudentUserIdOrderBySubmittedAtDescIdDesc(assignmentId, student.getId())
@@ -145,8 +145,14 @@ public class SubmissionService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<SubmissionResponse> listSubmissionsForAssignment(UUID assignmentId) {
-        assignmentService.getAssignmentOrThrow(assignmentId);
+    public java.util.List<SubmissionResponse> listSubmissionsForAssignment(UUID assignmentId, Authentication authentication) {
+        User currentUser = findUserByEmail(authentication.getName());
+        assignmentService.getLecturerOrAdminAccessibleAssignmentOrThrow(
+                assignmentId,
+                currentUser,
+                authentication,
+                "You cannot view submissions for this assignment"
+        );
 
         java.util.List<Submission> submissions = submissionRepository.findAllByAssignmentIdOrderBySubmittedAtDesc(assignmentId);
         Map<UUID, Grade> gradesBySubmissionId = gradeRepository.findAllBySubmissionIdIn(
@@ -386,17 +392,39 @@ public class SubmissionService {
         User resolvedUser = currentUser != null ? currentUser : findUserByEmail(authentication.getName());
         Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
+        Assignment assignment = null;
 
-        boolean privileged = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> ("ROLE_" + RoleName.LECTURER.name()).equals(authority)
-                        || ("ROLE_" + RoleName.ADMIN.name()).equals(authority));
-
-        if (!privileged && !submission.getStudentUserId().equals(resolvedUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this submission");
+        if (hasRole(authentication, RoleName.ADMIN)) {
+            return submission;
         }
 
-        return submission;
+        if (submission.getStudentUserId().equals(resolvedUser.getId())) {
+            assignment = assignmentService.getAssignmentOrThrow(submission.getAssignmentId());
+            if (!assignmentService.isVisibleToStudent(resolvedUser.getId(), assignment)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this submission");
+            }
+            return submission;
+        }
+
+        if (hasRole(authentication, RoleName.LECTURER)) {
+            assignment = assignment != null ? assignment : assignmentService.getAssignmentOrThrow(submission.getAssignmentId());
+            assignmentService.requireLecturerOrAdminAssignmentAccess(
+                    assignment,
+                    resolvedUser,
+                    authentication,
+                    "You cannot view this submission"
+            );
+            return submission;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot view this submission");
+    }
+
+
+    private boolean hasRole(Authentication authentication, RoleName roleName) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> ("ROLE_" + roleName.name()).equals(authority));
     }
 
     private User findUserByEmail(String email) {

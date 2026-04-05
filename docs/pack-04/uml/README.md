@@ -6,6 +6,7 @@ These PlantUML files extend the earlier Pack 02 UML with the more specific desig
 
 - `class-diagram-submission-addendum.puml`
 - `sequence-submission-secure-pack04.puml`
+- `sequence-submission-aes-at-rest-retrieval-pack04.puml`
 - `sequence-audit-integrity-secure.puml`
 
 ## Purpose
@@ -17,6 +18,8 @@ These diagrams do not replace the broader Pack 02 UML set. They refine it for th
 - immediate verification during submission creation
 - simulated signing model for the study project
 - `HMAC-SHA-256` for append-oriented audit integrity support
+
+The dedicated `sequence-submission-aes-at-rest-retrieval-pack04.puml` diagram also acts as a focused bridge between the Pack 04 AES-at-rest design and the later implemented retrieval flow documented in `../../pack-06/submission-content-protection-and-retrieval.md`.
 
 These UML files should be read as **design-level abstractions**, not exact code-generated mirrors of every later implementation refinement.
 

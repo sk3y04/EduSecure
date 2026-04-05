@@ -11,6 +11,8 @@ public interface SpaceMembershipRepository extends JpaRepository<SpaceMembership
 
     List<SpaceMembership> findAllBySpaceIdOrderByAddedAtAsc(UUID spaceId);
 
+    List<SpaceMembership> findAllByStudentUserId(UUID studentUserId);
+
     Optional<SpaceMembership> findBySpaceIdAndStudentUserId(UUID spaceId, UUID studentUserId);
 
     boolean existsBySpaceIdAndStudentUserId(UUID spaceId, UUID studentUserId);

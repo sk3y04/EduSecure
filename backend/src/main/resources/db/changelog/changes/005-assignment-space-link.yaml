@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-assignment-space-link
+      author: copilot
+      changes:
+        - addColumn:
+            tableName: assignments
+            columns:
+              - column:
+                  name: space_id
+                  type: UUID
+        - addForeignKeyConstraint:
+            baseTableName: assignments
+            baseColumnNames: space_id
+            referencedTableName: spaces
+            referencedColumnNames: id
+            constraintName: fk_assignments_space
+            onDelete: RESTRICT
+        - createIndex:
+            tableName: assignments
+            indexName: idx_assignments_space_id
+            columns:
+              - column:
+                  name: space_id

@@ -69,6 +69,13 @@ class LiquibasePostgresIntegrationTests {
         );
         assertThat(submissionStorageChangeSetCount).isEqualTo(1);
 
+        Integer assignmentSpaceChangeSetCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM databasechangelog WHERE id = ?",
+                Integer.class,
+                "005-assignment-space-link"
+        );
+        assertThat(assignmentSpaceChangeSetCount).isEqualTo(1);
+
         Integer tableCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('roles', 'users', 'user_roles')",
                 Integer.class
@@ -98,6 +105,24 @@ class LiquibasePostgresIntegrationTests {
                 Integer.class
         );
         assertThat(submissionEncryptionColumnCount).isEqualTo(6);
+
+        Integer assignmentSpaceColumnCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'assignments' AND column_name = 'space_id'",
+                Integer.class
+        );
+        assertThat(assignmentSpaceColumnCount).isEqualTo(1);
+
+        Integer assignmentSpaceForeignKeyCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'assignments' AND constraint_name = 'fk_assignments_space' AND constraint_type = 'FOREIGN KEY'",
+                Integer.class
+        );
+        assertThat(assignmentSpaceForeignKeyCount).isEqualTo(1);
+
+        Integer assignmentSpaceIndexCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'assignments' AND indexname = 'idx_assignments_space_id'",
+                Integer.class
+        );
+        assertThat(assignmentSpaceIndexCount).isEqualTo(1);
 
         for (RoleName roleName : RoleName.values()) {
             assertThat(roleRepository.findByName(roleName)).isPresent();

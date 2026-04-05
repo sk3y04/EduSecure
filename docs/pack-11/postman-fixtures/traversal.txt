@@ -1,0 +1,3 @@
+This harmless text file is used as the source payload for the traversal-style filename test.
+For the actual security check, change the transmitted multipart filename to ../secret.txt or ..\\secret.txt.
+

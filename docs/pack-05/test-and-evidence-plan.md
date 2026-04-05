@@ -12,8 +12,8 @@ The next implementation phase should not only work technically. It should also p
 
 ## Positive cases
 - creating a grade for a verified submission succeeds
-- updating a grade succeeds for an authorised lecturer/admin actor
-- student can retrieve only their own grade
+- updating a grade succeeds for an authorised assignment-owning lecturer or admin actor
+- student can retrieve only their own grade while the related assignment remains visible through current space membership
 - audit entries are created for grade creation and update
 - audit entries contain non-empty integrity values
 

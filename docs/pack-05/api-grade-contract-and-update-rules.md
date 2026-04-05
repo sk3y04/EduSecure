@@ -17,13 +17,13 @@ Practical implication:
 
 | Endpoint | Method | Intended role | Status | Purpose |
 |---|---|---|---|---|
-| `/api/submissions/{submissionId}/grade` | POST | Lecturer/Admin | Implemented | Create grade for a submission |
-| `/api/submissions/{submissionId}/grade` | GET | Lecturer/Admin | Implemented | Retrieve the existing grade for a submission |
-| `/api/grades/{gradeId}` | PUT | Lecturer/Admin | Implemented | Update existing grade |
-| `/api/grades/{gradeId}` | GET | Lecturer/Admin | Implemented | View full grade details |
+| `/api/submissions/{submissionId}/grade` | POST | Assignment-owning Lecturer/Admin | Implemented | Create grade for a submission |
+| `/api/submissions/{submissionId}/grade` | GET | Assignment-owning Lecturer/Admin | Implemented | Retrieve the existing grade for a submission |
+| `/api/grades/{gradeId}` | PUT | Assignment-owning Lecturer/Admin | Implemented | Update existing grade |
+| `/api/grades/{gradeId}` | GET | Assignment-owning Lecturer/Admin | Implemented | View full grade details |
 | `/api/my/submissions/{submissionId}/grade` | GET | Student | Implemented | View own grade directly from a submission |
 | `/api/my/grades/{gradeId}` | GET | Student | Implemented | View own grade |
-| `/api/audit/grades/{gradeId}` | GET | Admin/Lecturer | Deferred | Optional read endpoint for grade-related audit trail |
+| `/api/audit/grades/{gradeId}` | GET | Admin / Assignment-owning Lecturer | Deferred | Optional read endpoint for grade-related audit trail |
 
 ## 3. Recommended first implementation cut
 
@@ -43,6 +43,7 @@ A dedicated audit endpoint remains optional because audit records are currently 
 ### Preconditions
 - the submission exists
 - the actor is authorised
+- lecturer access is scoped to the lecturer who owns the related assignment
 - recommended: the submission is `VERIFIED`
 
 ### Request body
@@ -72,7 +73,7 @@ Status: `201 Created`
 
 ### Failure cases
 - `401 Unauthorized` if no valid authenticated session is present
-- `403 Forbidden` if role is not allowed
+- `403 Forbidden` if role is not allowed or the lecturer does not own the related assignment
 - `404 Not Found` if submission does not exist
 - `400 Bad Request` if the percentage is outside `0..100` or omitted
 - `409 Conflict` if a grade already exists and duplicate creation is not allowed
@@ -107,6 +108,7 @@ Status: `200 OK`
 - the existing grade record may be updated
 - the old values do not disappear from accountability, because the update must create a new audit event
 - no silent mutation is acceptable
+- lecturer updates are allowed only for grades tied to assignments they own; `ADMIN` remains globally allowed
 
 ## C. `GET /api/submissions/{submissionId}/grade`
 
@@ -126,7 +128,11 @@ Status: `200 OK`
 ```
 
 ### Visibility rule
-Lecturer/admin users can reload the existing grade for a submission when revisiting the grading screen.
+The owning lecturer for the related assignment and `ADMIN` users can reload the existing grade for a submission when revisiting the grading screen.
+
+### Access note for all privileged grade endpoints
+Where a request is made by a lecturer rather than an admin, access is owner-scoped through the related submission's assignment ownership.
+Assignments are now linked to a `spaceId`, but privileged grade access still keys off assignment ownership rather than mere space membership.
 
 ## D. `GET /api/my/submissions/{submissionId}/grade`
 
@@ -144,7 +150,7 @@ Status: `200 OK`
 ```
 
 ### Visibility rule
-Students should only be able to view the grade attached to their own submission.
+Students should only be able to view the grade attached to their own submission, and only while that submission's assignment remains visible through the student's current space membership.
 
 ## E. `GET /api/my/grades/{gradeId}`
 
@@ -162,7 +168,7 @@ Status: `200 OK`
 ```
 
 ### Visibility rule
-Students should only be able to view grade records that belong to their own submission.
+Students should only be able to view grade records that belong to their own submission, and only while the related assignment remains inside one of their current spaces.
 
 ## 5. Selected policy decisions
 

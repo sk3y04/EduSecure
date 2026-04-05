@@ -51,8 +51,11 @@ public class SubmissionController {
 
     @GetMapping("/api/assignments/{assignmentId}/submissions")
     @PreAuthorize("hasAnyRole('LECTURER', 'ADMIN')")
-    public ResponseEntity<java.util.List<SubmissionResponse>> listSubmissionsForAssignment(@PathVariable UUID assignmentId) {
-        return ResponseEntity.ok(submissionService.listSubmissionsForAssignment(assignmentId));
+    public ResponseEntity<java.util.List<SubmissionResponse>> listSubmissionsForAssignment(
+            @PathVariable UUID assignmentId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(submissionService.listSubmissionsForAssignment(assignmentId, authentication));
     }
 
     @GetMapping("/api/submissions/{submissionId}")

@@ -33,6 +33,12 @@ What still needs disciplined planning is:
 ## Contents
 
 - `current-state-data-flow-diagram.md`
+- `unit-test-coverage-summary.md`
+- `integration-test-coverage-summary.md`
+- `manual-test-coverage-summary.md`
+- `test-evidence-collection-template.md`
+- `test-evidence-worked-examples.md`
+- `security-review-evidence-log.md`
 - `final-implementation-evidence-map.md`
 - `final-cryptography-claims-matrix.md`
 - `report-section-to-evidence-map.md`

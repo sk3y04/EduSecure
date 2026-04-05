@@ -109,7 +109,7 @@ Prefer **Option B for the study project** if it can be implemented cleanly, beca
 - successful verified submission
 - failed verification case
 - stored verification state
-- lecturer/admin review possibilities
+- assignment-owning lecturer/admin review possibilities
 
 If scope becomes tight, Option A is acceptable as the fallback.
 

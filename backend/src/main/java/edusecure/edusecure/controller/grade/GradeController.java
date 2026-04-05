@@ -36,7 +36,7 @@ public class GradeController {
             Authentication authentication
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(gradeService.createGrade(authentication.getName(), submissionId, request));
+                .body(gradeService.createGrade(authentication.getName(), submissionId, request, authentication));
     }
 
     @PutMapping("/api/grades/{gradeId}")
@@ -46,7 +46,7 @@ public class GradeController {
             @Valid @RequestBody UpdateGradeRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(gradeService.updateGrade(authentication.getName(), gradeId, request));
+        return ResponseEntity.ok(gradeService.updateGrade(authentication.getName(), gradeId, request, authentication));
     }
 
     @GetMapping("/api/submissions/{submissionId}/grade")

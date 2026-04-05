@@ -9,6 +9,7 @@ public record AssignmentResponse(
         String description,
         Instant dueAt,
         UUID createdByLecturerId,
+        UUID spaceId,
         boolean open
 ) {
 }

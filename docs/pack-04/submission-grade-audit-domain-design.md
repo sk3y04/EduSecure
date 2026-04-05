@@ -18,7 +18,7 @@ It should not become a full education-platform schema at this stage.
 ## A. `Assignment`
 
 ### Responsibility
-Represents a specific academic task that students can submit work for.
+Represents a specific academic task linked to a lecturer-managed space, so that enrolled students can see it and submit work for it.
 
 ### Minimum fields
 - `id`
@@ -26,10 +26,18 @@ Represents a specific academic task that students can submit work for.
 - `description`
 - `dueAt`
 - `createdByLecturerId` or lecturer relationship
+- `spaceId`
 - optional `isOpen` / status field
 
 ### Why it exists
 It separates the assignment definition from the student's actual submission and keeps the domain model academically meaningful.
+
+### Current implementation note
+In the implemented backend, `Assignment` is now linked to a `Space` through `spaceId`.
+This allows:
+- `ADMIN` to see all assignments
+- lecturers to see only assignments they created
+- students to see only assignments for spaces they currently belong to
 
 ## B. `Submission`
 

@@ -8,9 +8,9 @@ This note records whether the existing EduSecure UML files need updating after t
 ## 1. Conclusion
 
 ### Final assessment
-**No mandatory UML refresh is required for the current report pack.**
+**The main design UMLs remain usable, and selected current-state diagrams have now been refreshed to reflect owner-scoped access for submissions, grades, and spaces.**
 
-The existing UML set can still be used safely **if it is presented as design-level abstraction rather than exact post-implementation code generation**.
+The existing UML set can still be used safely **if it is presented as design-level abstraction rather than exact post-implementation code generation**, while the refreshed current-state sequence/DFD artefacts capture the latest authorization posture more explicitly.
 
 That is the correct interpretation of the repository’s UML files:
 - Pack 02 diagrams are broad secure-system design baselines
@@ -82,7 +82,7 @@ For the final report, the diagram can still be used as a design abstraction as l
 
 ## `docs/pack-04/uml/sequence-submission-secure-pack04.puml`
 ### Assessment
-No mandatory refresh required.
+Refreshed.
 
 ### Reason
 Its main value is still accurate:
@@ -93,14 +93,8 @@ Its main value is still accurate:
 - audit events are written
 - lecturer later retrieves submission review metadata
 
-### Known abstraction gap
-The implementation now adds:
-- AES-at-rest before durable storage
-- separate content retrieval through `/api/submissions/{submissionId}/content`
-- audited plaintext retrieval
-
-### Why this is still acceptable
-Those are implementation refinements layered onto the same core submission workflow. The sequence diagram still communicates the central secure-submission story correctly.
+### Current update
+The diagram now also names the lecturer actor as the assignment-owning lecturer and shows admin oversight explicitly alongside the AES-at-rest retrieval path.
 
 ## `docs/pack-04/uml/sequence-audit-integrity-secure.puml`
 ### Assessment
@@ -111,10 +105,17 @@ The audit model remains append-oriented and HMAC-backed. The newer `SUBMISSION_C
 
 ## `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml`
 ### Assessment
-No refresh required.
+Refreshed.
 
 ### Reason
-The grade-integrity flow remains unchanged in principle. Verified-submission-only grading and grade audit behavior still match the current implementation.
+The grade-integrity flow remains unchanged in principle, but the diagram now reflects owner-scoped lecturer grade access with admin override.
+
+## `docs/pack-09/uml/dfd-context-current-state.puml` and `docs/pack-09/uml/dfd-level-1-current-state.puml`
+### Assessment
+Refreshed.
+
+### Reason
+These current-state diagrams now separate lecturer and admin actors and make the owner-scoped boundaries explicit for submissions, grades, and spaces.
 
 ## `docs/pack-05/uml/sequence-aes-secure-transmission-demo.puml`
 ### Assessment
@@ -137,8 +138,8 @@ Do **not** say:
 ## 6. Practical recommendation
 
 For the final report:
-- keep the existing UMLs
-- do not spend time redrawing them unless you want presentation polish
+- keep the existing design UMLs
+- use the refreshed current-state sequence/DFD diagrams when you want explicit owner-scoped authorization wording
 - explain the latest submission confidentiality refinement in prose using Pack 06 evidence docs
 
 This is the best balance between:

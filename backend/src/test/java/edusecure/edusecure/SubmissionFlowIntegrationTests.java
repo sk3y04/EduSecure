@@ -1,12 +1,16 @@
 package edusecure.edusecure;
 
 import edusecure.edusecure.entity.audit.AuditLog;
+import edusecure.edusecure.entity.assignment.Assignment;
 import edusecure.edusecure.entity.submission.Submission;
 import edusecure.edusecure.entity.auth.Role;
 import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.entity.space.SpaceMembership;
+import edusecure.edusecure.repository.assignment.AssignmentRepository;
 import edusecure.edusecure.repository.audit.AuditLogRepository;
 import edusecure.edusecure.repository.auth.RoleRepository;
+import edusecure.edusecure.repository.space.SpaceMembershipRepository;
 import edusecure.edusecure.repository.submission.SubmissionRepository;
 import edusecure.edusecure.repository.auth.UserRepository;
 import edusecure.edusecure.service.submission.SubmissionContentStore;
@@ -68,7 +72,13 @@ class SubmissionFlowIntegrationTests {
     private SubmissionRepository submissionRepository;
 
     @Autowired
+    private AssignmentRepository assignmentRepository;
+
+    @Autowired
     private SubmissionContentStore submissionContentStore;
+
+    @Autowired
+    private SpaceMembershipRepository spaceMembershipRepository;
 
     @Test
     void lecturerCreatesAssignmentAndStudentSubmitsVerifiedWork() throws Exception {
@@ -77,11 +87,14 @@ class SubmissionFlowIntegrationTests {
 
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+        String spaceId = createSpaceAndReturnId(lecturerCookie);
+        addStudentToSpace(lecturerCookie, spaceId, student.getEmail());
 
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
                 "Cryptography Coursework",
                 "Submit your signed coursework.",
-                Instant.now().plusSeconds(86400)
+                Instant.now().plusSeconds(86400),
+                UUID.fromString(spaceId)
         ));
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
@@ -167,7 +180,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Latest Submission Coursework", "Latest submission should be returned.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Latest Submission Coursework", "Latest submission should be returned.", student);
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
@@ -205,7 +218,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Listing Coursework", "Lecturers should see assignment submissions.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Listing Coursework", "Lecturers should see assignment submissions.", student);
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
@@ -231,6 +244,31 @@ class SubmissionFlowIntegrationTests {
     }
 
     @Test
+    void unrelatedLecturerCannotListSubmissionsForAnotherLecturersAssignment() throws Exception {
+        User ownerLecturer = ensureUser("lecturer-list-owner-" + UUID.randomUUID() + "@example.com", "Lecturer List Owner", RoleName.LECTURER);
+        User otherLecturer = ensureUser("lecturer-list-other-" + UUID.randomUUID() + "@example.com", "Lecturer List Other", RoleName.LECTURER);
+        User student = ensureUser("student-list-guard-" + UUID.randomUUID() + "@example.com", "Student List Guard", RoleName.STUDENT);
+
+        Cookie ownerLecturerCookie = loginAndReturnAuthCookie(ownerLecturer.getEmail());
+        Cookie otherLecturerCookie = loginAndReturnAuthCookie(otherLecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(ownerLecturerCookie, "Owned Submission Listing", "Only the owning lecturer should list submissions.", student);
+
+        uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "owner-only-listing.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "only assignment owner should list this submission".getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(otherLecturerCookie))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void studentAssignmentListIncludesLatestSubmissionMetadata() throws Exception {
         User lecturer = ensureUser("lecturer-assignment-list-" + UUID.randomUUID() + "@example.com", "Lecturer Assignment List", RoleName.LECTURER);
         User student = ensureUser("student-assignment-list-" + UUID.randomUUID() + "@example.com", "Student Assignment List", RoleName.STUDENT);
@@ -238,7 +276,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Visible Submission Coursework", "Student should see latest submission metadata on assignment listing.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Visible Submission Coursework", "Student should see latest submission metadata on assignment listing.", student);
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
@@ -268,13 +306,107 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "No Submission Coursework", "No submission exists yet.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "No Submission Coursework", "No submission exists yet.", student);
 
         mockMvc.perform(get("/api/assignments/{assignmentId}/submissions/me", assignmentId)
                         .cookie(studentCookie))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("No submission found for this assignment"))
                 .andExpect(jsonPath("$.errors._global[0]").value("No submission found for this assignment"));
+    }
+
+    @Test
+    void studentSeesOnlyAssignmentsForEnrolledSpacesAndCannotUseHiddenAssignments() throws Exception {
+        User lecturer = ensureUser("lecturer-assignment-scope-" + UUID.randomUUID() + "@example.com", "Lecturer Assignment Scope", RoleName.LECTURER);
+        User student = ensureUser("student-assignment-scope-" + UUID.randomUUID() + "@example.com", "Student Assignment Scope", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String visibleAssignmentId = createAssignmentAndReturnId(lecturerCookie, "Visible Space Coursework", "Assignment should be visible inside the enrolled space.", student);
+        String hiddenAssignmentId = createAssignmentAndReturnId(lecturerCookie, "Hidden Space Coursework", "Assignment should stay hidden outside the enrolled space.");
+
+        mockMvc.perform(get("/api/assignments")
+                        .cookie(studentCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + visibleAssignmentId + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.id=='" + hiddenAssignmentId + "')]").isEmpty());
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", hiddenAssignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "hidden.txt",
+                                MediaType.TEXT_PLAIN_VALUE,
+                                "hidden assignment submission attempt".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You cannot access this assignment"));
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions/me", hiddenAssignmentId)
+                        .cookie(studentCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You cannot access this assignment"));
+    }
+
+    @Test
+    void lecturerSeesOnlyOwnedAssignmentsWhileAdminSeesAllAssignments() throws Exception {
+        User lecturer = ensureUser("lecturer-owned-list-" + UUID.randomUUID() + "@example.com", "Lecturer Owned List", RoleName.LECTURER);
+        User otherLecturer = ensureUser("lecturer-other-list-" + UUID.randomUUID() + "@example.com", "Lecturer Other List", RoleName.LECTURER);
+        User admin = ensureUser("admin-assignment-list-" + UUID.randomUUID() + "@example.com", "Admin Assignment List", RoleName.ADMIN);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie otherLecturerCookie = loginAndReturnAuthCookie(otherLecturer.getEmail());
+        Cookie adminCookie = loginAndReturnAuthCookie(admin.getEmail());
+
+        String ownedAssignmentId = createAssignmentAndReturnId(lecturerCookie, "Owned Assignment", "Lecturer should only see their own assignment in listings.");
+        String otherAssignmentId = createAssignmentAndReturnId(otherLecturerCookie, "Other Assignment", "Second lecturer assignment should stay hidden from the first lecturer.");
+
+        mockMvc.perform(get("/api/assignments")
+                        .cookie(lecturerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + ownedAssignmentId + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.id=='" + otherAssignmentId + "')]").isEmpty());
+
+        mockMvc.perform(get("/api/assignments")
+                        .cookie(adminCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + ownedAssignmentId + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.id=='" + otherAssignmentId + "')]").isNotEmpty());
+    }
+
+    @Test
+    void lecturerCannotCreateAssignmentForAnotherLecturersSpaceButAdminCan() throws Exception {
+        User ownerLecturer = ensureUser("lecturer-space-owner-assign-" + UUID.randomUUID() + "@example.com", "Lecturer Space Owner", RoleName.LECTURER);
+        User otherLecturer = ensureUser("lecturer-space-other-assign-" + UUID.randomUUID() + "@example.com", "Lecturer Space Other", RoleName.LECTURER);
+        User admin = ensureUser("admin-space-assign-" + UUID.randomUUID() + "@example.com", "Admin Space Assignment", RoleName.ADMIN);
+
+        Cookie ownerLecturerCookie = loginAndReturnAuthCookie(ownerLecturer.getEmail());
+        Cookie otherLecturerCookie = loginAndReturnAuthCookie(otherLecturer.getEmail());
+        Cookie adminCookie = loginAndReturnAuthCookie(admin.getEmail());
+
+        String spaceId = createSpaceAndReturnId(ownerLecturerCookie);
+
+        String foreignSpaceAssignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
+                "Foreign Space Coursework",
+                "Only the space owner or an admin should be able to scope assignments to this space.",
+                Instant.now().plusSeconds(86400),
+                UUID.fromString(spaceId)
+        ));
+
+        mockMvc.perform(post("/api/assignments")
+                        .cookie(otherLecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(foreignSpaceAssignmentPayload))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You are not allowed to create assignments for this space"));
+
+        mockMvc.perform(post("/api/assignments")
+                        .cookie(adminCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(foreignSpaceAssignmentPayload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.spaceId").value(spaceId));
     }
 
     @Test
@@ -286,11 +418,14 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie ownerCookie = loginAndReturnAuthCookie(owner.getEmail());
         Cookie otherStudentCookie = loginAndReturnAuthCookie(otherStudent.getEmail());
+        String spaceId = createSpaceAndReturnId(lecturerCookie);
+        addStudentToSpace(lecturerCookie, spaceId, owner.getEmail());
 
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
                 "Guarded Coursework",
                 "A submission should not be visible to another student.",
-                Instant.now().plusSeconds(86400)
+                Instant.now().plusSeconds(86400),
+                UUID.fromString(spaceId)
         ));
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
@@ -327,6 +462,30 @@ class SubmissionFlowIntegrationTests {
     }
 
     @Test
+    void unauthenticatedUserCannotReadSubmissionMetadataOrContent() throws Exception {
+        User lecturer = ensureUser("lecturer-unauth-sub-" + UUID.randomUUID() + "@example.com", "Lecturer Unauth Submission", RoleName.LECTURER);
+        User student = ensureUser("student-unauth-sub-" + UUID.randomUUID() + "@example.com", "Student Unauth Submission", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Unauthenticated Submission Access", "Anonymous users must not read submissions.", student);
+        String submissionId = uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "unauth-check.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "protected submission content".getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/api/submissions/{submissionId}", submissionId))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void studentCannotCreateAssignment() throws Exception {
         User student = ensureUser("student-noassign-" + UUID.randomUUID() + "@example.com", "Student No Assign", RoleName.STUDENT);
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
@@ -334,7 +493,8 @@ class SubmissionFlowIntegrationTests {
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
                 "Forbidden Assignment",
                 "Students should not create assignments.",
-                Instant.now().plusSeconds(86400)
+                Instant.now().plusSeconds(86400),
+                UUID.randomUUID()
         ));
 
         mockMvc.perform(post("/api/assignments")
@@ -345,6 +505,148 @@ class SubmissionFlowIntegrationTests {
     }
 
     @Test
+    void studentCannotUploadSubmissionWithTraversalStyleFilename() throws Exception {
+        User lecturer = ensureUser("lecturer-traversal-" + UUID.randomUUID() + "@example.com", "Lecturer Traversal", RoleName.LECTURER);
+        User student = ensureUser("student-traversal-" + UUID.randomUUID() + "@example.com", "Student Traversal", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Traversal Filename Coursework", "Traversal-style filenames must be rejected.", student);
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "../secrets.txt",
+                                MediaType.TEXT_PLAIN_VALUE,
+                                "attempted traversal".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Submission file name is invalid"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Submission file name is invalid"));
+    }
+
+    @Test
+    void studentCannotSubmitToClosedAssignment() throws Exception {
+        User lecturer = ensureUser("lecturer-closed-" + UUID.randomUUID() + "@example.com", "Lecturer Closed Assignment", RoleName.LECTURER);
+        User student = ensureUser("student-closed-" + UUID.randomUUID() + "@example.com", "Student Closed Assignment", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Closed Coursework", "Closed assignments must reject new submissions.", student);
+        Assignment assignment = assignmentRepository.findById(UUID.fromString(assignmentId)).orElseThrow();
+        assignment.setOpen(false);
+        assignmentRepository.save(assignment);
+
+        mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                "closed.txt",
+                                MediaType.TEXT_PLAIN_VALUE,
+                                "late work".getBytes(StandardCharsets.UTF_8)
+                        )))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Assignment is closed"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Assignment is closed"));
+    }
+
+    @Test
+    void lecturerCannotReadAnotherLecturersStudentSubmission() throws Exception {
+        User ownerLecturer = ensureUser("lect-owner-sub-" + UUID.randomUUID() + "@example.com", "Lecturer Owner Submission", RoleName.LECTURER);
+        User otherLecturer = ensureUser("lect-other-sub-" + UUID.randomUUID() + "@example.com", "Lecturer Other Submission", RoleName.LECTURER);
+        User student = ensureUser("stu-cross-lect-sub-" + UUID.randomUUID() + "@example.com", "Student Cross Lecturer Submission", RoleName.STUDENT);
+
+        Cookie ownerLecturerCookie = loginAndReturnAuthCookie(ownerLecturer.getEmail());
+        Cookie otherLecturerCookie = loginAndReturnAuthCookie(otherLecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(ownerLecturerCookie, "Cross Lecturer Submission Policy", "Only the owning lecturer should retain access to student submissions.", student);
+        String content = "submission visible to privileged lecturers under current policy";
+        String submissionId = uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "cross-lecturer.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                content.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/api/submissions/{submissionId}", submissionId)
+                        .cookie(otherLecturerCookie))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
+                        .cookie(otherLecturerCookie))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminCanReadAnotherLecturersStudentSubmission() throws Exception {
+        User ownerLecturer = ensureUser("lect-owner-admin-sub-" + UUID.randomUUID() + "@example.com", "Lecturer Owner Admin Submission", RoleName.LECTURER);
+        User admin = ensureUser("admin-cross-sub-" + UUID.randomUUID() + "@example.com", "Admin Cross Submission", RoleName.ADMIN);
+        User student = ensureUser("stu-admin-sub-" + UUID.randomUUID() + "@example.com", "Student Admin Submission", RoleName.STUDENT);
+
+        Cookie ownerLecturerCookie = loginAndReturnAuthCookie(ownerLecturer.getEmail());
+        Cookie adminCookie = loginAndReturnAuthCookie(admin.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(ownerLecturerCookie, "Admin Submission Visibility", "Admins should retain global submission access.", student);
+        String content = "submission visible to admins across lecturer ownership boundaries";
+        String submissionId = uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "admin-cross-lecturer.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                content.getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/api/submissions/{submissionId}", submissionId)
+                        .cookie(adminCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(submissionId))
+                .andExpect(jsonPath("$.studentUserId").value(student.getId().toString()));
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
+                        .cookie(adminCookie))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.TEXT_PLAIN))
+                .andExpect(content().bytes(content.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void studentCannotReadOwnSubmissionAfterLosingAssignmentSpaceMembership() throws Exception {
+        User lecturer = ensureUser("lecturer-sub-space-loss-" + UUID.randomUUID() + "@example.com", "Lecturer Submission Space Loss", RoleName.LECTURER);
+        User student = ensureUser("student-sub-space-loss-" + UUID.randomUUID() + "@example.com", "Student Submission Space Loss", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Submission Space Revocation", "Losing space membership should revoke student submission reads.", student);
+        String submissionId = uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "space-loss.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "submission visible only while student remains in the assignment space".getBytes(StandardCharsets.UTF_8)
+        );
+
+        Assignment assignment = assignmentRepository.findById(UUID.fromString(assignmentId)).orElseThrow();
+        removeStudentFromAssignmentSpace(assignment.getSpaceId(), student.getId());
+
+        mockMvc.perform(get("/api/submissions/{submissionId}", submissionId)
+                        .cookie(studentCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You cannot view this submission"));
+
+        mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
+                        .cookie(studentCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You cannot view this submission"));
+    }
+
+    @Test
     void studentCanUploadAndDownloadPdfSubmission() throws Exception {
         User lecturer = ensureUser("lecturer-pdf-" + UUID.randomUUID() + "@example.com", "Lecturer PDF", RoleName.LECTURER);
         User student = ensureUser("student-pdf-" + UUID.randomUUID() + "@example.com", "Student PDF", RoleName.STUDENT);
@@ -352,7 +654,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Coursework", "PDF uploads should be accepted.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Coursework", "PDF uploads should be accepted.", student);
 
         byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF".getBytes(StandardCharsets.US_ASCII);
 
@@ -386,11 +688,14 @@ class SubmissionFlowIntegrationTests {
 
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+        String spaceId = createSpaceAndReturnId(lecturerCookie);
+        addStudentToSpace(lecturerCookie, spaceId, student.getEmail());
 
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
                 "Supported Upload Coursework",
                 "Only text and validated PDF uploads are supported in the current implementation.",
-                Instant.now().plusSeconds(86400)
+                Instant.now().plusSeconds(86400),
+                UUID.fromString(spaceId)
         ));
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
@@ -425,7 +730,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Validation Coursework", "Malformed PDF uploads should be rejected.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "PDF Validation Coursework", "Malformed PDF uploads should be rejected.", student);
 
         MockMultipartFile invalidPdfUpload = new MockMultipartFile(
                 "file",
@@ -450,7 +755,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Empty Upload Coursework", "Empty uploads should be rejected.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Empty Upload Coursework", "Empty uploads should be rejected.", student);
 
         MockMultipartFile emptyUpload = new MockMultipartFile(
                 "file",
@@ -475,7 +780,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "UTF-8 Upload Coursework", "Invalid UTF-8 uploads should be rejected.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "UTF-8 Upload Coursework", "Invalid UTF-8 uploads should be rejected.", student);
 
         MockMultipartFile invalidUtf8Upload = new MockMultipartFile(
                 "file",
@@ -500,7 +805,7 @@ class SubmissionFlowIntegrationTests {
         Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
         Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
 
-        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Oversized Upload Coursework", "Oversized uploads should be rejected.");
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Oversized Upload Coursework", "Oversized uploads should be rejected.", student);
 
         MockMultipartFile oversizedUpload = new MockMultipartFile(
                 "file",
@@ -517,11 +822,17 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(jsonPath("$.errors._global[0]").value("Submission file exceeds the current 5MB limit"));
     }
 
-    private String createAssignmentAndReturnId(Cookie lecturerCookie, String title, String description) throws Exception {
+    private String createAssignmentAndReturnId(Cookie lecturerCookie, String title, String description, User... enrolledStudents) throws Exception {
+        String spaceId = createSpaceAndReturnId(lecturerCookie);
+        for (User enrolledStudent : enrolledStudents) {
+            addStudentToSpace(lecturerCookie, spaceId, enrolledStudent.getEmail());
+        }
+
         String assignmentPayload = objectMapper.writeValueAsString(new CreateAssignmentPayload(
                 title,
                 description,
-                Instant.now().plusSeconds(86400)
+                Instant.now().plusSeconds(86400),
+                UUID.fromString(spaceId)
         ));
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
@@ -532,6 +843,53 @@ class SubmissionFlowIntegrationTests {
                 .andReturn();
 
         return submissionIdFrom(assignmentResult);
+    }
+
+    private String createSpaceAndReturnId(Cookie lecturerCookie) throws Exception {
+        String createSpacePayload = objectMapper.writeValueAsString(new CreateSpacePayload(
+                "Assignment Space " + UUID.randomUUID(),
+                "space-" + UUID.randomUUID().toString().substring(0, 8),
+                "Managed space for assignment visibility and submission scoping tests."
+        ));
+
+        MvcResult createSpaceResult = mockMvc.perform(post("/api/spaces")
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createSpacePayload))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return submissionIdFrom(createSpaceResult);
+    }
+
+    private void addStudentToSpace(Cookie lecturerCookie, String spaceId, String studentEmail) throws Exception {
+        String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(studentEmail));
+        mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
+                        .cookie(lecturerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(addStudentPayload))
+                .andExpect(status().isCreated());
+    }
+
+    private String uploadSubmissionAndReturnId(Cookie studentCookie, String assignmentId, String fileName, String contentType, byte[] contentBytes) throws Exception {
+        MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie)
+                        .file(new MockMultipartFile(
+                                "file",
+                                fileName,
+                                contentType,
+                                contentBytes
+                        )))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return submissionIdFrom(submissionResult);
+    }
+
+    private void removeStudentFromAssignmentSpace(UUID spaceId, UUID studentUserId) {
+        SpaceMembership membership = spaceMembershipRepository.findBySpaceIdAndStudentUserId(spaceId, studentUserId)
+                .orElseThrow();
+        spaceMembershipRepository.delete(membership);
     }
 
     private User ensureUser(String email, String fullName, RoleName roleName) {
@@ -561,7 +919,13 @@ class SubmissionFlowIntegrationTests {
     private record LoginPayload(String email, String password) {
     }
 
-    private record CreateAssignmentPayload(String title, String description, Instant dueAt) {
+    private record CreateAssignmentPayload(String title, String description, Instant dueAt, UUID spaceId) {
+    }
+
+    private record CreateSpacePayload(String name, String code, String description) {
+    }
+
+    private record AddStudentPayload(String studentEmail) {
     }
 
 

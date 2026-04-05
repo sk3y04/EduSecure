@@ -11,11 +11,11 @@ participant "AuditService" as Audit
 database DB
 actor Lecturer
 
-Student -> Browser : choose assignment and prepare submission text/file content
+Student -> Browser : choose assignment visible through current space membership
 Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\ncredentialed cookie request over HTTPS
 Controller -> SubmissionService : createSubmission(currentUser, assignmentId, request)
-SubmissionService -> DB : load assignment and student context
-DB --> SubmissionService : assignment + student
+SubmissionService -> DB : load assignment, student context,\nand current space visibility
+DB --> SubmissionService : assignment + student + current visibility
 SubmissionService -> Crypto : hash(plaintext bytes) using SHA-256
 Crypto --> SubmissionService : hashDigest
 SubmissionService -> Crypto : sign(hashDigest bytes)
@@ -57,6 +57,10 @@ note right of SubmissionService
 The implemented study-project model computes the digest,
 creates the signature metadata, verifies it immediately,
 and stores the verification result on Submission.
+
+Student submission and self-service content access
+depend on the related assignment remaining visible
+through current space membership.
 end note
 
 note right of Store

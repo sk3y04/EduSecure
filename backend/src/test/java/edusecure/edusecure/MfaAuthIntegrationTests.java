@@ -211,6 +211,39 @@ class MfaAuthIntegrationTests {
     }
 
     @Test
+    void mfaChallengeLocksAfterMaximumFailedAttempts() throws Exception {
+        String email = "mfa-max-attempts-" + UUID.randomUUID() + "@example.com";
+        String password = "StrongPass123!";
+
+        Cookie registerCookie = registerAndReturnAuthCookie(email, password, "MFA Max Attempts User");
+        String manualEntryKey = setupAndEnableMfa(registerCookie);
+
+        JsonNode challengeJson = loginAndReturnJson(email, password);
+        UUID challengeId = UUID.fromString(textField(challengeJson, "challengeId"));
+
+        for (int attempt = 1; attempt < 5; attempt++) {
+            mockMvc.perform(post("/api/auth/mfa/verify")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, "000000"))))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid MFA verification code"));
+        }
+
+        mockMvc.perform(post("/api/auth/mfa/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, "000000"))))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").value("Too many MFA verification attempts"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Too many MFA verification attempts"));
+
+        mockMvc.perform(post("/api/auth/mfa/verify")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").value("Too many MFA verification attempts"));
+    }
+
+    @Test
     void expiredChallengeIsRejected() throws Exception {
         String email = "expired-challenge-" + UUID.randomUUID() + "@example.com";
         String password = "StrongPass123!";
@@ -372,6 +405,23 @@ class MfaAuthIntegrationTests {
             throw new AssertionError("Expected MFA challenge response");
         }
         return json;
+    }
+
+    private String setupAndEnableMfa(Cookie registerCookie) throws Exception {
+        JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
+                        .cookie(registerCookie))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        String manualEntryKey = textField(setupJson, "manualEntryKey");
+        mockMvc.perform(post("/api/auth/mfa/enable")
+                        .cookie(registerCookie)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mfaEnabled").value(true));
+
+        return manualEntryKey;
     }
 
     private record RegisterPayload(String email, String password, String fullName) {

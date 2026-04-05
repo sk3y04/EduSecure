@@ -9,13 +9,14 @@ participant "SubmissionKeyProtectionService" as KeyProtect
 participant "SubmissionContentStore" as Store
 participant "AuditService" as Audit
 database DB
-participant Lecturer
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
 
-Student -> Browser : choose assignment TXT or PDF file
+Student -> Browser : choose assignment from enrolled space
 Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\ncredentialed cookie request over HTTPS
 Controller -> SubmissionService : createSubmission(student, assignmentId, file, metadata)
-SubmissionService -> DB : load assignment and check access
-DB --> SubmissionService : assignment
+SubmissionService -> DB : load assignment and check\nspace-scoped student access
+DB --> SubmissionService : assignment + current visibility
 alt upload is text/plain
     SubmissionService -> SubmissionService : validate UTF-8 text bytes
 else upload is application/pdf
@@ -68,10 +69,26 @@ Audit --> SubmissionService : audit recorded
 SubmissionService --> Controller : decrypted file bytes + contentType + fileName
 Controller --> Lecturer : binary-safe download response\nContent-Type + Content-Disposition
 
+Admin -> Controller : GET /api/submissions/{submissionId}\nor /api/submissions/{submissionId}/content
+Controller -> SubmissionService : owner-scoped access check with admin override
+SubmissionService --> Controller : metadata or decrypted content
+Controller --> Admin : authorised oversight response
+
 note right of SubmissionService
 The implemented backend still performs immediate
 verification during submission creation, but now also
 encrypts submission content before durable storage.
+
+Submission review is owner-scoped for lecturers:
+- submission owner student while the assignment remains
+  visible through current space membership
+- lecturer who owns the assignment
+- admin override
+
+Assignment visibility is now scoped as follows:
+- students see assignments only for current space memberships
+- lecturers see assignments they own
+- admins retain global oversight
 
 The current scoped file support is:
 - UTF-8 text/plain

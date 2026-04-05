@@ -1,0 +1,1398 @@
+{
+  "info": {
+    "name": "EduSecure Pack 11 - Security Review",
+    "description": "Postman structure for the API-executable parts of Pack 11 security testing. Use this together with docs/pack-11/manual-security-testing-playbook.md for browser-only, deployment, and audit-database checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "assignmentId", "value": "" },
+    { "key": "submissionId", "value": "" },
+    { "key": "submissionIdUngraded", "value": "" },
+    { "key": "gradeId", "value": "" },
+    { "key": "spaceId", "value": "" },
+    { "key": "challengeId", "value": "" },
+    { "key": "latestStatusCode", "value": "" },
+    { "key": "latestResponseBody", "value": "" },
+    { "key": "latestRequestName", "value": "" },
+    { "key": "latestRequestMethod", "value": "" },
+    { "key": "latestRequestUrl", "value": "" },
+    { "key": "latestScenarioId", "value": "" },
+    { "key": "latestPolicyProbe", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "var requestName = pm.info.requestName || '';",
+          "var requestMethod = pm.request.method || '';",
+          "var requestUrl = pm.variables.replaceIn(pm.request.url.toString());",
+          "var scenarioMatch = requestName.match(/^([A-Z]+-\\d+)/);",
+          "pm.collectionVariables.set('latestRequestName', requestName);",
+          "pm.collectionVariables.set('latestRequestMethod', requestMethod);",
+          "pm.collectionVariables.set('latestRequestUrl', requestUrl);",
+          "pm.collectionVariables.set('latestScenarioId', scenarioMatch ? scenarioMatch[1] : '');",
+          "pm.collectionVariables.set('latestPolicyProbe', requestName.indexOf('Policy Probe') >= 0 ? 'true' : 'false');",
+          "pm.collectionVariables.set('latestStatusCode', String(pm.response.code));",
+          "pm.collectionVariables.set('latestResponseBody', pm.response.text());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Persona & Seed Data",
+      "description": "Create or log in the personas and seed reusable IDs for later folders.",
+      "item": [
+        {
+          "name": "Login - Existing Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for admin login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated admin login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Use an already-provisioned admin account. Postman should retain the auth cookie automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lecturer A via Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-exists outcome for Lecturer A', function () { pm.expect([201, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var json = pm.response.json(); pm.test('Created Lecturer A has LECTURER role', function () { pm.expect(json.roles).to.include('LECTURER'); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{lecturerAEmail}}\",\n  \"password\": \"{{lecturerAPassword}}\",\n  \"fullName\": \"Lecturer A\",\n  \"role\": \"LECTURER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/users",
+            "description": "Expected success when run as admin. Safe to rerun only if you change the email value."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lecturer B via Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-exists outcome for Lecturer B', function () { pm.expect([201, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var json = pm.response.json(); pm.test('Created Lecturer B has LECTURER role', function () { pm.expect(json.roles).to.include('LECTURER'); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{lecturerBEmail}}\",\n  \"password\": \"{{lecturerBPassword}}\",\n  \"fullName\": \"Lecturer B\",\n  \"role\": \"LECTURER\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/users"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Student A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-exists outcome for Student A', function () { pm.expect([201, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var json = pm.response.json(); pm.test('Created Student A has STUDENT role', function () { pm.expect(json.roles).to.include('STUDENT'); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentAEmail}}\",\n  \"password\": \"{{studentAPassword}}\",\n  \"fullName\": \"Student A\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Student B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-exists outcome for Student B', function () { pm.expect([201, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var json = pm.response.json(); pm.test('Created Student B has STUDENT role', function () { pm.expect(json.roles).to.include('STUDENT'); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentBEmail}}\",\n  \"password\": \"{{studentBPassword}}\",\n  \"fullName\": \"Student B\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "response": []
+        },
+        {
+          "name": "Register MFA Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-exists outcome for MFA Student', function () { pm.expect([201, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 201) { var json = pm.response.json(); pm.test('Created MFA Student has STUDENT role', function () { pm.expect(json.roles).to.include('STUDENT'); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mfaStudentEmail}}\",\n  \"password\": \"{{mfaStudentPassword}}\",\n  \"fullName\": \"MFA Student\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{lecturerAEmail}}\",\n  \"password\": \"{{lecturerAPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Assignment as Lecturer A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 201 Created for assignment creation', function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "pm.test('Assignment response includes id and expected title', function () { pm.expect(json.id).to.be.a('string').and.not.empty; pm.expect(json.title).to.eql('Pack 11 Security Assignment'); });",
+                  "pm.test('Assignment remains open after creation', function () { pm.expect(json.open).to.eql(true); });",
+                  "if (json && json.id) { pm.collectionVariables.set('assignmentId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Pack 11 Security Assignment\",\n  \"description\": \"Assignment used for Pack 11 security validation.\",\n  \"dueAt\": \"2026-12-31T23:59:59Z\"\n}"
+            },
+            "url": "{{baseUrl}}/api/assignments",
+            "description": "Actor: Lecturer A. Preconditions: Lecturer A is authenticated. Evidence value: seeds a reusable assignmentId and confirms the seeded assignment remains open for later submission and grading checks. Expected result: 201 with a new assignment id."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Student A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentAEmail}}\",\n  \"password\": \"{{studentAPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Submission as Student A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 201 Created for submission upload', function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "pm.test('Submission response includes seeded assignment id and a stable security shape', function () { pm.expect(json.id).to.be.a('string').and.not.empty; pm.expect(json.assignmentId).to.eql(pm.collectionVariables.get('assignmentId')); pm.expect(json.verificationStatus).to.eql('VERIFIED'); pm.expect(json.storedFileReference).to.eql(undefined); });",
+                  "pm.test('Submission response includes integrity metadata but no empty values', function () { pm.expect(json.hashDigest).to.be.a('string').and.not.empty; pm.expect(json.digitalSignature).to.be.a('string').and.not.empty; pm.expect(json.signatureAlgorithm).to.eql('SHA256withECDSA'); });",
+                  "if (json && json.id) { pm.collectionVariables.set('submissionId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{studentAUploadPath}}"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/assignments/{{assignmentId}}/submissions",
+            "description": "Actor: Student A. Preconditions: assignmentId is populated and Student A is authenticated. Evidence value: seeds a reusable submissionId and confirms Pack 11 upload responses expose integrity fields while omitting storage internals. Expected result: 201 Created. Set {{studentAUploadPath}} to a real UTF-8 text file before running."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer A (for grade and space seed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer A seed login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer A seed login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{lecturerAEmail}}\",\n  \"password\": \"{{lecturerAPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Grade for Student A Submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 201 Created for grade creation', function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "pm.test('Grade response includes seeded submission id and value', function () { pm.expect(json.id).to.be.a('string').and.not.empty; pm.expect(json.submissionId).to.eql(pm.collectionVariables.get('submissionId')); pm.expect(json.value).to.eql(78); });",
+                  "if (json && json.id) { pm.collectionVariables.set('gradeId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 78,\n  \"feedback\": \"Pack 11 seeded grade.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}/grade",
+            "description": "Actor: Lecturer A. Preconditions: Lecturer A is authenticated and submissionId refers to Student A's verified submission. Evidence value: seeds a reusable gradeId and proves the base lecturer grading flow before later negative and policy-probe requests. Expected result: 201 Created."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Space as Lecturer A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 201 Created for space creation', function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "pm.test('Space response includes id and seeded identifiers', function () { pm.expect(json.id).to.be.a('string').and.not.empty; pm.expect(json.name).to.eql('Pack 11 Security Space'); pm.expect(json.code).to.eql('PACK11-SPACE'); });",
+                  "if (json && json.id) { pm.collectionVariables.set('spaceId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Pack 11 Security Space\",\n  \"code\": \"PACK11-SPACE\",\n  \"description\": \"Space used for Pack 11 authorization checks.\"\n}"
+            },
+            "url": "{{baseUrl}}/api/spaces",
+            "description": "Actor: Lecturer A. Preconditions: Lecturer A is authenticated. Evidence value: seeds a reusable spaceId for the space-authorization folder and confirms the canonical owner-created space shape. Expected result: 201 Created."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Student A to Space",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected create-or-already-member outcome for space membership seed', function () { pm.expect([201, 409]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentEmail\": \"{{studentAEmail}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/spaces/{{spaceId}}/students"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 Auth & Session",
+      "item": [
+        {
+          "name": "AUTH-01 Unauthenticated /api/auth/me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401 when no auth cookie is present', function () { pm.expect(pm.response.code).to.eql(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Run only after clearing the Postman cookie jar for the API host."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Student A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentAEmail}}\",\n  \"password\": \"{{studentAPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-04 Student tries managed-user creation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 for student managed-user creation', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"blocked-student-attempt@example.com\",\n  \"password\": \"StrongPass123!\",\n  \"fullName\": \"Blocked Student Attempt\",\n  \"role\": \"STUDENT\"\n}" },
+            "url": "{{baseUrl}}/api/auth/users"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{lecturerAEmail}}\",\n  \"password\": \"{{lecturerAPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-05 Lecturer tries to create lecturer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 for lecturer creating lecturer', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"blocked-lecturer-attempt@example.com\",\n  \"password\": \"StrongPass123!\",\n  \"fullName\": \"Blocked Lecturer Attempt\",\n  \"role\": \"LECTURER\"\n}" },
+            "url": "{{baseUrl}}/api/auth/users"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 MFA",
+      "item": [
+        {
+          "name": "Login - MFA Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for MFA student login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected login to return either AUTHENTICATED or MFA_REQUIRED', function () { pm.expect(['AUTHENTICATED', 'MFA_REQUIRED']).to.include(json.authStatus); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{mfaStudentEmail}}\",\n  \"password\": \"{{mfaStudentPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Before MFA is enabled this should fully authenticate. After enablement it should return MFA_REQUIRED and clear the cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "MFA Setup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected MFA setup success or already-enabled conflict', function () { pm.expect([200, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) { var json = pm.response.json(); pm.test('MFA setup returns TOTP enrollment material', function () { pm.expect(json.mfaMethod).to.eql('TOTP'); pm.expect(json.manualEntryKey).to.not.be.empty; pm.expect(json.otpauthUri).to.not.be.empty; }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/mfa/setup",
+            "description": "Capture the returned manualEntryKey or otpauthUri and add it to an authenticator app."
+          },
+          "response": []
+        },
+        {
+          "name": "MFA Enable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected MFA enable success or already-enabled conflict', function () { pm.expect([200, 409]).to.include(pm.response.code); });",
+                  "if (pm.response.code === 200) { var json = pm.response.json(); pm.test('MFA enable returns TOTP-enabled state and recovery codes', function () { pm.expect(json.mfaEnabled).to.eql(true); pm.expect(json.mfaMethod).to.eql('TOTP'); pm.expect(json.recoveryCodes).to.be.an('array').with.lengthOf(8); }); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"verificationCode\": \"{{mfaEnableCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/enable"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - MFA Student (capture challengeId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for MFA-required login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('MFA-required login returns a challenge id', function () { pm.expect(json.challengeId).to.be.a('string').and.not.empty; });",
+                  "if (json && json.challengeId) { pm.collectionVariables.set('challengeId', json.challengeId); }",
+                  "pm.test('Expected MFA_REQUIRED after MFA is enabled', function () { pm.expect(json.authStatus).to.eql('MFA_REQUIRED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{mfaStudentEmail}}\",\n  \"password\": \"{{mfaStudentPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "MFA Verify",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for MFA verify', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated response after MFA verify', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });",
+                  "pm.test('MFA verify response shows MFA-enabled AMR context', function () { pm.expect(json.mfaEnabled).to.eql(true); pm.expect(json.amr).to.include('pwd'); pm.expect(json.amr).to.include('otp'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"verificationCode\": \"{{mfaLoginCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/verify"
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-07 Replay consumed MFA challenge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 410 for consumed challenge replay', function () { pm.expect(pm.response.code).to.eql(410); });",
+                  "pm.test('Consumed challenge replay returns the expected structured error', function () { pm.expect(json.message).to.eql('MFA challenge has expired or is no longer valid'); pm.expect(json.errors._global[0]).to.eql('MFA challenge has expired or is no longer valid'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"verificationCode\": \"{{mfaLoginCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/verify"
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-10 Invalid MFA verify (repeat to lock challenge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected invalid-code or lockout outcome', function () { pm.expect([401, 429]).to.include(pm.response.code); });",
+                  "pm.test('MFA invalid/lockout response message matches the current path', function () { if (pm.response.code === 401) { pm.expect(json.message).to.eql('Invalid MFA verification code'); } else { pm.expect(json.message).to.eql('Too many MFA verification attempts'); } });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"verificationCode\": \"{{invalidMfaCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/verify",
+            "description": "Run this repeatedly against a fresh challenge until the response changes from 401 to 429."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - MFA Student (authenticated session for disable checks)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{mfaStudentEmail}}\",\n  \"password\": \"{{mfaStudentPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "If MFA is enabled, complete the verify step first so the cookie jar holds a valid authenticated session before disable checks."
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-11 Disable MFA with wrong password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 401 for wrong password during MFA disable', function () { pm.expect(pm.response.code).to.eql(401); });",
+                  "pm.test('Wrong-password disable response uses Invalid credentials', function () { pm.expect(json.message).to.eql('Invalid credentials'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"WrongPass123!\",\n  \"verificationCode\": \"{{mfaDisableCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/disable"
+          },
+          "response": []
+        },
+        {
+          "name": "AUTH-12 Disable MFA with wrong verification code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 401 for wrong MFA code during disable', function () { pm.expect(pm.response.code).to.eql(401); });",
+                  "pm.test('Wrong-code disable response uses Invalid MFA verification code', function () { pm.expect(json.message).to.eql('Invalid MFA verification code'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"password\": \"{{mfaStudentPassword}}\",\n  \"verificationCode\": \"{{invalidMfaCode}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/mfa/disable"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Submission Access",
+      "item": [
+        {
+          "name": "SUB-01 Unauthenticated submission metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401 when no auth cookie is present', function () { pm.expect(pm.response.code).to.eql(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}",
+            "description": "Clear the Postman cookie jar before running."
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-02 Unauthenticated submission content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 401 when no auth cookie is present', function () { pm.expect(pm.response.code).to.eql(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}/content",
+            "description": "Clear the Postman cookie jar before running."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Student B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentBEmail}}\",\n  \"password\": \"{{studentBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-03 Student B reads Student A metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when another student reads metadata', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-04 Student B downloads Student A content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when another student downloads content', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}/content"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer A (authorized metadata review)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{lecturerAEmail}}\",\n  \"password\": \"{{lecturerAPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-13 Authorized metadata omits storage internals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for authorized submission metadata read', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Submission metadata returns key identifiers and verification state', function () { pm.expect(json.id).to.eql(pm.collectionVariables.get('submissionId')); pm.expect(json.assignmentId).to.eql(pm.collectionVariables.get('assignmentId')); pm.expect(json.verificationStatus).to.eql('VERIFIED'); });",
+                  "pm.test('Submission metadata omits storage and wrapped-key internals', function () { pm.expect(json.storedFileReference).to.eql(undefined); pm.expect(json.storageEncryptionNonce).to.eql(undefined); pm.expect(json.wrappedContentEncryptionKey).to.eql(undefined); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}",
+            "description": "Actor: Lecturer A. Preconditions: Lecturer A owns the seeded assignment and submissionId is populated. Evidence value: deterministic confidentiality check proving the metadata response omits storage references and wrapped-key style fields while still exposing the expected verification state. Expected result: 200 OK."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{lecturerBEmail}}\",\n  \"password\": \"{{lecturerBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-15 Policy Probe - Lecturer B reads metadata",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}",
+            "description": "Current implementation is expected to allow this. Treat the result as a policy decision point, not an automatic pass/fail."
+          },
+          "response": []
+        },
+        {
+          "name": "SUB-15 Policy Probe - Lecturer B downloads content",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}/content",
+            "description": "Current implementation is expected to allow this. Compare the result with your intended academic ownership policy."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Student A (for traversal upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentAEmail}}\",\n  \"password\": \"{{studentAPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "Traversal-style filename upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 400 for traversal-style filename upload', function () { pm.expect(pm.response.code).to.eql(400); });",
+                  "pm.test('Traversal-style upload response mentions invalid file name', function () { pm.expect(pm.response.text()).to.include('Submission file name is invalid'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{studentTraversalUploadPath}}",
+                  "description": "In Postman, rename the selected file part to a traversal-like filename such as ../secret.txt before sending if your client does not preserve a path-like name from disk."
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/assignments/{{assignmentId}}/submissions",
+            "description": "Expected result is 400 Bad Request for an invalid submission filename."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Grade Integrity",
+      "item": [
+        {
+          "name": "Login - Student B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentBEmail}}\",\n  \"password\": \"{{studentBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-01 Student creates grade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when student creates a grade', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"value\": 70,\n  \"feedback\": \"Student must not create grade.\"\n}" },
+            "url": "{{baseUrl}}/api/submissions/{{submissionId}}/grade"
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-03 Student uses privileged grade-read endpoint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 on privileged grade read', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/grades/{{gradeId}}",
+            "description": "Actor: Student B. Preconditions: gradeId is populated from the seed flow and Student B is authenticated. Evidence value: confirms students cannot call the lecturer/admin grade-read endpoint directly. Expected result: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-05 Student B reads another student's grade by submission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 for other student grade-by-submission read', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/my/submissions/{{submissionId}}/grade"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{lecturerBEmail}}\",\n  \"password\": \"{{lecturerBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-10 Policy Probe - Lecturer B reads Lecturer A grade",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/grades/{{gradeId}}",
+            "description": "Current implementation is expected to allow this. Compare with intended lecturer ownership policy."
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-10 Policy Probe - Lecturer B updates Lecturer A grade",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"value\": 81,\n  \"feedback\": \"Updated by Lecturer B under current policy probe.\"\n}" },
+            "url": "{{baseUrl}}/api/grades/{{gradeId}}",
+            "description": "Current implementation is expected to allow this. Treat as a policy probe."
+          },
+          "response": []
+        },
+        {
+          "name": "GRADE-11 Policy Probe - Lecturer B creates grade for ungraded submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"value\": 90,\n  \"feedback\": \"Created by Lecturer B under current policy probe.\"\n}" },
+            "url": "{{baseUrl}}/api/submissions/{{submissionIdUngraded}}/grade",
+            "description": "Populate {{submissionIdUngraded}} first with a real verified submission that does not already have a grade."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Space Authorization",
+      "item": [
+        {
+          "name": "Login - Student B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentBEmail}}\",\n  \"password\": \"{{studentBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SPACE-01 Student creates space",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when student creates space', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Forbidden Student Space\",\n  \"code\": \"FORBIDDEN-STUDENT\",\n  \"description\": \"Students must not create spaces.\"\n}" },
+            "url": "{{baseUrl}}/api/spaces"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Student A",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Student A login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Student A login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{studentAEmail}}\",\n  \"password\": \"{{studentAPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SPACE-10 Student member views space without roster",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for student member space view', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected memberCount=1 for the seeded member-only view', function () { pm.expect(json.memberCount).to.eql(1); });",
+                  "pm.test('Expected canManage=false for student member', function () { pm.expect(json.canManage).to.eql(false); });",
+                  "pm.test('Expected isMember=true for assigned student', function () { pm.expect(json.isMember).to.eql(true); });",
+                  "pm.test('Expected roster disclosure to be withheld from the student member', function () { pm.expect(json.memberships).to.be.an('array').with.lengthOf(0); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/spaces/{{spaceId}}",
+            "description": "Successful result should still show canManage=false and withhold roster data for the student member."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Lecturer B",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('Expected 200 OK for Lecturer B login', function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "pm.test('Expected authenticated Lecturer B login response', function () { pm.expect(json.authStatus).to.eql('AUTHENTICATED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{lecturerBEmail}}\",\n  \"password\": \"{{lecturerBPassword}}\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": []
+        },
+        {
+          "name": "SPACE-06 Lecturer B updates Lecturer A space",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when unrelated lecturer updates space', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Pack 11 Security Space\",\n  \"code\": \"PACK11-SPACE\",\n  \"description\": \"Attempted unauthorized update by Lecturer B.\",\n  \"archived\": false\n}" },
+            "url": "{{baseUrl}}/api/spaces/{{spaceId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "SPACE-07 Lecturer B adds student to Lecturer A space",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Expected 403 when unrelated lecturer adds student', function () { pm.expect(pm.response.code).to.eql(403); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"studentEmail\": \"{{studentBEmail}}\"\n}" },
+            "url": "{{baseUrl}}/api/spaces/{{spaceId}}/students"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+
