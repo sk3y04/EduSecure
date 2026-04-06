@@ -5,6 +5,7 @@ This document explains what the **manual security testing artefacts** currently 
 Related companion notes:
 - `docs/pack-09/unit-test-coverage-summary.md`
 - `docs/pack-09/integration-test-coverage-summary.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - `docs/pack-09/test-evidence-collection-template.md`
 - `docs/pack-09/test-evidence-worked-examples.md`
 
@@ -162,6 +163,8 @@ This is the key artefact for:
 - evidence screenshots
 - manual attack simulation
 - appendix/report walkthrough evidence
+
+For a narrower Pack 09 note focused specifically on how to package CSRF browser findings for the report, use `docs/pack-09/csrf-browser-evidence-capture-note.md` alongside this broader Pack 11 procedural playbook.
 
 ## 3.5 `docs/pack-11/postman/README.md` and the Pack 11 Postman bundle
 

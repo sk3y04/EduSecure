@@ -582,8 +582,8 @@ Scenario IDs:
 - `CSRF-01`
 
 Why this matters:
-- server-side CSRF is disabled
-- protection depends on cookie behavior, SameSite rules, origin context, and deployment topology
+- server-side CSRF protection is now enabled for unsafe requests through the `XSRF-TOKEN` cookie plus `X-XSRF-TOKEN` header pair
+- browser/deployment review is still needed to confirm hostile-origin requests cannot satisfy the token requirement accidentally and that cross-site deployment choices do not weaken the posture
 
 Test idea:
 1. Keep the victim logged into EduSecure in one tab

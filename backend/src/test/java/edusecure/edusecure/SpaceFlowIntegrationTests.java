@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -72,6 +73,7 @@ class SpaceFlowIntegrationTests {
 
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -84,6 +86,7 @@ class SpaceFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(student.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isCreated())
@@ -97,6 +100,7 @@ class SpaceFlowIntegrationTests {
         ));
         mockMvc.perform(put("/api/spaces/{spaceId}", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isOk())
@@ -120,7 +124,8 @@ class SpaceFlowIntegrationTests {
                 .andExpect(jsonPath("$[0].isMember").value(true));
 
         mockMvc.perform(delete("/api/spaces/{spaceId}/students/{studentUserId}", spaceId, student.getId())
-                        .cookie(lecturerCookie))
+                        .cookie(lecturerCookie)
+                        .with(csrf()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/spaces")
@@ -132,7 +137,12 @@ class SpaceFlowIntegrationTests {
         assertThat(auditLogs)
                 .extracting(log -> log.getActionType().name())
                 .contains("SPACE_CREATED", "SPACE_STUDENT_ADDED", "SPACE_UPDATED", "SPACE_STUDENT_REMOVED");
-        assertThat(auditLogs).allSatisfy(log -> assertThat(log.getIntegrityValue()).isNotBlank());
+        assertThat(auditLogs).allSatisfy(log -> {
+            assertThat(log.getIntegrityValue()).isNotBlank();
+            assertThat(log.getDetailsJson())
+                    .doesNotContain("Updated guidance and resource summary for the cohort.")
+                    .doesNotContain(student.getEmail());
+        });
     }
 
     @Test
@@ -151,6 +161,7 @@ class SpaceFlowIntegrationTests {
         ));
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -159,6 +170,7 @@ class SpaceFlowIntegrationTests {
 
         mockMvc.perform(post("/api/spaces")
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isForbidden());
@@ -171,6 +183,7 @@ class SpaceFlowIntegrationTests {
         ));
         mockMvc.perform(put("/api/spaces/{spaceId}", spaceId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isForbidden());
@@ -178,13 +191,43 @@ class SpaceFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(otherStudent.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(delete("/api/spaces/{spaceId}/students/{studentUserId}", spaceId, otherStudent.getId())
-                        .cookie(studentCookie))
+                        .cookie(studentCookie)
+                        .with(csrf()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void studentCannotOpenNonMemberSpaceDirectlyById() throws Exception {
+        User lecturer = ensureUser("lecturer-space-hidden-" + UUID.randomUUID() + "@example.com", "Lecturer Hidden Space", RoleName.LECTURER);
+        User student = ensureUser("student-space-hidden-" + UUID.randomUUID() + "@example.com", "Student Hidden Space", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail(), "StrongPass123");
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail(), "StrongPass123");
+
+        MvcResult createResult = mockMvc.perform(post("/api/spaces")
+                        .cookie(lecturerCookie)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateSpacePayload(
+                                "Hidden Space",
+                                "hidden-space",
+                                "Students outside the membership roster must not open this space."
+                        ))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String spaceId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
+
+        mockMvc.perform(get("/api/spaces/{spaceId}", spaceId)
+                        .cookie(studentCookie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("You are not allowed to view this space"));
     }
 
     @Test
@@ -205,6 +248,7 @@ class SpaceFlowIntegrationTests {
         ));
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(ownerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -219,6 +263,7 @@ class SpaceFlowIntegrationTests {
         ));
         mockMvc.perform(put("/api/spaces/{spaceId}", spaceId)
                         .cookie(otherLecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(otherLecturerUpdate))
                 .andExpect(status().isForbidden());
@@ -226,12 +271,14 @@ class SpaceFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(student.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(otherLecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isCreated())
@@ -249,6 +296,7 @@ class SpaceFlowIntegrationTests {
 
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateSpacePayload(
                                 "Space Confidentiality Lab",
@@ -261,12 +309,14 @@ class SpaceFlowIntegrationTests {
 
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AddStudentPayload(memberStudent.getEmail()))))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AddStudentPayload(secondStudent.getEmail()))))
                 .andExpect(status().isCreated());
@@ -294,6 +344,7 @@ class SpaceFlowIntegrationTests {
         ));
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -307,6 +358,7 @@ class SpaceFlowIntegrationTests {
         ));
         mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(duplicateCodePayload))
                 .andExpect(status().isConflict());
@@ -314,12 +366,14 @@ class SpaceFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(student.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isConflict());
@@ -340,6 +394,7 @@ class SpaceFlowIntegrationTests {
         ));
         MvcResult createResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -349,6 +404,7 @@ class SpaceFlowIntegrationTests {
         String addLecturerPayload = objectMapper.writeValueAsString(new AddStudentPayload(otherLecturer.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addLecturerPayload))
                 .andExpect(status().isUnprocessableContent());
@@ -361,6 +417,7 @@ class SpaceFlowIntegrationTests {
         ));
         mockMvc.perform(put("/api/spaces/{spaceId}", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(archivePayload))
                 .andExpect(status().isOk())
@@ -369,6 +426,7 @@ class SpaceFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(student.getEmail()));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isConflict());
@@ -390,6 +448,7 @@ class SpaceFlowIntegrationTests {
     private Cookie loginAndReturnAuthCookie(String email, String password) throws Exception {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginPayload))
                 .andExpect(status().isOk())

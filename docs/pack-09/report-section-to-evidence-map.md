@@ -110,6 +110,7 @@ Use:
 - `docs/pack-09/unit-test-coverage-summary.md`
 - `docs/pack-09/integration-test-coverage-summary.md`
 - `docs/pack-09/manual-test-coverage-summary.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - `docs/pack-09/test-evidence-collection-template.md`
 - `docs/pack-09/test-evidence-worked-examples.md`
 - `docs/pack-09/security-review-evidence-log.md`
@@ -127,6 +128,7 @@ Purpose:
 - show exactly what was implemented
 - show which endpoints and tests demonstrate the artefact
 - show that the repository now contains both fast H2-based tests and a narrower real-PostgreSQL verification path
+- show how browser-layer CSRF evidence can be captured and written up honestly alongside the automated server-side proof
 - optionally show the implemented frontend MVP as presentation/evidence support for the backend artefact
 
 ## Section 9. Conclusion
@@ -145,6 +147,7 @@ Purpose:
 Use:
 - `docs/pack-09/vue-frontend-mvp-and-api-integration-plan.md`
 - `docs/pack-09/appendix-cicd-and-deployment-plan.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - selected test outputs or screenshots
 
 Purpose:

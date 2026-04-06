@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -99,6 +100,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignmentPayload))
                 .andExpect(status().isCreated())
@@ -117,11 +119,18 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(submissionFile))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.assignmentId").value(assignmentId))
                 .andExpect(jsonPath("$.studentUserId").value(student.getId().toString()))
                 .andExpect(jsonPath("$.storedFileReference").doesNotExist())
+                .andExpect(jsonPath("$.storageEncryptionAlgorithm").doesNotExist())
+                .andExpect(jsonPath("$.storageEncryptionNonce").doesNotExist())
+                .andExpect(jsonPath("$.wrappedContentEncryptionKey").doesNotExist())
+                .andExpect(jsonPath("$.keyWrapAlgorithm").doesNotExist())
+                .andExpect(jsonPath("$.storageKeyVersion").doesNotExist())
+                .andExpect(jsonPath("$.ciphertextLengthBytes").doesNotExist())
                 .andExpect(jsonPath("$.hashDigest").isNotEmpty())
                 .andExpect(jsonPath("$.digitalSignature").isNotEmpty())
                 .andExpect(jsonPath("$.signatureAlgorithm").value("SHA256withECDSA"))
@@ -147,6 +156,12 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(submissionId))
                 .andExpect(jsonPath("$.storedFileReference").doesNotExist())
+                .andExpect(jsonPath("$.storageEncryptionAlgorithm").doesNotExist())
+                .andExpect(jsonPath("$.storageEncryptionNonce").doesNotExist())
+                .andExpect(jsonPath("$.wrappedContentEncryptionKey").doesNotExist())
+                .andExpect(jsonPath("$.keyWrapAlgorithm").doesNotExist())
+                .andExpect(jsonPath("$.storageKeyVersion").doesNotExist())
+                .andExpect(jsonPath("$.ciphertextLengthBytes").doesNotExist())
                 .andExpect(jsonPath("$.verificationStatus").value("VERIFIED"));
 
         mockMvc.perform(get("/api/submissions/{submissionId}/content", submissionId)
@@ -169,7 +184,14 @@ class SubmissionFlowIntegrationTests {
                 .extracting(log -> log.getActionType().name())
                 .containsExactly("SUBMISSION_CREATED", "SUBMISSION_VERIFIED", "SUBMISSION_CONTENT_ACCESSED", "SUBMISSION_CONTENT_ACCESSED");
         org.assertj.core.api.Assertions.assertThat(auditLogs)
-                .allSatisfy(log -> org.assertj.core.api.Assertions.assertThat(log.getIntegrityValue()).isNotBlank());
+                .allSatisfy(log -> {
+                    org.assertj.core.api.Assertions.assertThat(log.getIntegrityValue()).isNotBlank();
+                    org.assertj.core.api.Assertions.assertThat(log.getDetailsJson())
+                            .doesNotContain(submittedContent)
+                            .doesNotContain(savedSubmission.getStoredFileReference())
+                            .doesNotContain(savedSubmission.getStorageEncryptionNonce())
+                            .doesNotContain(savedSubmission.getWrappedContentEncryptionKey());
+                });
     }
 
     @Test
@@ -184,6 +206,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "attempt-one.txt",
@@ -194,6 +217,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "attempt-two.txt",
@@ -222,6 +246,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "listing.txt",
@@ -241,6 +266,29 @@ class SubmissionFlowIntegrationTests {
                 .andExpect(jsonPath("$[0].studentUserId").value(student.getId().toString()))
                 .andExpect(jsonPath("$[0].graded").value(false))
                 .andExpect(jsonPath("$[0].gradeId").doesNotExist());
+    }
+
+    @Test
+    void studentCannotListSubmissionsForAssignment() throws Exception {
+        User lecturer = ensureUser("lecturer-student-list-guard-" + UUID.randomUUID() + "@example.com", "Lecturer Student List Guard", RoleName.LECTURER);
+        User student = ensureUser("student-list-forbidden-" + UUID.randomUUID() + "@example.com", "Student List Forbidden", RoleName.STUDENT);
+
+        Cookie lecturerCookie = loginAndReturnAuthCookie(lecturer.getEmail());
+        Cookie studentCookie = loginAndReturnAuthCookie(student.getEmail());
+
+        String assignmentId = createAssignmentAndReturnId(lecturerCookie, "Lecturer-only submission listing", "Students must not access lecturer submission listings.", student);
+
+        uploadSubmissionAndReturnId(
+                studentCookie,
+                assignmentId,
+                "listing-guard.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "student submission for lecturer-only listing".getBytes(StandardCharsets.UTF_8)
+        );
+
+        mockMvc.perform(get("/api/assignments/{assignmentId}/submissions", assignmentId)
+                        .cookie(studentCookie))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -280,6 +328,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "visible.txt",
@@ -334,6 +383,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", hiddenAssignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "hidden.txt",
@@ -396,6 +446,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(post("/api/assignments")
                         .cookie(otherLecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(foreignSpaceAssignmentPayload))
                 .andExpect(status().isForbidden())
@@ -403,6 +454,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(post("/api/assignments")
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(foreignSpaceAssignmentPayload))
                 .andExpect(status().isCreated())
@@ -430,6 +482,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignmentPayload))
                 .andExpect(status().isCreated())
@@ -446,6 +499,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(ownerCookie)
+                        .with(csrf())
                         .file(submissionFile))
                 .andExpect(status().isCreated())
                 .andReturn();
@@ -499,6 +553,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(post("/api/assignments")
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignmentPayload))
                 .andExpect(status().isForbidden());
@@ -516,6 +571,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "../secrets.txt",
@@ -542,6 +598,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "closed.txt",
@@ -660,6 +717,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 "coursework.pdf",
@@ -700,6 +758,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignmentPayload))
                 .andExpect(status().isCreated())
@@ -716,6 +775,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(imageUpload))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.message").value("Only text/plain and application/pdf uploads are supported in the current submission flow"))
@@ -741,6 +801,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(invalidPdfUpload))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(jsonPath("$.message").value("Uploaded PDF files must include a valid PDF header"))
@@ -766,6 +827,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(emptyUpload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Submission file must not be empty"))
@@ -791,6 +853,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(invalidUtf8Upload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Only UTF-8 text/plain files are supported"))
@@ -816,6 +879,7 @@ class SubmissionFlowIntegrationTests {
 
         mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(oversizedUpload))
                 .andExpect(status().isPayloadTooLarge())
                 .andExpect(jsonPath("$.message").value("Submission file exceeds the current 5MB limit"))
@@ -837,6 +901,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult assignmentResult = mockMvc.perform(post("/api/assignments")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assignmentPayload))
                 .andExpect(status().isCreated())
@@ -854,6 +919,7 @@ class SubmissionFlowIntegrationTests {
 
         MvcResult createSpaceResult = mockMvc.perform(post("/api/spaces")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSpacePayload))
                 .andExpect(status().isCreated())
@@ -866,6 +932,7 @@ class SubmissionFlowIntegrationTests {
         String addStudentPayload = objectMapper.writeValueAsString(new AddStudentPayload(studentEmail));
         mockMvc.perform(post("/api/spaces/{spaceId}/students", spaceId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(addStudentPayload))
                 .andExpect(status().isCreated());
@@ -874,6 +941,7 @@ class SubmissionFlowIntegrationTests {
     private String uploadSubmissionAndReturnId(Cookie studentCookie, String assignmentId, String fileName, String contentType, byte[] contentBytes) throws Exception {
         MvcResult submissionResult = mockMvc.perform(multipart("/api/assignments/{assignmentId}/submissions", assignmentId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .file(new MockMultipartFile(
                                 "file",
                                 fileName,
@@ -908,6 +976,7 @@ class SubmissionFlowIntegrationTests {
     private Cookie loginAndReturnAuthCookie(String email) throws Exception {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, "StrongPass123"));
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginPayload))
                 .andExpect(status().isOk())

@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -57,7 +58,8 @@ class MfaAuthIntegrationTests {
                 .andExpect(jsonPath("$.recoveryCodesRemaining").value(0));
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mfaMethod").value("TOTP"))
                 .andExpect(jsonPath("$.manualEntryKey").isNotEmpty())
@@ -68,6 +70,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(currentTotp))))
                 .andExpect(status().isOk())
@@ -86,6 +89,7 @@ class MfaAuthIntegrationTests {
         String challengeId = textField(loginJson, "challengeId");
 
         MvcResult verifyResult = mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
@@ -98,6 +102,7 @@ class MfaAuthIntegrationTests {
         Cookie verifiedCookie = authCookieFrom(verifyResult);
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(challengeId), totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isGone());
@@ -109,6 +114,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/disable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DisablePayload(password, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isNoContent());
@@ -120,6 +126,7 @@ class MfaAuthIntegrationTests {
                 .andExpect(jsonPath("$.recoveryCodesRemaining").value(0));
 
         MvcResult finalLoginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginPayload(email, password))))
                 .andExpect(status().isOk())
@@ -139,13 +146,15 @@ class MfaAuthIntegrationTests {
         Cookie registerCookie = registerAndReturnAuthCookie(email, password, "Recovery Student");
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         String manualEntryKey = textField(setupJson, "manualEntryKey");
         JsonNode enableJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
@@ -155,6 +164,7 @@ class MfaAuthIntegrationTests {
 
         JsonNode firstChallenge = loginAndReturnJson(email, password);
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(textField(firstChallenge, "challengeId")), recoveryCode))))
                 .andExpect(status().isOk())
@@ -167,6 +177,7 @@ class MfaAuthIntegrationTests {
 
         JsonNode secondChallenge = loginAndReturnJson(email, password);
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(textField(secondChallenge, "challengeId")), recoveryCode))))
                 .andExpect(status().isUnauthorized())
@@ -182,13 +193,15 @@ class MfaAuthIntegrationTests {
         Cookie registerCookie = registerAndReturnAuthCookie(email, password, "Invalid Code Student");
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         String manualEntryKey = textField(setupJson, "manualEntryKey");
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk());
@@ -197,6 +210,7 @@ class MfaAuthIntegrationTests {
         UUID challengeId = UUID.fromString(textField(challengeJson, "challengeId"));
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, "000000"))))
                 .andExpect(status().isUnauthorized())
@@ -204,6 +218,7 @@ class MfaAuthIntegrationTests {
                 .andExpect(jsonPath("$.errors._global[0]").value("Invalid MFA verification code"));
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())
@@ -223,6 +238,7 @@ class MfaAuthIntegrationTests {
 
         for (int attempt = 1; attempt < 5; attempt++) {
             mockMvc.perform(post("/api/auth/mfa/verify")
+                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, "000000"))))
                     .andExpect(status().isUnauthorized())
@@ -230,6 +246,7 @@ class MfaAuthIntegrationTests {
         }
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, "000000"))))
                 .andExpect(status().isTooManyRequests())
@@ -237,6 +254,7 @@ class MfaAuthIntegrationTests {
                 .andExpect(jsonPath("$.errors._global[0]").value("Too many MFA verification attempts"));
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isTooManyRequests())
@@ -251,13 +269,15 @@ class MfaAuthIntegrationTests {
         Cookie registerCookie = registerAndReturnAuthCookie(email, password, "Expired Challenge Student");
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         String manualEntryKey = textField(setupJson, "manualEntryKey");
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk());
@@ -271,6 +291,7 @@ class MfaAuthIntegrationTests {
         mfaChallengeRepository.save(challenge);
 
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerifyPayload(challengeId, totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isGone())
@@ -287,6 +308,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(""))))
                 .andExpect(status().isBadRequest())
@@ -302,18 +324,21 @@ class MfaAuthIntegrationTests {
         Cookie registerCookie = registerAndReturnAuthCookie(email, password, "MFA Setup Conflict User");
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("MFA is already enabled for this account"))
                 .andExpect(jsonPath("$.errors._global[0]").value("MFA is already enabled for this account"));
@@ -322,6 +347,7 @@ class MfaAuthIntegrationTests {
     @Test
     void mfaVerifyReturnsFieldLevelValidationErrors() throws Exception {
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
@@ -333,6 +359,7 @@ class MfaAuthIntegrationTests {
     @Test
     void mfaVerifyReturnsStructuredErrorForMalformedRequestBody() throws Exception {
         mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"challengeId\":\"not-a-uuid\",\"verificationCode\":\"123456\"}"))
                 .andExpect(status().isBadRequest())
@@ -349,6 +376,7 @@ class MfaAuthIntegrationTests {
 
         mockMvc.perform(post("/api/auth/mfa/disable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DisablePayload("", ""))))
                 .andExpect(status().isBadRequest())
@@ -365,18 +393,21 @@ class MfaAuthIntegrationTests {
         Cookie registerCookie = registerAndReturnAuthCookie(email, password, "MFA Disable Invalid Credentials User");
 
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/auth/mfa/disable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DisablePayload("WrongPass123!", totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
                 .andExpect(status().isUnauthorized())
@@ -384,8 +415,56 @@ class MfaAuthIntegrationTests {
                 .andExpect(jsonPath("$.errors._global[0]").value("Invalid credentials"));
     }
 
+    @Test
+    void mfaDisableRejectsReusedRecoveryCode() throws Exception {
+        String email = "mfa-disable-reused-recovery-" + UUID.randomUUID() + "@example.com";
+        String password = "StrongPass123!";
+
+        Cookie registerCookie = registerAndReturnAuthCookie(email, password, "MFA Disable Reused Recovery User");
+
+        JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
+                        .cookie(registerCookie)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        JsonNode enableJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/enable")
+                        .cookie(registerCookie)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(textField(setupJson, "manualEntryKey"))))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        String recoveryCode = firstTextElement(enableJson.required("recoveryCodes"));
+
+        JsonNode challengeJson = loginAndReturnJson(email, password);
+        mockMvc.perform(post("/api/auth/mfa/verify")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new VerifyPayload(UUID.fromString(textField(challengeJson, "challengeId")), recoveryCode))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authStatus").value("AUTHENTICATED"));
+
+        mockMvc.perform(post("/api/auth/mfa/disable")
+                        .cookie(registerCookie)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DisablePayload(password, recoveryCode))))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid MFA verification code"))
+                .andExpect(jsonPath("$.errors._global[0]").value("Invalid MFA verification code"));
+
+        mockMvc.perform(get("/api/auth/mfa/status")
+                        .cookie(registerCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mfaEnabled").value(true))
+                .andExpect(jsonPath("$.recoveryCodesRemaining").value(7));
+    }
+
     private Cookie registerAndReturnAuthCookie(String email, String password, String fullName) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new RegisterPayload(email, password, fullName))))
                 .andExpect(status().isCreated())
@@ -395,6 +474,7 @@ class MfaAuthIntegrationTests {
 
     private JsonNode loginAndReturnJson(String email, String password) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new LoginPayload(email, password))))
                 .andExpect(status().isOk())
@@ -409,13 +489,15 @@ class MfaAuthIntegrationTests {
 
     private String setupAndEnableMfa(Cookie registerCookie) throws Exception {
         JsonNode setupJson = objectMapper.readTree(mockMvc.perform(post("/api/auth/mfa/setup")
-                        .cookie(registerCookie))
+                        .cookie(registerCookie)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
 
         String manualEntryKey = textField(setupJson, "manualEntryKey");
         mockMvc.perform(post("/api/auth/mfa/enable")
                         .cookie(registerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new VerificationPayload(totpProvider.generateCurrentCodeFromBase32(manualEntryKey)))))
                 .andExpect(status().isOk())

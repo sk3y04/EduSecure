@@ -35,11 +35,13 @@ Current rule:
 - default non-prod config sets `secure=false`
 - prod profile requires `auth.cookie.secure=true`
 - `SameSite=None` is forbidden unless `secure=true`
+- unsafe browser requests are protected by Spring Security CSRF using the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header pair
 
 Security meaning:
 - browser scripts should not be able to read the auth cookie directly
 - production deployment should not start with insecure cookie transport settings
-- CSRF risk still needs manual review because the app uses cookie-based auth and explicitly disables CSRF protection in `SecurityConfig`
+- browser-side CSRF now has a server-side token defence in addition to cookie settings and origin restrictions
+- hostile-origin browser behavior still merits manual review, especially for deployment-specific cross-site topologies
 
 High-value tests:
 - tampered auth cookie is rejected

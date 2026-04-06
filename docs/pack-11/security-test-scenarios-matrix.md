@@ -29,7 +29,7 @@ This matrix turns the implemented control surface into concrete abuse cases you 
 | AUTH-12 | P2 | Disable MFA with wrong TOTP/recovery code | Authenticated MFA-enabled user | `POST /api/auth/mfa/disable` | `401 Unauthorized` | Manual follow-up recommended |
 | AUTH-13 | P2 | Weak password registration | New user | `POST /api/auth/register` | `400 Bad Request` with field errors | Already evidenced |
 | AUTH-14 | P1 | Password brute-force against login endpoint | External attacker | `POST /api/auth/login` repeated attempts | ideally throttled, locked, or detected; current code does not clearly show login rate limiting | Manual high-priority gap test |
-| AUTH-15 | P3 | CSRF-like cross-site state-changing request using browser cookie | External site with victim browser | any state-changing endpoint such as `POST /api/auth/logout`, `POST /api/auth/mfa/setup`, `POST /api/submissions/.../grade` | browser protections and deployment config should prevent abuse; verify carefully because server-side CSRF is disabled | Manual high-priority deployment review |
+| AUTH-15 | P3 | CSRF-like cross-site state-changing request using browser cookie | External site with victim browser | any state-changing endpoint such as `POST /api/auth/logout`, `POST /api/auth/mfa/setup`, `POST /api/submissions/.../grade` | request should fail unless the hostile origin can supply a valid CSRF token/header pair; verify in a real browser as deployment defence-in-depth | Backend CSRF enforcement now implemented; browser hostile-origin review still recommended |
 
 ## 2. Submission access-control and file-retrieval scenarios
 
@@ -96,7 +96,7 @@ This matrix turns the implemented control surface into concrete abuse cases you 
 | CFG-02 | P3 | `SameSite=None` without `Secure=true` is rejected | deployment validation | startup with invalid cookie settings | application startup fails | Already evidenced by validator code/tests |
 | CFG-03 | P1 | Deployment does not rely on hard-coded fallback secrets | ops/security reviewer | env/config review for `JWT_SECRET`, `AUDIT_HMAC_SECRET`, MFA key, submission master key | production must override defaults; defaults in source should never remain live | Manual high-priority configuration review |
 | CORS-01 | P2 | Disallowed origin cannot use credentialed cross-origin access | external browser origin | browser request from unapproved `Origin` | browser should not receive permissive CORS headers | Manual high-priority browser test |
-| CSRF-01 | P1 | Cookie-authenticated state-changing request from hostile origin | hostile web page + victim browser | any unsafe method endpoint | should fail because of browser/site protections and deployment posture; verify explicitly because CSRF is disabled server-side | Manual high-priority browser test |
+| CSRF-01 | P1 | Cookie-authenticated state-changing request from hostile origin | hostile web page + victim browser | any unsafe method endpoint | should fail because the server now requires the `XSRF-TOKEN`/`X-XSRF-TOKEN` pair in addition to browser cookie/origin protections | Backend CSRF enforcement implemented; manual high-priority browser test still recommended |
 
 ## 6. Suggested execution order
 

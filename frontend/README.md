@@ -38,6 +38,12 @@ For cookie auth to work in development, the backend must allow the frontend orig
 credentialed responses. The backend defaults already allow `http://localhost:5173`. If you change
 the frontend origin, also update the backend `APP_CORS_ALLOWED_ORIGINS` setting.
 
+The browser client now also uses Spring's CSRF protection for unsafe requests:
+- the frontend first bootstraps `GET /api/auth/csrf` when needed
+- the backend returns a readable `XSRF-TOKEN` cookie
+- Axios mirrors that cookie value into the `X-XSRF-TOKEN` header for `POST`, `PUT`, `PATCH`, and `DELETE`
+- the auth JWT remains separate in the `HttpOnly` `EDUSECURE_AUTH` cookie
+
 For production, run the backend with the `prod` profile so the cookie defaults become secure:
 
 ```bash
@@ -80,6 +86,8 @@ npm run build
 - The UI is intentionally evidence-oriented rather than product-polished.
 - Authentication is now cookie-based: the browser stores the session JWT in an HttpOnly cookie,
   while the frontend only keeps the MFA challenge state in `sessionStorage`.
+- Unsafe browser requests are CSRF-protected through the `XSRF-TOKEN` cookie plus `X-XSRF-TOKEN`
+  header pattern implemented in `frontend/src/services/http.ts`.
 - MFA is standard TOTP: users can enroll with a normal smartphone authenticator app by scanning a QR code derived from the backend `otpauth://` URI or by entering the returned manual key.
 - Admins and lecturers now have a user-management screen; admins can create lecturer and student accounts, while lecturers are limited to student account creation.
 - Symmetric-encryption evidence now comes from the backend AES-GCM-at-rest flows for MFA secrets and submission storage rather than from a separate frontend AES demo screen.

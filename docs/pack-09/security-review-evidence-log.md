@@ -10,6 +10,7 @@ Related scenario sources:
 - `docs/pack-11/security-test-scenarios-matrix.md`
 - `docs/pack-11/manual-security-testing-playbook.md`
 - `docs/pack-11/security-test-gaps-and-next-tests.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 
 ## How to use this log
 
@@ -58,7 +59,7 @@ This file is meant to stay compact and practical.
 | SPACE-06 | Space | LECTURER_B | `PUT /api/spaces/{spaceId}` |  | `403` |  |  |  | No |  | Section 8 / appendix |  |
 | SPACE-10 | Space | STUDENT_A | member view without roster disclosure |  | success without roster |  |  |  | No |  | Section 8 / appendix |  |
 | CORS-01 | Browser/config | hostile origin | unapproved-origin credentialed fetch |  | blocked / unreadable |  |  |  | No |  | Section 8 / appendix |  |
-| CSRF-01 | Browser/config | hostile origin + victim session | cross-site unsafe request |  | blocked / ineffective |  |  |  | No |  | Section 8 / appendix |  |
+| CSRF-01 | Browser/config | hostile origin + victim session | cross-site unsafe request |  | blocked / ineffective |  |  |  | No |  | Section 8 / appendix | see `docs/pack-09/csrf-browser-evidence-capture-note.md` and the `CSRF-01` worked example |
 | CFG-03 | Config | reviewer | secret override review |  | overrides confirmed |  |  |  | No |  | Section 6 / appendix |  |
 
 ---
@@ -75,7 +76,7 @@ This file is meant to stay compact and practical.
 | AUTH-10 | MFA_STUDENT | challenge lockout | `429` |  |  |  |  |
 | AUTH-11 | MFA_STUDENT | disable MFA with wrong password | `401` |  |  |  |  |
 | AUTH-12 | MFA_STUDENT | disable MFA with wrong verification code | `401` |  |  |  |  |
-| AUTH-15 | Browser victim | CSRF-like state change attempt | browser/deployment dependent |  |  |  |  |
+| AUTH-15 | Browser victim | CSRF-like state change attempt | browser/deployment dependent |  |  |  | see `docs/pack-09/csrf-browser-evidence-capture-note.md` |
 
 ---
 
@@ -130,7 +131,7 @@ This file is meant to stay compact and practical.
 | Scenario ID | Reviewer action | Expected | Observed | Outcome | Evidence refs | Notes |
 |---|---|---|---|---|---|---|
 | CORS-01 | unapproved-origin credentialed fetch | browser blocks exposure |  |  |  |  |
-| CSRF-01 | hostile-origin unsafe request | browser/session posture prevents abuse |  |  |  |  |
+| CSRF-01 | hostile-origin unsafe request | browser/session posture prevents abuse |  |  |  | use `docs/pack-09/csrf-browser-evidence-capture-note.md` and `docs/pack-09/test-evidence-worked-examples.md` |
 | CFG-01 | prod insecure cookie startup check | startup fails |  |  |  |  |
 | CFG-02 | `SameSite=None` without `Secure=true` | startup fails |  |  |  |  |
 | CFG-03 | secret override review | all production secrets overridden |  |  |  |  |
@@ -161,7 +162,7 @@ Use this section to nominate the strongest records for the final appendix.
 | GRADE-03 | strong role-based authorization evidence |  | Section 8 / appendix |  |
 | SPACE-06 | clear ownership-boundary evidence |  | Section 8 / appendix |  |
 | CORS-01 | browser/deployment assurance evidence |  | Section 8 / appendix |  |
-| CSRF-01 | browser/deployment assurance evidence |  | Section 8 / appendix |  |
+| CSRF-01 | browser/deployment assurance evidence | use the `CSRF-01` worked example plus real browser captures | Section 8 / appendix | preferred browser-security example |
 
 ---
 

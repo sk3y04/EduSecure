@@ -6,6 +6,7 @@ Companion test-coverage notes:
 - `docs/pack-09/unit-test-coverage-summary.md`
 - `docs/pack-09/integration-test-coverage-summary.md`
 - `docs/pack-09/manual-test-coverage-summary.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - `docs/pack-09/test-evidence-collection-template.md`
 
 ## 1. Implemented backend surface
@@ -53,6 +54,7 @@ What it proves:
 - authenticated identity lookup works
 - logout clears the auth cookie
 - cookie transport is `HttpOnly` and validated in integration tests
+- unsafe browser requests require the Spring Security CSRF token pair for acceptance
 - unsafe cookie settings fail fast during startup validation
 
 ## 2. Assignment and submission integrity
@@ -222,7 +224,10 @@ This exceeds the brief's minimum of three implemented cryptographic technique ar
 
 Additional documentation/evidence worth citing in the report:
 - `frontend/src/services/http.ts` shows credentialed requests with `withCredentials: true`
+- `frontend/src/services/http.ts` also shows CSRF bootstrap and header mirroring through `GET /api/auth/csrf`, `XSRF-TOKEN`, and `X-XSRF-TOKEN`
 - `frontend/src/stores/auth.ts` shows that the frontend no longer stores the auth JWT in `localStorage`
 - `frontend/README.md` documents the production profile and cookie deployment expectations
 - `docs/pack-03/api-auth-contract.md` records the implemented `Set-Cookie`-based auth contract and logout behaviour
+- `docs/pack-09/csrf-browser-evidence-capture-note.md` explains how to capture report-ready browser evidence for `CSRF-01` and `AUTH-15` without overstating what automated backend tests alone prove
+- `docs/pack-09/test-evidence-worked-examples.md` now includes an appendix-ready `CSRF-01` worked record that can be reused as the preferred browser-security example in Section 8
 

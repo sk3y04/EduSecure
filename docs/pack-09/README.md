@@ -36,9 +36,11 @@ What still needs disciplined planning is:
 - `unit-test-coverage-summary.md`
 - `integration-test-coverage-summary.md`
 - `manual-test-coverage-summary.md`
+- `csrf-browser-evidence-capture-note.md`
 - `test-evidence-collection-template.md`
 - `test-evidence-worked-examples.md`
 - `security-review-evidence-log.md`
+- `lecturer-feedback-alignment-guide.md`
 - `final-implementation-evidence-map.md`
 - `final-cryptography-claims-matrix.md`
 - `report-section-to-evidence-map.md`
@@ -60,5 +62,7 @@ After this pack, the remaining work should be mostly:
 
 This now includes documenting the boundary between what the repository proves locally (Liquibase-backed PostgreSQL delivery and a dedicated Testcontainers smoke test) and what it still does not prove (full production hardening).
 
-It also includes documenting what the repository now proves about browser-session hardening: `HttpOnly` cookie auth transport, logout cookie clearing, and fail-fast startup validation for unsafe production cookie settings.
+It also includes documenting what the repository now proves about browser-session hardening: `HttpOnly` cookie auth transport, logout cookie clearing, CSRF token bootstrap/header behavior for unsafe browser requests, and fail-fast startup validation for unsafe production cookie settings.
+
+It also includes a lecturer-facing alignment guide that maps common marker expectations, such as use-case coverage, security-focused sequence diagrams, explicit risk treatment, and run/execution explanation, to the existing EduSecure evidence set.
 

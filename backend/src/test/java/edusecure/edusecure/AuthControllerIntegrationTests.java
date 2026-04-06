@@ -25,9 +25,12 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -62,6 +65,7 @@ class AuthControllerIntegrationTests {
         String registerPayload = objectMapper.writeValueAsString(new RegisterPayload(email, password, "Student Example"));
 
         MvcResult registrationResult = mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registerPayload))
                 .andExpect(status().isCreated())
@@ -81,6 +85,7 @@ class AuthControllerIntegrationTests {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
 
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginPayload))
                 .andExpect(status().isOk())
@@ -107,11 +112,13 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Duplicate User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isConflict())
@@ -125,6 +132,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "Ab!12", "Short Password User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest());
@@ -136,6 +144,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123", "No Special User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest());
@@ -147,6 +156,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "strongpass123!", "No Uppercase User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest());
@@ -158,6 +168,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "STRONGPASS123!", "No Lowercase User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest());
@@ -169,6 +180,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass!", "No Number User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest());
@@ -180,6 +192,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "weak", "Weak Password User"));
 
         mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest())
@@ -197,6 +210,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new LoginPayload("", ""));
 
         mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest())
@@ -210,11 +224,51 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new LoginPayload("missing@example.com", "WrongPass123!"));
 
         mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid credentials"))
                 .andExpect(jsonPath("$.errors._global[0]").value("Invalid credentials"));
+    }
+
+    @Test
+    void csrfBootstrapEndpointIssuesReadableCsrfCookieForUnsafeRequests() throws Exception {
+        mockMvc.perform(get("/api/auth/csrf"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("XSRF-TOKEN=")));
+    }
+
+    @Test
+    void loginRequiresCsrfTokenButSucceedsWithValidToken() throws Exception {
+        String email = "csrf-login-" + UUID.randomUUID() + "@example.com";
+        String password = "StrongPass123!";
+        String registerPayload = objectMapper.writeValueAsString(new RegisterPayload(email, password, "CSRF Login User"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerPayload))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerPayload))
+                .andExpect(status().isCreated());
+
+        String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email));
     }
 
     @Test
@@ -225,6 +279,7 @@ class AuthControllerIntegrationTests {
         String lecturerEmail = "lecturer-created-" + UUID.randomUUID() + "@example.com";
         mockMvc.perform(post("/api/auth/users")
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 lecturerEmail,
@@ -239,6 +294,7 @@ class AuthControllerIntegrationTests {
         String studentEmail = "student-created-" + UUID.randomUUID() + "@example.com";
         MvcResult studentResult = mockMvc.perform(post("/api/auth/users")
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 studentEmail,
@@ -266,6 +322,7 @@ class AuthControllerIntegrationTests {
         String studentEmail = "lecturer-student-" + UUID.randomUUID() + "@example.com";
         mockMvc.perform(post("/api/auth/users")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 studentEmail,
@@ -278,6 +335,7 @@ class AuthControllerIntegrationTests {
 
         mockMvc.perform(post("/api/auth/users")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 "lecturer-target-" + UUID.randomUUID() + "@example.com",
@@ -290,6 +348,7 @@ class AuthControllerIntegrationTests {
 
         mockMvc.perform(post("/api/auth/users")
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 "admin-target-" + UUID.randomUUID() + "@example.com",
@@ -307,6 +366,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Student Endpoint"));
 
         Cookie studentCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
@@ -314,6 +374,7 @@ class AuthControllerIntegrationTests {
 
         mockMvc.perform(post("/api/auth/users")
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ManagedUserPayload(
                                 "blocked-" + UUID.randomUUID() + "@example.com",
@@ -330,13 +391,15 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Logout User"));
 
         Cookie authCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
                 .andReturn());
 
         MvcResult logoutResult = mockMvc.perform(post("/api/auth/logout")
-                        .cookie(authCookie))
+                        .cookie(authCookie)
+                        .with(csrf()))
                 .andExpect(status().isNoContent())
                 .andReturn();
 
@@ -349,6 +412,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Tampered Cookie User"));
 
         Cookie authCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
@@ -365,6 +429,7 @@ class AuthControllerIntegrationTests {
         String payload = objectMapper.writeValueAsString(new RegisterPayload(email, "StrongPass123!", "Tampered Bearer User"));
 
         Cookie authCookie = authCookieFrom(mockMvc.perform(post("/api/auth/register")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
@@ -400,6 +465,7 @@ class AuthControllerIntegrationTests {
     private Cookie loginAndReturnAuthCookie(String email, String password) throws Exception {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginPayload))
                 .andExpect(status().isOk())
@@ -442,6 +508,13 @@ class AuthControllerIntegrationTests {
                 .contains("HttpOnly")
                 .contains("Path=/")
                 .contains("SameSite=Lax");
+    }
+
+    private Cookie cookieFromHeader(MvcResult result, String cookieName) {
+        String setCookieHeader = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        org.assertj.core.api.Assertions.assertThat(setCookieHeader).contains(cookieName + "=");
+        String cookieValue = setCookieHeader.split(";", 2)[0].substring((cookieName + "=").length());
+        return new Cookie(cookieName, cookieValue);
     }
 }
 

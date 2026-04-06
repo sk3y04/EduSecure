@@ -1,0 +1,41 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor Student
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
+
+rectangle EduSecure {
+  usecase "Authenticate" as UC1
+  usecase "Complete MFA Challenge" as UC2
+  usecase "Submit Assignment" as UC3
+  usecase "Review Submission\nIntegrity Status" as UC4
+  usecase "Create / Update Grade" as UC5
+  usecase "Review Audit Trail" as UC6
+}
+
+Student --> UC1
+Student --> UC2
+Student --> UC3
+
+Lecturer --> UC1
+Lecturer --> UC4
+Lecturer --> UC5
+
+Admin --> UC1
+Admin --> UC4 : oversight
+Admin --> UC5 : oversight
+Admin --> UC6
+
+UC2 ..> UC1 : <<extends>> when MFA is enabled
+UC5 ..> UC6 : <<logs>>
+
+note bottom of EduSecure
+This simplified use-case diagram is intended for the final report.
+It keeps the focus on the implemented security controls:
+MFA, role-restricted submission review, grade integrity,
+and audit-backed accountability.
+end note
+@enduml
+

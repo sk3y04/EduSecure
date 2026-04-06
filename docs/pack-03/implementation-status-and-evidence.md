@@ -120,6 +120,13 @@ Important clarification:
 - startup validation rejects unsafe combinations such as `SameSite=None` with `Secure=false`
 - startup validation also rejects running the `prod` profile with `auth.cookie.secure=false`
 
+### CSRF behaviour for browser clients
+- Spring Security CSRF protection is enabled for unsafe methods
+- the backend exposes `GET /api/auth/csrf` so the SPA can bootstrap a CSRF token cookie before the first state-changing request
+- browser clients receive a readable `XSRF-TOKEN` cookie and send the corresponding `X-XSRF-TOKEN` header on unsafe requests
+- the auth/session JWT remains in the separate `HttpOnly` auth cookie and is still not readable to frontend JavaScript
+- this adds a server-side anti-CSRF control on top of `SameSite`, origin restrictions, and secure-cookie deployment settings
+
 ### MFA-specific security behaviour
 - TOTP is the only MFA method currently implemented
 - MFA secrets are encrypted at rest under a dedicated symmetric key

@@ -85,6 +85,10 @@ Do **not** overstate these areas:
 - ~~the retired standalone symmetric-crypto slice is a **separate artefact demonstration**~~ — that slice has been removed; TLS remains a deployment-side transport design control, while AES-GCM appears only in real at-rest business roles (MFA secrets, submission content)
 - the PostgreSQL/Liquibase path proves **versioned schema delivery and local verification**, not enterprise production hardening
 - default property fallbacks in `application.properties` should be described as **development/demo defaults**, with production secrets expected to be externalised
+- Spring Security CSRF protection is now enabled for unsafe browser requests through the readable `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header pair, but the report should still avoid overstating this as complete browser assurance without hostile-origin/manual deployment testing evidence
+- current XSS claims should stay limited to the **present Vue rendering posture** (default escaping and no `v-html` usage found), not a blanket statement that XSS is impossible
+- SQL-injection wording should stay anchored to **Spring Data JPA / parameter binding / repository use**, not to an absolute impossibility claim
+- TLS should be described as the **intended deployment transport control** unless separate HTTPS deployment evidence is included in the final submission
 
 ## 7. Final practical rule
 

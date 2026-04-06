@@ -94,13 +94,13 @@ Manual test to run:
 
 Relevant code:
 - `backend/src/main/java/edusecure/edusecure/config/SecurityConfig.java`
-- CSRF is disabled
+- CSRF is enabled for unsafe methods through Spring Security's cookie-token pattern
 - auth is cookie-backed
 - cookie uses `SameSite=Lax` by default
 
 What this means:
-- server-side synchronizer-token style CSRF defense is not used
-- the security posture depends heavily on browser cookie behavior, request context, frontend deployment topology, and CORS
+- server-side anti-CSRF enforcement is now present through the `XSRF-TOKEN` cookie plus `X-XSRF-TOKEN` header requirement
+- the remaining review should confirm that hostile-origin requests fail in real browser conditions and that the frontend bootstrap/header behavior stays aligned with deployment topology
 
 Manual tests to run:
 - from a different origin, attempt a form post or scripted request to a state-changing endpoint while the victim is logged in

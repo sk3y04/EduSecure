@@ -14,6 +14,7 @@ This template is designed to work with:
 - `docs/pack-09/unit-test-coverage-summary.md`
 - `docs/pack-09/integration-test-coverage-summary.md`
 - `docs/pack-09/manual-test-coverage-summary.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - `docs/pack-09/security-review-evidence-log.md`
 
 ---
@@ -200,6 +201,8 @@ Use this when the scenario is supposed to create or verify audit evidence.
 ## 6. Browser/security-behavior mini-template
 
 Use this for CORS, CSRF, cookie, and SameSite observations where Postman is not enough.
+
+For a report-focused CSRF evidence checklist and wording guidance, pair this mini-template with `docs/pack-09/csrf-browser-evidence-capture-note.md`.
 
 ```markdown
 ## Browser Security Check

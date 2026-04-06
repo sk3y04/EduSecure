@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -89,6 +90,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(78, "Strong work overall."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -101,6 +103,7 @@ class GradeFlowIntegrationTests {
         String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload(81, "Updated after remarking."));
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isOk())
@@ -117,7 +120,12 @@ class GradeFlowIntegrationTests {
         assertThat(auditLogs)
                 .extracting(log -> log.getActionType().name())
                 .containsExactly("GRADE_CREATED", "GRADE_UPDATED");
-        assertThat(auditLogs).allSatisfy(log -> assertThat(log.getIntegrityValue()).isNotBlank());
+        assertThat(auditLogs).allSatisfy(log -> {
+            assertThat(log.getIntegrityValue()).isNotBlank();
+            assertThat(log.getDetailsJson())
+                    .doesNotContain("Strong work overall.")
+                    .doesNotContain("Updated after remarking.");
+        });
     }
 
     @Test
@@ -132,6 +140,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(70, "Initial feedback."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -140,6 +149,7 @@ class GradeFlowIntegrationTests {
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isForbidden());
@@ -147,6 +157,7 @@ class GradeFlowIntegrationTests {
         String updatePayload = objectMapper.writeValueAsString(new UpdateGradePayload(75, "Student should not update grades."));
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
                         .cookie(studentCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updatePayload))
                 .andExpect(status().isForbidden());
@@ -163,12 +174,14 @@ class GradeFlowIntegrationTests {
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isConflict());
@@ -185,6 +198,7 @@ class GradeFlowIntegrationTests {
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", failedSubmission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isUnprocessableContent());
@@ -203,6 +217,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(88, "Visible only to owner."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -262,6 +277,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(100, "Excellent verified submission."));
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated());
@@ -285,6 +301,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(92, "Excellent cryptographic evaluation."));
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated());
@@ -360,6 +377,7 @@ class GradeFlowIntegrationTests {
 
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(otherLecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateGradePayload(91, "Created by another lecturer under current policy."))))
                 .andExpect(status().isForbidden());
@@ -376,6 +394,7 @@ class GradeFlowIntegrationTests {
 
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateGradePayload(91, "Created by admin across lecturer ownership boundaries."))))
                 .andExpect(status().isCreated())
@@ -400,6 +419,7 @@ class GradeFlowIntegrationTests {
 
         mockMvc.perform(put("/api/grades/{gradeId}", gradeId)
                         .cookie(adminCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateGradePayload(94, "Updated by admin across lecturer ownership boundaries."))))
                 .andExpect(status().isOk())
@@ -418,6 +438,7 @@ class GradeFlowIntegrationTests {
         String createPayload = objectMapper.writeValueAsString(new CreateGradePayload(67, "Marked submission."));
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createPayload))
                 .andExpect(status().isCreated())
@@ -444,6 +465,7 @@ class GradeFlowIntegrationTests {
         String negativePayload = objectMapper.writeValueAsString(new CreateGradePayload(-1, "Below range."));
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(negativePayload))
                 .andExpect(status().isBadRequest())
@@ -452,6 +474,7 @@ class GradeFlowIntegrationTests {
         String oversizedPayload = objectMapper.writeValueAsString(new CreateGradePayload(101, "Above range."));
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(oversizedPayload))
                 .andExpect(status().isBadRequest())
@@ -460,6 +483,7 @@ class GradeFlowIntegrationTests {
         String zeroPayload = objectMapper.writeValueAsString(new CreateGradePayload(0, "Valid lower boundary."));
         mockMvc.perform(post("/api/submissions/{submissionId}/grade", submission.getId())
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(zeroPayload))
                 .andExpect(status().isCreated())
@@ -524,6 +548,7 @@ class GradeFlowIntegrationTests {
     private String createGradeAndReturnId(Cookie lecturerCookie, UUID submissionId, Integer value, String feedback) throws Exception {
         MvcResult createResult = mockMvc.perform(post("/api/submissions/{submissionId}/grade", submissionId)
                         .cookie(lecturerCookie)
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateGradePayload(value, feedback))))
                 .andExpect(status().isCreated())
@@ -552,6 +577,7 @@ class GradeFlowIntegrationTests {
     private Cookie loginAndReturnAuthCookie(String email, String password) throws Exception {
         String loginPayload = objectMapper.writeValueAsString(new LoginPayload(email, password));
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginPayload))
                 .andExpect(status().isOk())

@@ -19,6 +19,11 @@ Common symbols used below:
 - `U`: unauthorised modification succeeds
 - `Q`: parameterised/JPA-backed data access is used
 - `V`: unsafe input/query handling remains
+- `L`: browser cookie/origin deployment posture reduces cross-site abuse
+- `C`: server-side CSRF protection is enforced
+- `X`: unsafe HTML rendering sink exists
+- `E`: framework escaping / safe rendering is used
+- `F`: upload validation and bounded storage controls are enforced
 
 ## Refined entries
 
@@ -27,10 +32,13 @@ Common symbols used below:
 | R1 | Credentials | attacker obtains reusable passwords from a database breach | High | High | Critical | `bcrypt`, role restriction, secure password policy |
 | R2 | Session token / login traffic | attacker intercepts token or credentials over public Wi-Fi | High | High | Critical | `TLS 1.3`, short token lifetime, minimal token claims |
 | R3 | Grade data | attacker reads or alters grades using injection or unsafe data handling | Medium | High | High | JPA/parameterised access, validation, RBAC |
-| R4 | Assignment submission | submitted file is tampered with or authorship is disputed | High | High | Critical | `SHA-256` digest, `RSA` signature verification |
+| R4 | Assignment submission | submitted file is tampered with or authorship is disputed | High | High | Critical | `SHA-256` digest, ECC digital signature verification, audit evidence |
 | R5 | Grade-change record | unauthorised or untraceable modification occurs | Medium | High | High | audit logging, `HMAC`/hash integrity, RBAC |
 | R6 | Cryptographic secrets | secret exposure weakens signatures, tokens, or integrity controls | Medium | High | High | env-managed secrets, key separation, documented key handling |
 | R7 | System deliverable quality | over-complex design causes incomplete or weakly justified artefact | High | Medium | High | bounded scope, traceability, documentation-first process |
+| R8 | Browser-authenticated state-changing endpoints | hostile site triggers an unwanted action using the victim's cookie-backed session | Medium | High | High | Spring Security CSRF token enforcement, readable `XSRF-TOKEN` cookie + `X-XSRF-TOKEN` header pair, `SameSite` cookie posture, restricted CORS origins, deployment/browser review |
+| R9 | Browser UI / rendered content | malicious input executes script in the user's browser | Medium | High | High | Vue default escaping, no `v-html` / raw HTML sink, validation, output-encoding discipline |
+| R10 | Upload and storage boundary | malicious upload abuses filename/path/content handling or attempts post-upload tampering | Medium | High | High | filename cleaning, type/signature validation, size limits, randomised storage references, AES-GCM at rest, digest/signature metadata |
 
 ## Logic justification details
 
@@ -155,5 +163,56 @@ If too much complexity is added, the chance of an unfinished or poorly justified
 
 ### Residual risk
 Time constraints may still affect polish even when scope is controlled.
+
+## R8: CSRF against cookie-backed browser actions
+
+### Symbols
+- `C`: server-side CSRF protection is enforced
+- `L`: browser cookie/origin deployment posture reduces cross-site abuse
+- `Z`: cross-site state-changing request succeeds
+
+### Formal statements
+- `¬C -> higher(Z)`
+- `(C ∧ L) -> lower(Z)`
+
+### Interpretation
+If server-side CSRF protection is absent, hostile-origin state-changing requests become more plausible whenever the browser can still attach the authentication cookie. When server-side CSRF token checks are enforced and the browser/deployment posture is also constrained, the likelihood of successful abuse is reduced more significantly.
+
+### Residual risk
+EduSecure now enforces server-side CSRF protection for unsafe methods through Spring Security's cookie-token pattern. The final report should still keep an honest caveat that browser/deployment validation remains valuable: hostile-origin testing in a real browser is still worth capturing as evidence alongside `SameSite`, CORS, and secure cookie deployment assumptions.
+
+## R9: Cross-site scripting in the frontend
+
+### Symbols
+- `X`: unsafe HTML rendering sink exists
+- `E`: framework escaping / safe rendering is used
+- `Y`: attacker-controlled script executes in the browser
+
+### Formal statements
+- `X -> higher(Y)`
+- `E -> lower(Y)`
+
+### Interpretation
+If attacker-controlled content is pushed into raw HTML sinks, browser script execution becomes much more likely. If the frontend relies on framework-default escaping and avoids raw HTML rendering, the chance of reflected or stored XSS is reduced.
+
+### Residual risk
+This risk is reduced by the current Vue rendering approach and the absence of `v-html`, but future UI changes could reintroduce XSS if raw HTML rendering or unsafe DOM APIs are added.
+
+## R10: Malicious upload abuse or stored-file tampering
+
+### Symbols
+- `F`: upload validation and bounded storage controls are enforced
+- `R`: storage references are randomised and path-safe
+- `W`: malicious file abuse, overwrite, or path-based tampering succeeds
+
+### Formal statements
+- `¬F -> higher(W)`
+- `(F ∧ R) -> lower(W)`
+
+### Interpretation
+If uploaded files are not checked for filename/path abuse, type validity, size, and bounded storage rules, the upload surface becomes much easier to exploit. If uploads are validated and stored through randomised path-safe references, the chance of direct storage abuse is reduced significantly.
+
+### Residual risk
+The current implementation reduces path-traversal and malformed-upload risk, and it stores ciphertext rather than plaintext on disk. However, this does not replace broader malware scanning or enterprise document-sanitisation controls.
 
 

@@ -35,6 +35,7 @@ Those may be considered later, but the first implementation should stay small an
 | Endpoint | Method | Authentication required | Status | Purpose |
 |---|---|---|---|---|
 | `/register` | POST | No | Implemented | Create a new user with default `STUDENT` role |
+| `/csrf` | GET | No | Implemented | Bootstrap a CSRF token cookie for browser clients before unsafe requests |
 | `/users` | POST | Yes (`ADMIN` or `LECTURER`) | Implemented | Staff-managed account creation with role restrictions |
 | `/login` | POST | No | Implemented | Authenticate password; either return JWT immediately or return MFA challenge |
 | `/logout` | POST | No | Implemented | Clear the auth cookie in the browser |
@@ -233,6 +234,11 @@ Status: `201 Created`
 Browser requests are authenticated by the `HttpOnly` auth cookie. The frontend sends credentialed
 requests and does not read the JWT directly.
 
+Unsafe browser requests now also require a CSRF token pair:
+- backend issues a readable `XSRF-TOKEN` cookie
+- frontend mirrors that value into the `X-XSRF-TOKEN` request header
+- the Vue client can bootstrap this through `GET /api/auth/csrf` before the first state-changing request
+
 Server-side compatibility support for `Authorization: Bearer <jwt>` may still be accepted, but the
 same JWT parsing path is used and claims are only read after signature verification succeeds.
 Tampered, malformed, or expired tokens are left unauthenticated and fail with `401 Unauthorized`
@@ -254,6 +260,27 @@ Status: `200 OK`
 - `401 Unauthorized` if no valid auth cookie is supplied
 - `401 Unauthorized` if the supplied cookie or compatibility bearer token contains a malformed, expired, or signature-invalid JWT
 - `404 Not Found` if the JWT subject no longer exists in persistence
+
+## E. `GET /api/auth/csrf` — Implemented
+
+### Purpose
+Bootstrap the CSRF token cookie used by browser clients before unsafe requests such as `POST`, `PUT`, `PATCH`, or `DELETE`.
+
+### Authentication transport
+No authenticated session is required.
+
+### Success response
+Status: `204 No Content`
+
+### Side effect
+The response sets a readable CSRF cookie:
+- cookie name: `XSRF-TOKEN`
+- corresponding request header: `X-XSRF-TOKEN`
+
+### Notes
+- the CSRF token is separate from the `HttpOnly` auth cookie
+- frontend JavaScript may read the CSRF cookie specifically so it can echo the value in the required header
+- this does **not** expose the session JWT to JavaScript
 
 ## 4. Implemented MFA contract
 
@@ -281,6 +308,7 @@ Standard shape:
 Notes:
 - field-keyed entries are returned for bean-validation failures such as blank or missing values
 - `_global` is used when the request body is malformed or contains values that cannot be parsed correctly, for example an invalid UUID string
+- if an unsafe request omits the required CSRF token/header pair, Spring Security rejects it before controller logic runs
 
 ### Shared non-validation auth failure response
 
@@ -326,6 +354,8 @@ Used when MFA is not enabled for the user.
 
 The auth JWT is set in the response `Set-Cookie` header rather than exposed to frontend JavaScript.
 
+Unsafe browser requests must include the CSRF header, which the frontend derives from the readable `XSRF-TOKEN` cookie.
+
 ### A2. MFA challenge path
 
 Used when password verification succeeds and the user has MFA enabled.
@@ -350,6 +380,9 @@ Rules:
 ### Authentication transport
 Requires the authenticated `HttpOnly` auth cookie.
 
+Unsafe method note:
+- browser clients must also send the `X-XSRF-TOKEN` header matching the `XSRF-TOKEN` cookie
+
 ### Success response
 ```json
 {
@@ -369,6 +402,9 @@ Purpose:
 
 ### Authentication transport
 Requires the authenticated `HttpOnly` auth cookie.
+
+Unsafe method note:
+- browser clients must also send the `X-XSRF-TOKEN` header matching the `XSRF-TOKEN` cookie
 
 ### Request body
 No body required for the first version.
@@ -426,6 +462,9 @@ Rules:
 }
 ```
 
+Unsafe method note:
+- although this endpoint is public from an authentication perspective, browser callers still need a valid CSRF token/header pair
+
 ### Success response
 Status: `200 OK`
 
@@ -456,6 +495,9 @@ Successful verification sets the auth JWT in an `HttpOnly` auth cookie.
 ### Authentication transport
 Requires the authenticated `HttpOnly` auth cookie.
 
+Unsafe method note:
+- browser clients must also send the `X-XSRF-TOKEN` header matching the `XSRF-TOKEN` cookie
+
 ### Request body
 ```json
 {
@@ -485,6 +527,9 @@ Status: `204 No Content`
 
 ### Auth cookie side effect
 The response clears the auth cookie by returning `Set-Cookie` with `Max-Age=0`.
+
+Unsafe method note:
+- browser clients must also send the `X-XSRF-TOKEN` header matching the `XSRF-TOKEN` cookie
 
 ## 5. Security expectations for the MFA phase
 

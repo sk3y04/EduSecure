@@ -14,18 +14,20 @@ These are the best diagrams to include if the goal is to maximise marks while av
 
 | Suggested figure label | Source file | Best report section | One-sentence commentary to use in the report |
 |---|---|---|---|
-| **Figure 1. Insecure deployment baseline** | `docs/pack-02/uml/deployment-insecure.puml` | Section 4: Secure System Design | This figure establishes the insecure baseline described in the assignment brief by showing weak transport and trust-boundary assumptions before cryptographic controls are applied. |
-| **Figure 2. Secure deployment comparison** | `docs/pack-02/uml/deployment-secure.puml` | Section 4: Secure System Design | This figure shows how the EduSecure architecture is strengthened through protected session handling, clearer trust boundaries, and deployment-side transport security assumptions. |
-| **Figure 3. Secure login sequence** | `docs/pack-02/uml/sequence-login-secure.puml` | Section 4: Secure System Design | This sequence diagram shows that authentication is not complete until the secure login flow finishes, supporting the report’s explanation of password protection, MFA, and authenticated session establishment. |
-| **Figure 4. Secure submission sequence** | `docs/pack-04/uml/sequence-submission-secure-pack04.puml` | Section 4: Secure System Design | This figure is the strongest interaction-level diagram for the submission workflow because it ties together hashing, signature verification, encrypted-at-rest storage, and audited plaintext retrieval. |
-| **Figure 5. Grade integrity sequence** | `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml` | Section 4: Secure System Design | This figure shows that grade handling is treated as an integrity-sensitive workflow with role restrictions, verified-submission gating, and HMAC-backed audit recording. |
-| **Figure 6. Current-state level-1 DFD** | `docs/pack-09/uml/dfd-level-1-current-state.puml` | Section 4 or Section 8 | This DFD gives the clearest current-state view of how sensitive data moves through EduSecure, where cryptographic controls are applied, and how metadata, ciphertext, grades, and audit records are separated. |
+| **Figure 1. Security-focused use-case diagram** | `docs/pack-09/uml/use-case-security-focused.puml` | Section 4: Secure System Design | This small use-case diagram gives the marker an immediate overview of the main protected interactions: authentication, MFA, secure submission, grading, and audit review. |
+| **Figure 2. Insecure deployment baseline** | `docs/pack-02/uml/deployment-insecure.puml` | Section 4: Secure System Design | This figure establishes the insecure baseline described in the assignment brief by showing weak transport and trust-boundary assumptions before cryptographic controls are applied. |
+| **Figure 3. Secure deployment comparison** | `docs/pack-02/uml/deployment-secure.puml` | Section 4: Secure System Design | This figure shows how the EduSecure architecture is strengthened through protected session handling, clearer trust boundaries, and deployment-side transport security assumptions. |
+| **Figure 4. Secure login sequence** | `docs/pack-02/uml/sequence-login-secure.puml` | Section 4: Secure System Design | This sequence diagram shows that authentication is not complete until the secure login flow finishes, supporting the report’s explanation of password protection, MFA, and authenticated session establishment. |
+| **Figure 5. Secure submission sequence** | `docs/pack-04/uml/sequence-submission-secure-pack04.puml` | Section 4: Secure System Design | This figure is the strongest interaction-level diagram for the submission workflow because it ties together hashing, signature verification, encrypted-at-rest storage, and audited plaintext retrieval. |
+| **Figure 6. Grade integrity sequence** | `docs/pack-05/uml/sequence-grade-integrity-secure-pack05.puml` | Section 4: Secure System Design | This figure shows that grade handling is treated as an integrity-sensitive workflow with role restrictions, verified-submission gating, and HMAC-backed audit recording. |
+| **Figure 7. Current-state level-1 DFD** | `docs/pack-09/uml/dfd-level-1-current-state.puml` | Section 4 or Section 8 | This DFD gives the clearest current-state view of how sensitive data moves through EduSecure, where cryptographic controls are applied, and how metadata, ciphertext, grades, and audit records are separated. |
 
 ## 2. Recommended usage pattern by section
 
 ### Section 4: Secure System Design
 
 Use the strongest design-story sequence here:
+- `docs/pack-09/uml/use-case-security-focused.puml`
 - `docs/pack-02/uml/deployment-insecure.puml`
 - `docs/pack-02/uml/deployment-secure.puml`
 - `docs/pack-02/uml/sequence-login-secure.puml`
@@ -37,13 +39,13 @@ Use the strongest design-story sequence here:
 Use the current-state DFD here if you want one implementation-facing figure that complements the interaction diagrams:
 - `docs/pack-09/uml/dfd-level-1-current-state.puml`
 
-## 3. Optional seventh figure
+## 3. Optional eighth figure
 
 If the report still has space and a data-model figure would strengthen the discussion, the best optional addition is:
 
 | Suggested figure label | Source file | Best report section | Commentary |
 |---|---|---|---|
-| **Optional Figure 7. Submission integrity class model** | `docs/pack-04/uml/class-diagram-submission-addendum.puml` | Section 4 or appendix | This class diagram is useful when the report needs to explain how `Submission`, `Grade`, `AuditLog`, verification state, and encrypted-at-rest metadata relate at the domain level. |
+| **Optional Figure 8. Submission integrity class model** | `docs/pack-04/uml/class-diagram-submission-addendum.puml` | Section 4 or appendix | This class diagram is useful when the report needs to explain how `Submission`, `Grade`, `AuditLog`, verification state, and encrypted-at-rest metadata relate at the domain level. |
 
 ## 4. How to describe these diagrams safely
 
@@ -68,13 +70,14 @@ Do **not** use the following as an active report figure:
 
 If you want a clean report flow, present the diagrams in this order:
 
-1. insecure deployment baseline
-2. secure deployment comparison
-3. secure login sequence
-4. secure submission sequence
-5. grade integrity sequence
-6. current-state level-1 DFD
-7. optional class diagram in appendix or later in Section 4
+1. security-focused use-case diagram
+2. insecure deployment baseline
+3. secure deployment comparison
+4. secure login sequence
+5. secure submission sequence
+6. grade integrity sequence
+7. current-state level-1 DFD
+8. optional class diagram in appendix or later in Section 4
 
 That order gives the marker a clear progression from insecure baseline to secured architecture, then to the most important protected workflows, and finally to the implemented current-state data movement view.
 

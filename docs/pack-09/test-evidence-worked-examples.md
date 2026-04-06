@@ -11,6 +11,7 @@ Use this file as a model when creating your own final evidence records.
 
 Related files:
 - `docs/pack-09/test-evidence-collection-template.md`
+- `docs/pack-09/csrf-browser-evidence-capture-note.md`
 - `docs/pack-11/security-test-scenarios-matrix.md`
 - `docs/pack-11/manual-security-testing-playbook.md`
 
@@ -277,6 +278,112 @@ Related files:
 
 ---
 
+## Example 4 — `CSRF-01` Hostile-origin unsafe request against a cookie-backed session
+
+```markdown
+# Scenario Evidence Record
+
+## A. Traceability
+- Scenario ID: `CSRF-01`
+- Scenario title: Cookie-authenticated state-changing request from hostile origin
+- Source document:
+  - `docs/pack-11/security-test-scenarios-matrix.md`
+  - `docs/pack-11/manual-security-testing-playbook.md`
+  - `docs/pack-09/csrf-browser-evidence-capture-note.md`
+- Priority: `P1`
+- Date executed: 2026-04-06
+- Tester: Example template record
+
+## B. Environment
+- Backend base URL: `http://localhost:8080`
+- Frontend URL (if relevant): `http://localhost:5173`
+- Active profile: `default`
+- Database used: local development database for browser review
+- Browser or API client used: Chrome or Edge with developer tools
+- Cookie posture observed:
+  - `HttpOnly`: yes for `EDUSECURE_AUTH`; no for `XSRF-TOKEN` by design
+  - `Secure`: no (development default)
+  - `SameSite`: `Lax`
+
+## C. Actor and target
+- Actor identity/email: authenticated victim browser session
+- Actor role: any authenticated browser user
+- Target endpoint: example unsafe endpoint such as `/api/auth/logout`
+- HTTP method: `POST`
+- Target entity IDs:
+  - assignmentId: not applicable for logout example
+  - submissionId: not applicable
+  - gradeId: not applicable
+  - spaceId: not applicable
+  - challengeId: not applicable
+
+## D. Preconditions
+- Accounts prepared: one signed-in browser user
+- Seed data prepared: none required for logout example
+- Authentication state before request: valid browser session already established through the EduSecure frontend
+- Extra setup notes:
+  - a normal in-app unsafe request was captured first to show the intended `GET /api/auth/csrf` bootstrap plus `X-XSRF-TOKEN` header behavior
+  - a separate hostile-origin page then attempted a cross-site `POST`
+
+## E. Request summary
+- Request body used: empty or minimal form/fetch body depending on the hostile-origin technique
+- Request headers of note:
+  - legitimate in-app request includes `X-XSRF-TOKEN`
+  - hostile-origin request does not have a valid token/header pair available in the normal threat model
+- Cookie state of note:
+  - browser holds `EDUSECURE_AUTH`
+  - browser holds readable `XSRF-TOKEN` for the EduSecure origin
+- File uploaded (if any): none
+
+## F. Expected result
+- Expected status code:
+  - legitimate in-app unsafe request: success
+  - hostile-origin unsafe request: blocked, rejected, or otherwise ineffective without a valid CSRF token/header pair
+- Expected response behavior: hostile-origin request should not produce the protected state change successfully
+- Expected side effects: no successful cross-site state change should occur
+- Expected audit behavior: not the primary focus for this browser-security example
+
+## G. Observed result
+- Observed status code:
+  - in-app unsafe request succeeded after the CSRF bootstrap/header flow
+  - hostile-origin attempt did not complete the protected state change successfully
+- Observed response body summary:
+  - normal frontend request behaved as expected under the authenticated session model
+  - hostile-origin request lacked the valid token/header pairing needed by the server-side CSRF check
+- Observed response headers/cookies summary:
+  - browser trace showed `GET /api/auth/csrf` returning `Set-Cookie: XSRF-TOKEN=...`
+  - later unsafe request from the real frontend included `X-XSRF-TOKEN`
+- Observed side effects: no confirmed hostile-origin state change
+- Observed audit result: not checked in this worked example
+
+## H. Evidence captured
+- Screenshot(s):
+  - `2026-04-06_CSRF-01_csrf-bootstrap_browser-network.png`
+  - `2026-04-06_CSRF-01_hostile-origin-post_browser-network.png`
+- Postman export / response capture: not applicable for the main browser-only proof
+- Browser network capture:
+  - `2026-04-06_CSRF-01_unsafe-request_with-xsrf-header_browser-network.png`
+- Cookie screenshot:
+  - `2026-04-06_CSRF-01_xsrf-cookie_application-tab.png`
+- Audit screenshot / DB output: optional only if the chosen unsafe endpoint normally produces audit evidence
+- Additional notes file: `2026-04-06_CSRF-01_hostile-origin-review_notes.md`
+
+## I. Assessment
+- Outcome:
+  - Pass
+- Severity if failed:
+  - High
+- Is this a code defect, deployment defect, or policy ambiguity?: none observed in this worked example; the evidence supports the implemented server-side CSRF posture plus browser-layer review
+- Does the result match the intended academic policy?: yes, browser-authenticated unsafe actions should not be triggerable cross-site without the valid CSRF token/header flow
+
+## J. Report-ready observation
+- Short factual statement for report: "Browser inspection showed that the SPA first bootstrapped `GET /api/auth/csrf`, received a readable `XSRF-TOKEN` cookie, and then sent the matching `X-XSRF-TOKEN` header on unsafe requests. A hostile-origin attempt did not produce the protected state change successfully, supporting the implemented CSRF defence for the cookie-backed session model."
+- Residual limitation or caveat: this remains environment-specific browser evidence and should be described as assurance support alongside the automated backend CSRF tests, not as a claim that CSRF is impossible in every deployment context
+- Recommended remediation or next step: reuse this as the primary browser-security appendix example and adapt the same structure for `AUTH-15` if you later capture a second cross-site auth-specific trace
+```
+
+---
+
 ## How to use these examples in practice
 
 1. Copy the nearest example from this file.
@@ -293,6 +400,7 @@ Instead of starting from a blank template every time, you now have realistic sam
 - broken-access-control evidence (`SUB-04`)
 - MFA replay evidence (`AUTH-07`)
 - privileged grade-read denial (`GRADE-03`)
+- browser CSRF assurance evidence (`CSRF-01`)
 
 That should make it much easier to build a consistent appendix and a stronger Section 8 technical artefact summary.
 
