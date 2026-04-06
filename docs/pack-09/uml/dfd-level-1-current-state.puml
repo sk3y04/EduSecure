@@ -1,8 +1,11 @@
 @startuml
-left to right direction
+top to bottom direction
 skinparam shadowing false
 skinparam roundcorner 12
 skinparam defaultTextAlignment center
+skinparam linetype ortho
+skinparam nodesep 30
+skinparam ranksep 40
 skinparam rectangle {
   BackgroundColor #F8FAFC
   BorderColor #475569
@@ -19,100 +22,94 @@ skinparam note {
 title EduSecure Current-State Data Flow Diagram - Level 1
 
 rectangle "Client Boundary" {
-  rectangle "Student\n<<External Entity>>" as Student #E0F2FE
-  rectangle "Assignment-owning Lecturer\n<<External Entity>>" as Lecturer #E0F2FE
-  rectangle "Admin\n<<External Entity>>" as Admin #E0F2FE
+  rectangle "Browser Users\n(Auth + MFA)\n<<External Entity>>" as UsersAuth #E0F2FE
   rectangle "Authenticator App\n<<External Entity>>" as Authenticator #E0F2FE
-  database "D0 Browser sessionStorage\npending MFA challenge only\n(no JWT)" as D0
+  database "D0 Browser sessionStorage\nPending MFA challenge only\n(no JWT)" as D0
+  rectangle "Browser Users\n(Submissions / Grades / Spaces)\n<<External Entity>>" as UsersAcademic #E0F2FE
+
+  UsersAuth -[hidden]right-> Authenticator
+  Authenticator -[hidden]right-> D0
+  D0 -[hidden]right-> UsersAcademic
 }
 
 rectangle "EduSecure Application Boundary" {
-  rectangle "P1 Auth and Session Handling\nAuthController + AuthService" as P1 #DBEAFE
-  rectangle "P2 MFA Challenge Handling\nMfaService" as P2 #DBEAFE
-  rectangle "P3 Submission Protection and Retrieval\nSubmissionService" as P3 #DBEAFE
-  rectangle "P4 Grade Integrity Handling\nGradeService" as P4 #DBEAFE
-  rectangle "P6 Space Ownership and Membership Handling\nSpaceService" as P6 #DBEAFE
-  rectangle "P5 Audit Integrity Recording\nAuditService" as P5 #DBEAFE
+  rectangle "Identity & Access" {
+    rectangle "P1 Auth & Session\nAuthController + AuthService" as P1 #DBEAFE
+    rectangle "P2 MFA Challenge\nMfaService" as P2 #DBEAFE
+    P1 -[hidden]right-> P2
+  }
+
+  rectangle "Academic Operations" {
+    rectangle "P3 Submission Protection\n& Retrieval\nSubmissionService" as P3 #DBEAFE
+    rectangle "P4 Grade Integrity\nHandling\nGradeService" as P4 #DBEAFE
+    rectangle "P6 Space Ownership\n& Membership\nSpaceService" as P6 #DBEAFE
+    P3 -[hidden]right-> P4
+    P4 -[hidden]right-> P6
+  }
+
+  rectangle "Audit & Assurance" {
+    rectangle "P5 Audit Integrity\nRecording\nAuditService" as P5 #DBEAFE
+  }
+
+  P1 -[hidden]down-> P3
+  P2 -[hidden]down-> P4
+  P4 -[hidden]down-> P5
 }
 
 rectangle "Persistence Boundary" {
-  database "D1 PostgreSQL\nusers, roles, assignments, spaces, memberships,\nMFA metadata, submission metadata, grades, audit logs" as D1
-  database "D2 Submission Ciphertext Store\nciphertext blobs by storedFileReference" as D2
+  database "D2 Submission Ciphertext Store\nCiphertext blobs by storedFileReference" as D2
+  database "D1 PostgreSQL\nUsers, roles, assignments, spaces, memberships,\nMFA metadata, submission metadata, grades, audit logs" as D1
+  D2 -[hidden]right-> D1
 }
 
-Student --> P1 : registration/login\n/api/auth/* requests
-Lecturer --> P1 : login/logout\n/api/auth/* requests
-Admin --> P1 : login/logout\n/api/auth/* requests
-P1 --> Student : Set-Cookie auth session\ncurrent-user response
-P1 --> Lecturer : Set-Cookie auth session\ncurrent-user response
-P1 --> Admin : Set-Cookie auth session\ncurrent-user response
-P1 --> D1 : read/write users, roles,\npassword hashes, session claims input
-P1 --> P2 : start MFA challenge when required
-P1 --> D0 : store MFA pending challenge metadata
+UsersAuth -[hidden]down-> P1
+Authenticator -[hidden]down-> P2
+D0 -[hidden]down-> P2
+UsersAcademic -[hidden]down-> P4
+P3 -[hidden]down-> D2
+P5 -[hidden]down-> D1
 
-Student --> P2 : MFA setup / verify / disable requests
-Lecturer --> P2 : MFA setup / verify / disable requests
-Admin --> P2 : MFA setup / verify / disable requests
-P2 --> Authenticator : otpauth URI / manual key
-Authenticator --> P2 : TOTP code
-P2 --> D1 : encrypted MFA secret, challenge records,\nrecovery-code hashes
-P2 --> P1 : authenticated MFA result for cookie issuance
-P2 --> D0 : clear pending challenge after success/failure path
+UsersAuth <--> P1 : Auth exchange\n(register / login / logout / session)
+UsersAuth <--> P2 : MFA setup / verify / disable
+Authenticator <--> P2 : otpauth URI / TOTP code
+P1 <--> P2 : MFA challenge start / result
+P1 <--> D1 : User, role, and\npassword-hash data
+P1 --> D0 : Store pending challenge
+P2 <--> D1 : MFA secret,\nchallenge records,\nrecovery-code hashes
+P2 --> D0 : Clear pending challenge
 
-Student --> P3 : space-scoped assignment submission / metadata / content requests
-Lecturer --> P3 : owner-scoped submission review / content access requests
-Admin --> P3 : oversight submission review / content access requests
-P3 --> D1 : assignment lookup + current space membership,\nsubmission metadata, digest, signature, verification state, wrapped key metadata
-P3 --> D2 : store ciphertext / read ciphertext
-P3 --> Student : metadata-only response\nor plaintext on explicit content retrieval
-P3 --> Lecturer : metadata-only response\nor plaintext on authorised owned-assignment retrieval
-P3 --> Admin : metadata-only response\nor plaintext on authorised oversight retrieval
-P3 --> P5 : SUBMISSION_CREATED\nSUBMISSION_VERIFIED / FAILED\nSUBMISSION_CONTENT_ACCESSED
+UsersAcademic <--> P3 : Submission / review /\nmetadata or content retrieval
+UsersAcademic <--> P4 : Grade create / update / view
+UsersAcademic <--> P6 : Space create / update /\nlist + membership views
 
-Lecturer --> P4 : owner-scoped create/update/retrieve grade requests
-Admin --> P4 : oversight create/update/retrieve grade requests
-Student --> P4 : own-grade retrieval request
-P4 --> D1 : read verified submission state,\nassignment visibility, and write/read grade records
-P4 --> Lecturer : owned-assignment grade responses
-P4 --> Admin : oversight grade responses
-P4 --> Student : own-grade response only\nwhile assignment remains visible
-P4 --> P5 : GRADE_CREATED / GRADE_UPDATED
+P3 --> D1 : Assignment checks +\nsubmission metadata
+P3 <--> D2 : Ciphertext storage / read
+P3 --> P5 : Submission audit events
 
-Lecturer --> P6 : create/list/detail/update\nowned space membership requests
-Admin --> P6 : global space management requests
-Student --> P6 : enrolled-space list/detail requests
-P6 --> D1 : read/write spaces, memberships,\nownership, membership counts
-P6 --> Lecturer : owned-space responses + roster data
-P6 --> Admin : oversight space responses + roster data
-P6 --> Student : enrolled-space responses only\n(no full roster disclosure)
-P6 --> P5 : SPACE_CREATED / UPDATED\nSPACE_STUDENT_ADDED / REMOVED
+P4 <--> D1 : Verified state +\ngrade records
+P4 --> P5 : Grade audit events
 
-P5 --> D1 : append audit log row with\nHMAC-SHA-256 integrity chain
+P6 <--> D1 : Space + membership data
+P6 --> P5 : Space audit events
+
+P5 --> D1 : Append audit row with\nHMAC-SHA-256 integrity chain
 
 note right of P3
-Plaintext enters the backend once for submission handling.
-The backend computes the SHA-256 digest,
-creates/verifies signature metadata,
-then encrypts content at rest with AES-GCM.
-Lecturer access is limited to assignments they own.
-Student self-service reads are limited to
-assignments still visible through current
-space membership.
+Submission protection:
+- plaintext enters the backend once for handling
+- SHA-256 digest and signature metadata are calculated
+- content is encrypted at rest with AES-GCM
+- standard metadata responses do not expose storedFileReference,
+  nonce values, or wrapped content-encryption keys
 end note
 
-note right of D2
-Ciphertext is stored separately from PostgreSQL metadata.
-Normal metadata responses do not expose
-storedFileReference, nonce values,
-or wrapped content-encryption keys.
-end note
+legend bottom
+|= Diagram key |= Meaning |
+| Browser Users | Duplicated for layout only: auth/MFA and academic actions |
+| Role scope | Lecturer = owned assignments / created spaces only; Admin = global oversight; Student = enrolled spaces and own visible grades only |
+| D0 sessionStorage | Temporary browser state for a pending MFA challenge only |
+end legend
 
-note right of P6
-Spaces already follow the same owner-scoped lecturer model:
-- lecturer manages only created spaces
-- admin can manage any space
-- students see only enrolled spaces and no full roster
-end note
 @enduml
 
 
