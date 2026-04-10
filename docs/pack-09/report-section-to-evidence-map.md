@@ -10,10 +10,12 @@ Use:
 - `docs/assignment_brief.md`
 - `docs/pack-01/assignment-traceability.md`
 - `docs/receipt+plan.md`
+- `docs/pack-09/platform-feature-matrix-and-prioritized-backlog.md`
 
 Purpose:
 - explain EduSecure as a cryptography case study
 - summarise the security incidents from the brief
+- distinguish implemented coursework scope from the wider aspirational platform brief
 
 ## Section 2. Role of cryptography in EduSecure
 
@@ -107,6 +109,7 @@ Purpose:
 
 Use:
 - `docs/pack-09/final-implementation-evidence-map.md`
+- `docs/pack-09/platform-feature-matrix-and-prioritized-backlog.md`
 - `docs/pack-09/unit-test-coverage-summary.md`
 - `docs/pack-09/integration-test-coverage-summary.md`
 - `docs/pack-09/manual-test-coverage-summary.md`
@@ -126,6 +129,7 @@ Use:
 
 Purpose:
 - show exactly what was implemented
+- show which brief features are fully implemented, partial, or still absent
 - show which endpoints and tests demonstrate the artefact
 - show that the repository now contains both fast H2-based tests and a narrower real-PostgreSQL verification path
 - show how browser-layer CSRF evidence can be captured and written up honestly alongside the automated server-side proof

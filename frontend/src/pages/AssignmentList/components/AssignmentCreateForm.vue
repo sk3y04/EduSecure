@@ -5,6 +5,7 @@ const props = defineProps<{
   createError: string | null
   createSuccess: string | null
   isCreating: boolean
+  spaceName?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -26,7 +27,7 @@ function handleSubmit() {
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Create assignment</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-        A compact form for creating coursework entries without distracting styling.
+        Create a coursework entry for {{ props.spaceName ?? 'the current space' }}.
       </p>
     </div>
 

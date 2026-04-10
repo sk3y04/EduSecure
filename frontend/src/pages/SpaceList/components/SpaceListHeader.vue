@@ -1,3 +1,12 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+
+defineProps<{
+  canRequestRegistration: boolean
+  canReviewRegistrations: boolean
+}>()
+</script>
+
 <template>
   <section class="page-hero">
     <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -9,6 +18,23 @@
           coursework coordination. The backend still enforces ownership, roster access, and
           student-only membership rules.
         </p>
+
+        <div class="mt-5 flex flex-wrap gap-3">
+          <RouterLink
+            v-if="canRequestRegistration"
+            :to="{ name: 'registration-requests' }"
+            class="btn-primary"
+          >
+            Request space access
+          </RouterLink>
+          <RouterLink
+            v-if="canReviewRegistrations"
+            :to="{ name: 'registration-review' }"
+            class="btn-secondary"
+          >
+            Review registration queue
+          </RouterLink>
+        </div>
       </div>
 
       <div class="surface-panel-muted max-w-sm px-5 py-4">

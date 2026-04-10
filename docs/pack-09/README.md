@@ -32,6 +32,8 @@ What still needs disciplined planning is:
 
 ## Contents
 
+- `platform-feature-matrix-and-prioritized-backlog.md`
+- `report-ready-section-1-and-8-scope-paragraphs.md`
 - `current-state-data-flow-diagram.md`
 - `unit-test-coverage-summary.md`
 - `integration-test-coverage-summary.md`

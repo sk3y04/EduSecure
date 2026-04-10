@@ -54,7 +54,7 @@ function formatDate(value: string): string {
       <div class="stat-card bg-[var(--color-surface-offset)]">
         <dt class="meta-label">Access</dt>
         <dd class="meta-value">
-          {{ props.space.canManage ? 'Management access' : props.space.isMember ? 'Enrolled member' : 'Read only' }}
+          {{ props.space.canManage ? 'Management access' : props.space.isMember ? 'Space member' : 'Read only' }}
         </dd>
       </div>
     </dl>

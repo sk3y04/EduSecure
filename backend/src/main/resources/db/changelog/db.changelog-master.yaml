@@ -9,4 +9,6 @@ databaseChangeLog:
       file: db/changelog/changes/004-grade-percentage.yaml
   - include:
       file: db/changelog/changes/005-assignment-space-link.yaml
+  - include:
+      file: db/changelog/changes/006-space-registration-requests.yaml
 

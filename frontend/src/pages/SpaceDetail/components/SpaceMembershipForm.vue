@@ -25,7 +25,7 @@ function handleSubmit() {
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Add student</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
         Membership is assigned by student email. The backend validates existence, role, and
-        duplicate enrollment.
+        duplicate space membership.
       </p>
     </div>
 

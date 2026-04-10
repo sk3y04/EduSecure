@@ -169,8 +169,9 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
       <section v-else class="page-section">
         <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Read-only access</h3>
         <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
-          You can view this space because you are enrolled in it. Roster management and metadata
-          changes remain restricted to lecturers who own the space and administrators.
+          You can view this space because staff added you to its membership roster. Roster
+          management and metadata changes remain restricted to lecturers who own the space and
+          administrators.
         </p>
       </section>
     </template>

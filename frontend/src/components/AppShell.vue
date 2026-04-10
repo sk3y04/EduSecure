@@ -12,6 +12,14 @@ const navigationItems = computed(() => {
     { label: 'Spaces', to: { name: 'spaces' } },
   ]
 
+  if (authStore.hasAnyRole(['STUDENT'])) {
+    items.push({ label: 'Registration requests', to: { name: 'registration-requests' } })
+  }
+
+  if (authStore.hasAnyRole(['ADMIN', 'LECTURER'])) {
+    items.push({ label: 'Registration review', to: { name: 'registration-review' } })
+  }
+
   if (authStore.hasAnyRole(['ADMIN', 'LECTURER'])) {
     items.push({ label: 'User management', to: { name: 'user-management' } })
   }

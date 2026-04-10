@@ -34,11 +34,17 @@ const isCreating = ref(false)
 const canCreateAssignments = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 const canReviewSubmissions = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 const isStudent = computed(() => authStore.hasAnyRole(['STUDENT']))
+const visibleAssignments = computed(() =>
+  props.spaceId
+    ? assignments.value.filter((assignment) => assignment.spaceId === props.spaceId)
+    : assignments.value,
+)
 const sortedAssignments = computed(() =>
-  [...assignments.value].sort(
+  [...visibleAssignments.value].sort(
     (left, right) => new Date(left.dueAt).getTime() - new Date(right.dueAt).getTime(),
   ),
 )
+const canCreateInCurrentView = computed(() => canCreateAssignments.value && Boolean(props.spaceId))
 
 const embeddedHeading = computed(() =>
   props.spaceName ? `Assignments in ${props.spaceName}` : 'Assignments in this space',
@@ -64,6 +70,12 @@ async function loadAssignments() {
 }
 
 async function handleCreate(payload: { title: string; description: string; dueAt: string }) {
+  if (!props.spaceId) {
+    createError.value = 'Select a space before creating an assignment.'
+    createSuccess.value = null
+    return
+  }
+
   isCreating.value = true
   createError.value = null
   createSuccess.value = null
@@ -73,6 +85,7 @@ async function handleCreate(payload: { title: string; description: string; dueAt
       title: payload.title,
       description: payload.description,
       dueAt: new Date(payload.dueAt).toISOString(),
+      spaceId: props.spaceId,
     })
 
     assignments.value = [
@@ -80,6 +93,7 @@ async function handleCreate(payload: { title: string; description: string; dueAt
         id: created.id,
         title: created.title,
         dueAt: created.dueAt,
+        spaceId: created.spaceId,
         open: created.open,
         latestSubmissionId: null,
         latestSubmittedAt: null,
@@ -130,12 +144,23 @@ watch(
     <AssignmentListHeader v-else />
 
     <AssignmentCreateForm
-      v-if="canCreateAssignments"
+      v-if="canCreateInCurrentView"
       :create-error="createError"
       :create-success="createSuccess"
       :is-creating="isCreating"
+      :space-name="props.spaceName"
       @submit="handleCreate"
     />
+
+    <section v-else-if="canCreateAssignments" class="page-section">
+      <div class="panel-header">
+        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Assignment creation is space-scoped</h3>
+        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+          Open a space to create coursework for that staff-managed roster. This view shows all
+          assignments you can currently access across spaces.
+        </p>
+      </div>
+    </section>
 
     <AssignmentListItems
       :assignments="sortedAssignments"

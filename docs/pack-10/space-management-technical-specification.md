@@ -205,7 +205,7 @@ Failure cases:
 Behavior:
 - admin receives all spaces
 - lecturer receives only owned spaces
-- student receives only enrolled spaces
+- student receives only assigned spaces
 
 Response `200 OK`:
 
@@ -231,7 +231,7 @@ Response `200 OK`:
 Authorization:
 - admin: any
 - lecturer: own spaces only
-- student: enrolled spaces only
+- student: assigned spaces only
 
 Response `200 OK` returns full detail. For student callers, `memberships` must be an empty array.
 
@@ -360,7 +360,7 @@ Privileged staff requirements:
 
 Student requirements:
 - read-only metadata view only
-- no roster, edit, archive, or enrollment controls
+- no roster, edit, archive, or membership-management controls
 
 ### 6.4 Validation UX
 
@@ -376,7 +376,7 @@ Student requirements:
 - student must not open detail for a space they are not a member of
 - archived spaces remain visible but reject new additions
 - adding a lecturer or admin as a member must fail with `422`
-- removing a student who is not enrolled must return `404`
+- removing a student who is not a current member must return `404`
 - whitespace-only values must fail validation
 - normalized code must remain uppercase in storage and responses
 
@@ -411,7 +411,7 @@ The first implementation does not include:
 - resource upload inside spaces
 - announcements or activity feeds
 - lecturer co-ownership or delegated moderators
-- bulk CSV enrollment
+- bulk CSV membership assignment
 - search, pagination, or invite workflows
 
 ### Implemented follow-on integration note

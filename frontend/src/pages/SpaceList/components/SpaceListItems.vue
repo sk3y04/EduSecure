@@ -8,6 +8,8 @@ const props = defineProps<{
   isLoading: boolean
   loadError: string | null
   canManageSpaces: boolean
+  canRequestRegistration: boolean
+  canReviewRegistrations: boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,8 +41,26 @@ function statusClass(archived: boolean): string {
 
     <div v-if="props.isLoading" class="empty-state">Loading spaces…</div>
 
-    <div v-else-if="props.spaces.length === 0" class="empty-state">
-      {{ props.canManageSpaces ? 'No spaces exist yet.' : 'You have not been assigned to any spaces yet.' }}
+    <div v-else-if="props.spaces.length === 0" class="empty-state space-y-3">
+      <p>
+        {{ props.canManageSpaces ? 'No spaces exist yet.' : 'You have not been assigned to any spaces yet.' }}
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <RouterLink
+          v-if="props.canRequestRegistration"
+          :to="{ name: 'registration-requests' }"
+          class="btn-primary"
+        >
+          Request access by space code
+        </RouterLink>
+        <RouterLink
+          v-if="props.canReviewRegistrations"
+          :to="{ name: 'registration-review' }"
+          class="btn-secondary"
+        >
+          Open review queue
+        </RouterLink>
+      </div>
     </div>
 
     <div v-else class="record-list">
@@ -75,7 +95,7 @@ function statusClass(archived: boolean): string {
             {{ space.canManage ? 'Manage space' : 'Open space' }}
           </RouterLink>
           <span v-if="space.isMember && !space.canManage" class="text-base text-[var(--color-text-soft)]">
-            You are enrolled in this space.
+            You currently have staff-managed membership in this space.
           </span>
         </div>
       </article>

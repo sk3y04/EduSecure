@@ -19,6 +19,8 @@ const createSuccess = ref<string | null>(null)
 const isCreating = ref(false)
 
 const canManageSpaces = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
+const canRequestRegistration = computed(() => authStore.hasAnyRole(['STUDENT']))
+const canReviewRegistrations = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 
 async function loadSpaces() {
   isLoading.value = true
@@ -71,7 +73,10 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <SpaceListHeader />
+    <SpaceListHeader
+      :can-request-registration="canRequestRegistration"
+      :can-review-registrations="canReviewRegistrations"
+    />
 
     <SpaceCreateForm
       v-if="canManageSpaces"
@@ -86,6 +91,8 @@ onMounted(() => {
       :is-loading="isLoading"
       :load-error="loadError"
       :can-manage-spaces="canManageSpaces"
+      :can-request-registration="canRequestRegistration"
+      :can-review-registrations="canReviewRegistrations"
       @refresh="loadSpaces"
     />
   </div>

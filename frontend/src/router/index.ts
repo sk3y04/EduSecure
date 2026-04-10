@@ -53,6 +53,22 @@ const router = createRouter({
           component: () => import('@/pages/SpaceDetail/index.vue'),
         },
         {
+          path: 'registration-requests',
+          name: 'registration-requests',
+          component: () => import('@/pages/RegistrationRequests/index.vue'),
+          meta: {
+            roles: ['STUDENT'] satisfies RoleName[],
+          },
+        },
+        {
+          path: 'registration-review',
+          name: 'registration-review',
+          component: () => import('@/pages/RegistrationReview/index.vue'),
+          meta: {
+            roles: ['LECTURER', 'ADMIN'] satisfies RoleName[],
+          },
+        },
+        {
           path: 'assignments/:assignmentId/submit',
           name: 'submission-create',
           component: () => import('@/pages/SubmissionCreate/index.vue'),
