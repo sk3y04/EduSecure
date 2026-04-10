@@ -15,6 +15,8 @@ public interface SpaceRepository extends JpaRepository<Space, UUID> {
 
         Optional<Space> findByCode(String code);
 
+        List<Space> findAllByCreatedByUserId(UUID createdByUserId);
+
     boolean existsByCodeAndIdNot(String code, UUID id);
 
     @Query("""

@@ -10,6 +10,8 @@ const router = useRouter()
 const navigationItems = computed(() => {
   const items = [
     { label: 'Spaces', to: { name: 'spaces' } },
+    { label: 'Exams', to: { name: 'exams' } },
+    { label: 'Exam results', to: { name: 'exam-results' } },
   ]
 
   if (authStore.hasAnyRole(['STUDENT'])) {

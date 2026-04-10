@@ -43,6 +43,16 @@ const router = createRouter({
           component: () => import('@/pages/AssignmentList/index.vue'),
         },
         {
+          path: 'exams',
+          name: 'exams',
+          component: () => import('@/pages/ExamSchedule/index.vue'),
+        },
+        {
+          path: 'exam-results',
+          name: 'exam-results',
+          component: () => import('@/pages/ExamResults/index.vue'),
+        },
+        {
           path: 'spaces',
           name: 'spaces',
           component: () => import('@/pages/SpaceList/index.vue'),

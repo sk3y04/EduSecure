@@ -1,0 +1,101 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-exam-results
+      author: copilot
+      changes:
+        - createTable:
+            tableName: exam_results
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_exam_results
+                    nullable: false
+              - column:
+                  name: exam_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: result_value
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: feedback
+                  type: TEXT
+              - column:
+                  name: published
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_by_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: graded_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_modified_at
+                  type: TIMESTAMP WITH TIME ZONE
+              - column:
+                  name: published_at
+                  type: TIMESTAMP WITH TIME ZONE
+
+        - addForeignKeyConstraint:
+            baseTableName: exam_results
+            baseColumnNames: exam_id
+            referencedTableName: exams
+            referencedColumnNames: id
+            constraintName: fk_exam_results_exam
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: exam_results
+            baseColumnNames: student_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_exam_results_student_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: exam_results
+            baseColumnNames: graded_by_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_exam_results_graded_by_user
+            onDelete: RESTRICT
+
+        - addUniqueConstraint:
+            tableName: exam_results
+            columnNames: exam_id, student_user_id
+            constraintName: uk_exam_results_exam_student
+
+        - createIndex:
+            tableName: exam_results
+            indexName: idx_exam_results_exam_published
+            columns:
+              - column:
+                  name: exam_id
+              - column:
+                  name: published
+
+        - createIndex:
+            tableName: exam_results
+            indexName: idx_exam_results_student_published
+            columns:
+              - column:
+                  name: student_user_id
+              - column:
+                  name: published

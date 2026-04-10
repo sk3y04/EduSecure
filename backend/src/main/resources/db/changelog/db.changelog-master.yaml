@@ -11,4 +11,8 @@ databaseChangeLog:
       file: db/changelog/changes/005-assignment-space-link.yaml
   - include:
       file: db/changelog/changes/006-space-registration-requests.yaml
+  - include:
+      file: db/changelog/changes/007-exam-scheduling.yaml
+  - include:
+      file: db/changelog/changes/008-exam-results.yaml
 

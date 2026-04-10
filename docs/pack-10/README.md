@@ -24,7 +24,9 @@ This pack freezes the design for introducing academic collaboration spaces and t
 
 - `space-management-technical-specification.md`
 - `space-registration-request-technical-specification.md`
+- `exam-scheduling-technical-specification.md`
+- `exam-results-technical-specification.md`
 
 ## Outcome expected from Pack 10
 
-After this pack, the repository should be able to implement the space feature and the first P1 self-service registration-request flow without adding undocumented assumptions around authorization, roster management, review decisions, or UI behavior.
+After this pack, the repository should be able to implement the space feature, the first P1 self-service registration-request flow, and the first P2 exam-scheduling and exam-results flows without adding undocumented assumptions around authorization, roster management, review decisions, scheduling visibility, result publication, or UI behavior.

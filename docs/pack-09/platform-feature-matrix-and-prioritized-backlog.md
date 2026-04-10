@@ -12,12 +12,12 @@ It is based on the repository's current implemented state rather than the full a
 | Students | Access learning materials | Partial | Students can access assignment records in spaces they belong to and can open submission-related pages. | There is no dedicated lecture-material or resource-library module for notes, documents, or video learning content. |
 | Students | Submit assignments | Implemented | Students can upload assignment submissions, retrieve their own submission metadata, and access controlled plaintext retrieval where authorized. Submission integrity and confidentiality controls are implemented. | The core submission flow exists, but it is bounded to the coursework slice rather than a broader learning-material workflow. |
 | Students | Join live virtual classrooms via video | Not implemented | No classroom, meeting, streaming, or video-session module is present. | A real-time classroom integration layer is still required. |
-| Students | View exam results and grades | Partial | Students can view grades for their own assignment submissions while space membership remains valid. | There is no separate exam domain, exam-result entity, exam board workflow, or exam-results UI. |
+| Students | View exam results and grades | Implemented | Students can view grades for their own assignment submissions and published exam results for exams in spaces they currently belong to. | The current implementation does not yet include transcript generation, cohort analytics, or moderation-board workflows. |
 | Lecturers and Admins | Upload lecture notes and video content | Partial | Lecturers and admins can create spaces and assignments, which act as coursework containers. | There is no dedicated upload and retrieval workflow for lecture notes, recorded lectures, or other reusable teaching materials. |
 | Lecturers and Admins | Record attendance | Not implemented | No attendance entity, API, or frontend screen is present. | Attendance capture, storage, reporting, and authorization rules still need to be implemented. |
 | Lecturers and Admins | Grade submissions | Implemented | Lecturers and admins can create, update, and retrieve grades for verified submissions. Students can view their own grade. | This covers assignment grading only, not full assessment administration. |
 | Lecturers and Admins | Communicate with students | Not implemented | No messaging, announcement, chat, or notification module is present. | A communication workflow still needs domain design, persistence, delivery rules, and UI. |
-| Lecturers and Admins | Manage exam scheduling | Not implemented | No exam timetable or scheduling model is present. | Exam-event creation, scheduling conflicts, publication, and student visibility are still absent. |
+| Lecturers and Admins | Manage exam scheduling | Implemented | Staff can create and update space-scoped exam schedule entries with timetable fields, overlap checks, publication state, and student-visible schedule reads bounded by space membership. | The current implementation does not yet include exam results, seating plans, or cross-space university-wide timetable coordination. |
 | Lecturers and Admins | Manage feedback forms | Not implemented | Lecturer free-text feedback exists only as part of the grade record for a submission. | There is no reusable feedback-form model, survey flow, or response-management feature. |
 
 ## 2. What is strongly implemented already
@@ -66,7 +66,7 @@ The recommended order below prioritizes finishing the current coursework slice c
 | Priority | Work item | Why now | Main outputs |
 |---|---|---|---|
 | P2 | Exam scheduling module | The brief explicitly includes exam administration, and scheduling is the foundation for later exam-related features. | exam entity, timetable fields, staff management API, student-visible schedule page |
-| P2 | Exam results domain | Current grade support is submission-based only. A distinct exam-results model is needed for honest feature coverage. | exam-result entity, result publication rules, student result view, audit coverage |
+| P2 | Exam results domain | Implemented after exam scheduling, because the result model now hangs from the exam timetable and reuses the same ownership and visibility rules. | exam-result entity, result publication rules, staff management API, student result view, audit coverage |
 | P2 | Structured feedback forms | Once assessment events exist, reusable feedback forms become more coherent than ad hoc implementation. | form templates, response capture, aggregation or review screens |
 
 ### Priority 3: add operational teaching features
@@ -101,9 +101,15 @@ Primary implementation evidence:
 - `backend/src/main/java/edusecure/edusecure/service/space/SpaceService.java`
 - `backend/src/main/java/edusecure/edusecure/controller/assignment/AssignmentController.java`
 - `backend/src/main/java/edusecure/edusecure/service/assignment/AssignmentService.java`
+- `backend/src/main/java/edusecure/edusecure/controller/exam/ExamController.java`
+- `backend/src/main/java/edusecure/edusecure/service/exam/ExamService.java`
+- `backend/src/main/java/edusecure/edusecure/controller/exam/ExamResultController.java`
+- `backend/src/main/java/edusecure/edusecure/service/exam/ExamResultService.java`
 - `backend/src/main/java/edusecure/edusecure/controller/submission/SubmissionController.java`
 - `backend/src/main/java/edusecure/edusecure/controller/grade/GradeController.java`
 - `frontend/src/router/index.ts`
+- `frontend/src/pages/ExamSchedule/index.vue`
+- `frontend/src/pages/ExamResults/index.vue`
 - `frontend/src/pages/SpaceDetail/index.vue`
 - `frontend/src/pages/AssignmentList/index.vue`
 - `frontend/src/pages/SubmissionCreate/index.vue`
@@ -119,5 +125,7 @@ Primary status and evidence documents:
 
 Primary automated evidence:
 - `backend/src/test/java/edusecure/edusecure/SpaceFlowIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/ExamFlowIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/ExamResultFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/SubmissionFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/GradeFlowIntegrationTests.java`
