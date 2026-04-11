@@ -17,8 +17,8 @@ It is based on the repository's current implemented state rather than the full a
 | Lecturers and Admins | Record attendance | Not implemented | No attendance entity, API, or frontend screen is present. | Attendance capture, storage, reporting, and authorization rules still need to be implemented. |
 | Lecturers and Admins | Grade submissions | Implemented | Lecturers and admins can create, update, and retrieve grades for verified submissions. Students can view their own grade. | This covers assignment grading only, not full assessment administration. |
 | Lecturers and Admins | Communicate with students | Not implemented | No messaging, announcement, chat, or notification module is present. | A communication workflow still needs domain design, persistence, delivery rules, and UI. |
-| Lecturers and Admins | Manage exam scheduling | Implemented | Staff can create and update space-scoped exam schedule entries with timetable fields, overlap checks, publication state, and student-visible schedule reads bounded by space membership. | The current implementation does not yet include exam results, seating plans, or cross-space university-wide timetable coordination. |
-| Lecturers and Admins | Manage feedback forms | Not implemented | Lecturer free-text feedback exists only as part of the grade record for a submission. | There is no reusable feedback-form model, survey flow, or response-management feature. |
+| Lecturers and Admins | Manage exam scheduling | Implemented | Staff can create and update space-scoped exam schedule entries with timetable fields, overlap checks, publication state, and student-visible schedule reads bounded by space membership. | The current implementation does not yet include seating plans or cross-space university-wide timetable coordination. |
+| Lecturers and Admins | Manage feedback forms | Implemented | Staff can create exam-linked feedback forms with ordered rating or text questions, publish them, and review submitted responses with rating summaries. Students can submit one response per published accessible form. | The current implementation does not yet include anonymous surveys, reusable template libraries, or response-export tooling. |
 
 ## 2. What is strongly implemented already
 
@@ -67,7 +67,7 @@ The recommended order below prioritizes finishing the current coursework slice c
 |---|---|---|---|
 | P2 | Exam scheduling module | The brief explicitly includes exam administration, and scheduling is the foundation for later exam-related features. | exam entity, timetable fields, staff management API, student-visible schedule page |
 | P2 | Exam results domain | Implemented after exam scheduling, because the result model now hangs from the exam timetable and reuses the same ownership and visibility rules. | exam-result entity, result publication rules, staff management API, student result view, audit coverage |
-| P2 | Structured feedback forms | Once assessment events exist, reusable feedback forms become more coherent than ad hoc implementation. | form templates, response capture, aggregation or review screens |
+| P2 | Structured feedback forms | Implemented after exam scheduling and exam results so the workflow could attach to an existing exam and space-ownership model. | form templates, student response capture, staff review screen, aggregate rating summaries, audit coverage |
 
 ### Priority 3: add operational teaching features
 
@@ -89,7 +89,7 @@ If the goal is to strengthen the project as an assessed artefact rather than bui
 1. finish the existing space and assignment workflow cleanly
 2. add one convincing enrolment flow
 3. add one convincing learning-material flow
-4. add one clearly modelled exam-scheduling or exam-results flow
+4. add one clearly modelled exam-scheduling, exam-results, or feedback-form flow
 5. leave live classroom delivery as future work unless there is time for meaningful evidence and testing
 
 That approach keeps the project academically credible and avoids diluting the already strong security-focused implementation.
@@ -105,11 +105,14 @@ Primary implementation evidence:
 - `backend/src/main/java/edusecure/edusecure/service/exam/ExamService.java`
 - `backend/src/main/java/edusecure/edusecure/controller/exam/ExamResultController.java`
 - `backend/src/main/java/edusecure/edusecure/service/exam/ExamResultService.java`
+- `backend/src/main/java/edusecure/edusecure/controller/exam/FeedbackFormController.java`
+- `backend/src/main/java/edusecure/edusecure/service/exam/FeedbackFormService.java`
 - `backend/src/main/java/edusecure/edusecure/controller/submission/SubmissionController.java`
 - `backend/src/main/java/edusecure/edusecure/controller/grade/GradeController.java`
 - `frontend/src/router/index.ts`
 - `frontend/src/pages/ExamSchedule/index.vue`
 - `frontend/src/pages/ExamResults/index.vue`
+- `frontend/src/pages/FeedbackForms/index.vue`
 - `frontend/src/pages/SpaceDetail/index.vue`
 - `frontend/src/pages/AssignmentList/index.vue`
 - `frontend/src/pages/SubmissionCreate/index.vue`
@@ -127,5 +130,6 @@ Primary automated evidence:
 - `backend/src/test/java/edusecure/edusecure/SpaceFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/ExamFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/ExamResultFlowIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/FeedbackFormFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/SubmissionFlowIntegrationTests.java`
 - `backend/src/test/java/edusecure/edusecure/GradeFlowIntegrationTests.java`

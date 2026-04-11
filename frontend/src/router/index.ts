@@ -53,6 +53,11 @@ const router = createRouter({
           component: () => import('@/pages/ExamResults/index.vue'),
         },
         {
+          path: 'feedback-forms',
+          name: 'feedback-forms',
+          component: () => import('@/pages/FeedbackForms/index.vue'),
+        },
+        {
           path: 'spaces',
           name: 'spaces',
           component: () => import('@/pages/SpaceList/index.vue'),

@@ -15,4 +15,6 @@ databaseChangeLog:
       file: db/changelog/changes/007-exam-scheduling.yaml
   - include:
       file: db/changelog/changes/008-exam-results.yaml
+  - include:
+      file: db/changelog/changes/009-feedback-forms.yaml
 

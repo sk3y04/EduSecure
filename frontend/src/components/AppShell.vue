@@ -12,6 +12,7 @@ const navigationItems = computed(() => {
     { label: 'Spaces', to: { name: 'spaces' } },
     { label: 'Exams', to: { name: 'exams' } },
     { label: 'Exam results', to: { name: 'exam-results' } },
+    { label: 'Feedback forms', to: { name: 'feedback-forms' } },
   ]
 
   if (authStore.hasAnyRole(['STUDENT'])) {
