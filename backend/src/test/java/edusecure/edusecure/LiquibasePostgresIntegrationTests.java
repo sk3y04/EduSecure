@@ -76,6 +76,13 @@ class LiquibasePostgresIntegrationTests {
         );
         assertThat(assignmentSpaceChangeSetCount).isEqualTo(1);
 
+        Integer attendanceChangeSetCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM databasechangelog WHERE id = ?",
+                Integer.class,
+                "010-attendance-recording-create-attendance-sessions"
+        );
+        assertThat(attendanceChangeSetCount).isEqualTo(1);
+
         Integer tableCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('roles', 'users', 'user_roles')",
                 Integer.class
@@ -123,6 +130,30 @@ class LiquibasePostgresIntegrationTests {
                 Integer.class
         );
         assertThat(assignmentSpaceIndexCount).isEqualTo(1);
+
+        Integer attendanceTableCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('attendance_sessions', 'attendance_records')",
+                Integer.class
+        );
+        assertThat(attendanceTableCount).isEqualTo(2);
+
+        Integer attendanceUniqueConstraintCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = 'public' AND table_name = 'attendance_records' AND constraint_name = 'uk_attendance_records_session_student' AND constraint_type = 'UNIQUE'",
+                Integer.class
+        );
+        assertThat(attendanceUniqueConstraintCount).isEqualTo(1);
+
+        Integer attendanceSessionsIndexCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'attendance_sessions' AND indexname = 'idx_attendance_sessions_space_starts_at'",
+                Integer.class
+        );
+        assertThat(attendanceSessionsIndexCount).isEqualTo(1);
+
+        Integer attendanceRecordsIndexCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'attendance_records' AND indexname = 'idx_attendance_records_student_session'",
+                Integer.class
+        );
+        assertThat(attendanceRecordsIndexCount).isEqualTo(1);
 
         for (RoleName roleName : RoleName.values()) {
             assertThat(roleRepository.findByName(roleName)).isPresent();

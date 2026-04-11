@@ -38,6 +38,11 @@ const router = createRouter({
           redirect: { name: 'spaces' },
         },
         {
+          path: 'attendance',
+          name: 'attendance',
+          component: () => import('@/pages/Attendance/index.vue'),
+        },
+        {
           path: 'assignments',
           name: 'assignments',
           component: () => import('@/pages/AssignmentList/index.vue'),

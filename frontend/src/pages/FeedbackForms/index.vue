@@ -12,7 +12,6 @@ import type {
   FeedbackFormQuestion,
   FeedbackFormQuestionPayload,
   FeedbackFormReview,
-  FeedbackQuestionType,
 } from '@/types/feedbackForm'
 
 const authStore = useAuthStore()
@@ -86,6 +85,10 @@ function resetDraft(clearMessages = true) {
     formError.value = null
     formSuccess.value = null
   }
+}
+
+function handleResetDraft() {
+  resetDraft()
 }
 
 function populateDraft(form: FeedbackForm) {
@@ -400,7 +403,7 @@ onMounted(() => {
               </p>
             </div>
 
-            <button type="button" class="btn-secondary self-start" @click="resetDraft">
+            <button type="button" class="btn-secondary self-start" @click="handleResetDraft">
               New form
             </button>
           </div>
@@ -480,7 +483,7 @@ onMounted(() => {
             >
               {{ isSubmitting ? 'Saving…' : editingFormId ? 'Update form' : 'Create form' }}
             </button>
-            <button type="button" class="btn-secondary" :disabled="isSubmitting" @click="resetDraft">
+            <button type="button" class="btn-secondary" :disabled="isSubmitting" @click="handleResetDraft">
               Cancel
             </button>
           </div>

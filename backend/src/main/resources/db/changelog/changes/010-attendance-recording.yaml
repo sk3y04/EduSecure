@@ -1,0 +1,149 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-attendance-recording-create-attendance-sessions
+      author: copilot
+      changes:
+        - createTable:
+            tableName: attendance_sessions
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_attendance_sessions
+                    nullable: false
+              - column:
+                  name: space_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(160)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: starts_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ends_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: attendance_sessions
+            baseColumnNames: space_id
+            constraintName: fk_attendance_sessions_space
+            referencedTableName: spaces
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: attendance_sessions
+            baseColumnNames: created_by_user_id
+            constraintName: fk_attendance_sessions_created_by_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: RESTRICT
+        - createIndex:
+            tableName: attendance_sessions
+            indexName: idx_attendance_sessions_space_starts_at
+            columns:
+              - column:
+                  name: space_id
+              - column:
+                  name: starts_at
+
+  - changeSet:
+      id: 010-attendance-recording-create-attendance-records
+      author: copilot
+      changes:
+        - createTable:
+            tableName: attendance_records
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_attendance_records
+                    nullable: false
+              - column:
+                  name: session_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: student_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+              - column:
+                  name: recorded_by_user_id
+                  type: UUID
+              - column:
+                  name: recorded_at
+                  type: TIMESTAMP WITH TIME ZONE
+        - addForeignKeyConstraint:
+            baseTableName: attendance_records
+            baseColumnNames: session_id
+            constraintName: fk_attendance_records_session
+            referencedTableName: attendance_sessions
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: attendance_records
+            baseColumnNames: student_user_id
+            constraintName: fk_attendance_records_student_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: RESTRICT
+        - addForeignKeyConstraint:
+            baseTableName: attendance_records
+            baseColumnNames: recorded_by_user_id
+            constraintName: fk_attendance_records_recorded_by_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: RESTRICT
+        - addUniqueConstraint:
+            tableName: attendance_records
+            columnNames: session_id, student_user_id
+            constraintName: uk_attendance_records_session_student
+        - createIndex:
+            tableName: attendance_records
+            indexName: idx_attendance_records_student_session
+            columns:
+              - column:
+                  name: student_user_id
+              - column:
+                  name: session_id
+        - createIndex:
+            tableName: attendance_records
+            indexName: idx_attendance_records_session_id
+            columns:
+              - column:
+                  name: session_id
+

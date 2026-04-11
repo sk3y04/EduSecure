@@ -17,4 +17,6 @@ databaseChangeLog:
       file: db/changelog/changes/008-exam-results.yaml
   - include:
       file: db/changelog/changes/009-feedback-forms.yaml
+  - include:
+      file: db/changelog/changes/010-attendance-recording.yaml
 

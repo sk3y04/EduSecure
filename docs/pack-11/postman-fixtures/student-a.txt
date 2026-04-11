@@ -1,3 +1,0 @@
-This is a valid Pack 11 sample submission file for Student A.
-It is intended for the normal text/plain upload flow in the EduSecure security review bundle.
-
