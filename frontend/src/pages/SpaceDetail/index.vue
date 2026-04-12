@@ -194,6 +194,7 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
         class="xl:col-span-4 xl:row-span-3"
         :space-id="space.id"
         :archived="space.archived"
+        :can-manage="space.canManage"
       />
 
 

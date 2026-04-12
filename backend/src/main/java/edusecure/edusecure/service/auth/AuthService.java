@@ -10,6 +10,8 @@ import edusecure.edusecure.entity.audit.AuditActionType;
 import edusecure.edusecure.entity.auth.Role;
 import edusecure.edusecure.entity.auth.RoleName;
 import edusecure.edusecure.entity.auth.User;
+import edusecure.edusecure.repository.spacechatkey.UserChatKeyRepository;
+import edusecure.edusecure.config.chat.SpaceChatProperties;
 import edusecure.edusecure.repository.auth.RoleRepository;
 import edusecure.edusecure.repository.auth.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +37,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final AuthTokenService authTokenService;
     private final MfaService mfaService;
-        private final AuditService auditService;
+    private final AuditService auditService;
+    private final UserChatKeyRepository userChatKeyRepository;
+    private final SpaceChatProperties spaceChatProperties;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -64,7 +68,9 @@ public class AuthService {
             savedUser.getId(),
             savedUser.getEmail(),
             savedUser.getFullName(),
-            savedUser.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet())
+            savedUser.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet()),
+            spaceChatProperties.getE2ee().isEnabled(),
+            false
         );
         }
 
@@ -97,7 +103,9 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
-                user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet())
+                user.getRoles().stream().map(role -> role.getName().name()).collect(Collectors.toSet()),
+                spaceChatProperties.getE2ee().isEnabled(),
+                userChatKeyRepository.findFirstByUserIdAndRevokedAtIsNull(user.getId()).isPresent()
         );
     }
 

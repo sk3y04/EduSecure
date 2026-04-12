@@ -4,6 +4,8 @@ const props = defineProps<{
   isSending: boolean
   sendError: string | null
   isArchived: boolean
+  isEncryptedChatActive?: boolean
+  sendDisabledReason?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -22,13 +24,16 @@ function updateValue(event: Event) {
       <div>
         <h4 class="font-display text-lg font-semibold text-[var(--color-heading)]">Send a message</h4>
         <p class="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
-          Messages are stored as plain text and new posts are blocked once the space is archived.
+          {{ props.isEncryptedChatActive
+            ? 'Messages sent from this device now use the encrypted room key when one is available.'
+            : 'Messages are stored as plain text and new posts are blocked once the space is archived.' }}
         </p>
       </div>
       <span v-if="props.isArchived" class="status-pill status-pill-warning">Read-only</span>
     </div>
 
     <div v-if="props.sendError" class="alert-error mt-4">{{ props.sendError }}</div>
+    <div v-else-if="props.sendDisabledReason" class="alert-error mt-4">{{ props.sendDisabledReason }}</div>
 
     <form class="mt-4 space-y-4" @submit.prevent="emit('submit')">
       <label class="block">
@@ -39,7 +44,7 @@ function updateValue(event: Event) {
           class="form-input"
           maxlength="2000"
           placeholder="Write a message to everyone in this space…"
-          :disabled="props.isSending || props.isArchived"
+          :disabled="props.isSending || props.isArchived || Boolean(props.sendDisabledReason)"
           @input="updateValue"
         />
       </label>
@@ -51,7 +56,7 @@ function updateValue(event: Event) {
         <button
           type="submit"
           class="btn-primary"
-          :disabled="props.isSending || props.isArchived || props.modelValue.trim().length === 0"
+          :disabled="props.isSending || props.isArchived || Boolean(props.sendDisabledReason) || props.modelValue.trim().length === 0"
         >
           {{ props.isSending ? 'Sending…' : 'Send message' }}
         </button>

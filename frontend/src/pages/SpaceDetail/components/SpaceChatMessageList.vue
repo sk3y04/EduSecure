@@ -30,6 +30,22 @@ function formatDate(value: string): string {
 function isOwnMessage(message: SpaceChatMessage): boolean {
   return Boolean(props.currentUserId) && props.currentUserId === message.authorUserId
 }
+
+function messageStatusLabel(message: SpaceChatMessage): string | null {
+  if (message.bodyState === 'legacy-plaintext') {
+    return 'Legacy plaintext'
+  }
+
+  if (message.bodyState === 'decrypted') {
+    return message.encrypted ? 'Encrypted message' : null
+  }
+
+  if (message.bodyState === 'undecryptable') {
+    return 'Encrypted message unavailable on this device'
+  }
+
+  return null
+}
 </script>
 
 <template>
@@ -78,11 +94,14 @@ function isOwnMessage(message: SpaceChatMessage): boolean {
               <p class="text-xs uppercase tracking-[0.18em] text-[var(--color-text-soft)]">
                 {{ isOwnMessage(message) ? 'You' : 'Space member' }}
               </p>
+              <p v-if="messageStatusLabel(message)" class="mt-1 text-xs text-[var(--color-text-soft)]">
+                {{ messageStatusLabel(message) }}
+              </p>
             </div>
             <p class="text-sm text-[var(--color-text-soft)]">{{ formatDate(message.createdAt) }}</p>
           </div>
           <p class="mt-3 whitespace-pre-wrap break-words text-base leading-7 text-[var(--color-text)]">
-            {{ message.body }}
+            {{ message.displayBody ?? message.body ?? 'Unable to decrypt this message on this device.' }}
           </p>
         </article>
       </div>

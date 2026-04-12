@@ -1,0 +1,202 @@
+@startuml
+skinparam backgroundColor white
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 140
+skinparam wrapWidth 220
+
+title EduSecure Space Chat E2EE Flow (Implemented)
+
+actor "Manager" as Manager
+actor "Recipient" as Recipient
+participant "Manager Browser" as ManagerBrowser
+participant "Recipient Browser" as RecipientBrowser
+participant "SpaceChatPanel" as Panel
+participant "spaceChatService" as ChatApi
+participant "SpaceChatE2eeController" as E2eeController
+participant "SpaceChatE2eeService" as E2eeService
+participant "SpaceChatController" as ChatController
+participant "MongoSpaceChatService" as ChatService
+collections "IndexedDB\nchatKeyStore" as KeyStore
+collections "PostgreSQL\nuser_chat_keys\nspace_chat_key_versions\nspace_chat_key_recipients" as PG
+collections "MongoDB\nspace_chat_messages" as Mongo
+
+note right of Panel
+Implemented crypto stack:
+- ECDH P-256 device keys
+- SHA-256 public-key fingerprint
+- AES-GCM 256 room keys
+- ECDH + HKDF-SHA-256 wrap-key derivation
+- AES-GCM message encryption
+- base64url for nonce/ciphertext fields
+end note
+
+group 1. Browser key registration
+Manager -> ManagerBrowser : open SpaceDetail / chat panel
+ManagerBrowser -> Panel : setupEncryptedChatOnThisDevice()
+Panel -> Panel : detectBrowserCryptoSupport()
+Panel -> Panel : generateChatKeyPairMaterial()
+note right of Panel
+Frontend generates an ECDH P-256 key pair.
+Public JWK is canonicalized and fingerprinted
+with SHA-256.
+end note
+Panel -> KeyStore : saveCurrentUserKey(userId, privateKey, fingerprint)
+KeyStore --> Panel : local key saved
+Panel -> ChatApi : PUT /api/chat/e2ee/me\n{ algorithm, publicKeyJwk, fingerprint }
+ChatApi -> E2eeController : upsertCurrentUserKey(...)
+E2eeController -> E2eeService : upsertCurrentUserKey(...)
+E2eeService -> PG : store user_chat_keys row
+PG --> E2eeService : active public key persisted
+E2eeService --> E2eeController : keyRegistered=true
+E2eeController --> ChatApi : CurrentUserChatKeyResponse
+ChatApi --> Panel : registered key metadata
+
+Recipient -> RecipientBrowser : open encrypted chat on this device
+RecipientBrowser -> Panel : same local key-generation and registration flow
+Panel -> KeyStore : saveCurrentUserKey(...)
+Panel -> ChatApi : PUT /api/chat/e2ee/me
+ChatApi -> E2eeController
+E2eeController -> E2eeService
+E2eeService -> PG : store recipient public key
+
+
+end
+
+group 2. Manager publishes a room key version
+Manager -> ManagerBrowser : initialize / rotate encrypted room key
+ManagerBrowser -> Panel : publishEncryptedRoomKey()
+Panel -> ChatApi : GET /api/spaces/{spaceId}/chat/e2ee/recipients
+ChatApi -> E2eeController : listRecipients(...)
+E2eeController -> E2eeService : listRecipients(...)
+E2eeService -> PG : load current participant set + public keys
+PG --> E2eeService : recipients + public keys
+E2eeService --> E2eeController : recipient list
+E2eeController --> ChatApi : recipient metadata
+ChatApi --> Panel : recipients
+Panel -> Panel : generateSpaceRoomKey()
+loop for each recipient
+  Panel -> Panel : deriveRecipientWrapKey()\nECDH shared secret + HKDF-SHA-256
+  Panel -> Panel : wrapRoomKeyForRecipient()\nAES-GCM wrap with fresh nonce
+end
+Panel -> ChatApi : POST /api/spaces/{spaceId}/chat/e2ee/key-versions\n{ keyVersion, rotationReason, recipients[] }
+ChatApi -> E2eeController : publishKeyVersion(...)
+E2eeController -> E2eeService : publishKeyVersion(...)
+E2eeService -> PG : validate participant set,\nregistered keys, and next key version
+E2eeService -> PG : store space_chat_key_versions\nwith publisher public key + fingerprint
+E2eeService -> PG : store space_chat_key_recipients
+PG --> E2eeService : room-key metadata persisted
+E2eeService --> E2eeController : publish response
+E2eeController --> ChatApi : keyVersion published
+ChatApi --> Panel : publish success
+Panel -> KeyStore : saveRoomKey(userId, spaceId, keyVersion, roomKey)
+
+note right of PG
+Publisher public key is stored with the key version
+so recipients can derive the same wrap key and
+unwrap the room key locally.
+end note
+
+end
+
+group 3. Sender encrypts and posts a message
+Recipient -> RecipientBrowser : type chat message
+RecipientBrowser -> Panel : sendMessage()
+Panel -> ChatApi : GET /api/spaces/{spaceId}/chat/e2ee/state
+ChatApi -> E2eeController : getSpaceState(...)
+E2eeController -> E2eeService : getSpaceState(...)
+E2eeService -> PG : load latest key version + recipient wrapped key
+PG --> E2eeService : activeKeyVersion, requiresRekey, wrapped key package
+E2eeService --> E2eeController : E2EE state
+E2eeController --> ChatApi : state response
+ChatApi --> Panel : active key state
+Panel -> KeyStore : loadRoomKey(userId, spaceId, activeKeyVersion)
+alt room key missing locally
+  Panel -> KeyStore : loadCurrentUserKey(userId)
+  Panel -> Panel : unwrapRoomKeyFromPublisher()\nECDH + HKDF-SHA-256 + AES-GCM
+  Panel -> KeyStore : saveRoomKey(...)
+else room key already cached
+  KeyStore --> Panel : cached room key
+end
+Panel -> Panel : encryptSpaceChatMessage()\nAES-GCM(message, AAD={spaceId,keyVersion,contentType})
+Panel -> ChatApi : POST /api/spaces/{spaceId}/chat/messages\n{ keyVersion, algorithm, nonce, ciphertext, contentType, plaintextLength }
+ChatApi -> ChatController : createMessage(...)
+ChatController -> ChatService : createMessage(...)
+ChatService -> PG : validate active key version and requiresRekey=false
+ChatService -> Mongo : store encrypted message envelope
+Mongo --> ChatService : ciphertext message persisted
+ChatService --> ChatController : SpaceChatMessageResponse
+ChatController --> ChatApi : created message envelope
+ChatApi --> Panel : created encrypted message
+
+note right of ChatService
+Backend validates:
+- no plaintext body in encrypted mode
+- algorithm = AES_GCM_256
+- active key version matches
+- requiresRekey is false
+- plaintextLength within configured limit
+end note
+
+end
+
+group 4. Recipient fetches and decrypts messages
+Recipient -> RecipientBrowser : open / refresh chat history
+RecipientBrowser -> Panel : loadInitial() / pollLatest() / loadOlder()
+Panel -> ChatApi : GET /api/spaces/{spaceId}/chat/messages
+ChatApi -> ChatController : listMessages(...)
+ChatController -> ChatService : listMessages(...)
+ChatService -> Mongo : query mixed legacy + encrypted messages
+Mongo --> ChatService : message page
+ChatService --> ChatController : SpaceChatMessagePageResponse
+ChatController --> ChatApi : page response
+ChatApi --> Panel : mixed message page
+loop for each message
+  alt encrypted message envelope present
+    Panel -> KeyStore : loadRoomKey(userId, spaceId, keyVersion)
+    alt room key available
+      Panel -> Panel : decryptSpaceChatMessage()\nAES-GCM decrypt with same AAD
+      Panel -> RecipientBrowser : render decrypted plaintext
+    else no room key available
+      Panel -> RecipientBrowser : render safe undecryptable placeholder
+    end
+  else legacy plaintext message
+    Panel -> RecipientBrowser : render plaintext body
+  end
+end
+
+note right of RecipientBrowser
+Current implementation supports mixed history:
+- legacy plaintext messages may still be visible
+- encrypted messages are decrypted locally when
+  the active room key can be resolved
+end note
+
+end
+
+group 5. Membership change triggers rekey
+Manager -> ManagerBrowser : add or remove a student from the space
+ManagerBrowser -> E2eeService : membership change via SpaceService
+E2eeService -> PG : mark latest key version requiresRekey=true
+PG --> E2eeService : rekey flag persisted
+RecipientBrowser -> Panel : attempt to send another encrypted message
+Panel -> ChatApi : GET /api/spaces/{spaceId}/chat/e2ee/state
+ChatApi -> E2eeController
+E2eeController -> E2eeService
+E2eeService -> PG : load latest key version
+PG --> E2eeService : requiresRekey=true
+E2eeService --> E2eeController : state requires rekey
+E2eeController --> ChatApi
+ChatApi --> Panel : send blocked until new room key version is published
+Panel -> RecipientBrowser : show rekey-required state
+end
+
+note over Manager,Mongo
+Server-visible metadata still includes sender, space, time,
+keyVersion, contentType, and plaintextLength.
+The implementation provides content confidentiality,
+not full metadata confidentiality.
+end note
+
+@enduml
+

@@ -1,0 +1,223 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-space-chat-e2ee-metadata
+      author: copilot
+      changes:
+        - createTable:
+            tableName: user_chat_keys
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_user_chat_keys
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: algorithm
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: public_key_jwk
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fingerprint
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked_at
+                  type: TIMESTAMP WITH TIME ZONE
+
+        - createTable:
+            tableName: space_chat_key_versions
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_space_chat_key_versions
+                    nullable: false
+              - column:
+                  name: space_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: key_version
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: rotation_reason
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requires_rekey
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: space_chat_key_recipients
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_space_chat_key_recipients
+                    nullable: false
+              - column:
+                  name: space_chat_key_version_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipient_user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: wrap_algorithm
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: wrap_nonce
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: wrapped_key_ciphertext
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+
+        - addUniqueConstraint:
+            tableName: space_chat_key_versions
+            columnNames: space_id, key_version
+            constraintName: uk_space_chat_key_versions_space_version
+
+        - addUniqueConstraint:
+            tableName: space_chat_key_recipients
+            columnNames: space_chat_key_version_id, recipient_user_id
+            constraintName: uk_space_chat_key_recipients_version_recipient
+
+        - addForeignKeyConstraint:
+            baseTableName: user_chat_keys
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_user_chat_keys_user
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: space_chat_key_versions
+            baseColumnNames: space_id
+            referencedTableName: spaces
+            referencedColumnNames: id
+            constraintName: fk_space_chat_key_versions_space
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: space_chat_key_versions
+            baseColumnNames: created_by_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_space_chat_key_versions_created_by_user
+            onDelete: RESTRICT
+
+        - addForeignKeyConstraint:
+            baseTableName: space_chat_key_recipients
+            baseColumnNames: space_chat_key_version_id
+            referencedTableName: space_chat_key_versions
+            referencedColumnNames: id
+            constraintName: fk_space_chat_key_recipients_version
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: space_chat_key_recipients
+            baseColumnNames: recipient_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_space_chat_key_recipients_user
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: user_chat_keys
+            indexName: idx_user_chat_keys_user_id
+            columns:
+              - column:
+                  name: user_id
+
+        - createIndex:
+            tableName: user_chat_keys
+            indexName: idx_user_chat_keys_revoked_at
+            columns:
+              - column:
+                  name: revoked_at
+
+        - createIndex:
+            tableName: space_chat_key_versions
+            indexName: idx_space_chat_key_versions_space_id
+            columns:
+              - column:
+                  name: space_id
+
+        - createIndex:
+            tableName: space_chat_key_versions
+            indexName: idx_space_chat_key_versions_created_by_user_id
+            columns:
+              - column:
+                  name: created_by_user_id
+
+        - createIndex:
+            tableName: space_chat_key_recipients
+            indexName: idx_space_chat_key_recipients_version_id
+            columns:
+              - column:
+                  name: space_chat_key_version_id
+
+        - createIndex:
+            tableName: space_chat_key_recipients
+            indexName: idx_space_chat_key_recipients_user_id
+            columns:
+              - column:
+                  name: recipient_user_id
+
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: CREATE UNIQUE INDEX uk_user_chat_keys_active_user ON user_chat_keys (user_id) WHERE revoked_at IS NULL;
+

@@ -3,8 +3,17 @@ export interface SpaceChatMessage {
   spaceId: string
   authorUserId: string
   authorDisplayName: string
-  body: string
+  body: string | null
+  keyVersion: number | null
+  algorithm: string | null
+  nonce: string | null
+  ciphertext: string | null
+  contentType: string | null
+  plaintextLength: number | null
   createdAt: string
+  displayBody?: string
+  bodyState?: 'legacy-plaintext' | 'decrypted' | 'undecryptable'
+  encrypted?: boolean
 }
 
 export interface SpaceChatMessagePage {
@@ -15,7 +24,13 @@ export interface SpaceChatMessagePage {
 }
 
 export interface CreateSpaceChatMessageRequest {
-  body: string
+  body?: string | null
+  keyVersion?: number | null
+  algorithm?: string | null
+  nonce?: string | null
+  ciphertext?: string | null
+  contentType?: string | null
+  plaintextLength?: number | null
 }
 
 export interface ListSpaceChatMessagesParams {

@@ -1,10 +1,17 @@
 package edusecure.edusecure.dto.spacechat;
 
-import jakarta.validation.constraints.NotBlank;
-
 public record CreateSpaceChatMessageRequest(
-        @NotBlank(message = "Message body is required")
-        String body
+        String body,
+        Integer keyVersion,
+        String algorithm,
+        String nonce,
+        String ciphertext,
+        String contentType,
+        Integer plaintextLength
 ) {
+
+    public CreateSpaceChatMessageRequest(String body) {
+        this(body, null, null, null, null, null, null);
+    }
 }
 

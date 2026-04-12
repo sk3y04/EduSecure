@@ -9,6 +9,12 @@ public record SpaceChatMessageResponse(
         UUID authorUserId,
         String authorDisplayName,
         String body,
+        Integer keyVersion,
+        String algorithm,
+        String nonce,
+        String ciphertext,
+        String contentType,
+        Integer plaintextLength,
         Instant createdAt
 ) {
 }

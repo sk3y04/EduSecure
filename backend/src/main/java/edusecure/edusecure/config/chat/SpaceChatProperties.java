@@ -3,6 +3,7 @@ package edusecure.edusecure.config.chat;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -29,9 +30,21 @@ public class SpaceChatProperties {
     @Max(value = 100, message = "Maximum chat page size must not exceed 100")
     private int pageSizeMax = 100;
 
+    @Valid
+    private E2ee e2ee = new E2ee();
+
     @AssertTrue(message = "Default chat page size must be less than or equal to the maximum chat page size")
     public boolean isPageSizeConfigurationValid() {
         return pageSizeDefault <= pageSizeMax;
+    }
+
+    @Getter
+    @Setter
+    public static class E2ee {
+
+        private boolean enabled = false;
+
+        private boolean requireRegisteredKey = false;
     }
 }
 

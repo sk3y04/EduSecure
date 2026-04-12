@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 012-space-chat-e2ee-publisher-key
+      author: copilot
+      changes:
+        - addColumn:
+            tableName: space_chat_key_versions
+            columns:
+              - column:
+                  name: publisher_public_key_jwk
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: publisher_key_fingerprint
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+

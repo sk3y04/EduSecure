@@ -17,6 +17,7 @@ import edusecure.edusecure.repository.auth.UserRepository;
 import edusecure.edusecure.repository.space.SpaceMembershipRepository;
 import edusecure.edusecure.repository.space.SpaceRepository;
 import edusecure.edusecure.repository.space.SpaceSummaryProjection;
+import edusecure.edusecure.service.spacechatkey.SpaceChatKeyVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class SpaceService {
     private final AuditService auditService;
     private final SpaceAccessService spaceAccessService;
     private final SpaceChatProperties spaceChatProperties;
+    private final SpaceChatKeyVersionService spaceChatKeyVersionService;
 
     @Transactional(readOnly = true)
     public List<SpaceSummaryResponse> listSpaces(String currentUserEmail) {
@@ -168,6 +170,7 @@ public class SpaceService {
                 space.getId(),
                 "spaceCode=" + space.getCode() + ",studentUserId=" + student.getId()
         );
+        spaceChatKeyVersionService.markSpaceRequiresRekey(spaceId);
 
         return toStudentResponse(membership, student);
     }
@@ -189,6 +192,7 @@ public class SpaceService {
                 space.getId(),
                 "spaceCode=" + space.getCode() + ",studentUserId=" + studentUserId
         );
+        spaceChatKeyVersionService.markSpaceRequiresRekey(spaceId);
     }
 
     private List<SpaceSummaryResponse> mapSummaries(List<SpaceSummaryProjection> projections, boolean canManage, boolean isMember) {

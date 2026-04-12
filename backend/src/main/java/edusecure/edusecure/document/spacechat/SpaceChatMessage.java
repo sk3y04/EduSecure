@@ -31,6 +31,18 @@ public class SpaceChatMessage {
 
     private String body;
 
+    private Integer keyVersion;
+
+    private String algorithm;
+
+    private String nonce;
+
+    private String ciphertext;
+
+    private String contentType;
+
+    private Integer plaintextLength;
+
     private Instant createdAt;
 }
 

@@ -7,7 +7,9 @@ public record CurrentUserResponse(
         UUID userId,
         String email,
         String fullName,
-        Set<String> roles
+        Set<String> roles,
+        boolean chatE2eeEnabled,
+        boolean chatKeyRegistered
 ) {
 }
 

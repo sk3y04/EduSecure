@@ -34,6 +34,8 @@ export interface CurrentUserResponse {
   email: string
   fullName: string
   roles: RoleName[]
+  chatE2eeEnabled?: boolean
+  chatKeyRegistered?: boolean
 }
 
 export interface MfaPendingChallenge {

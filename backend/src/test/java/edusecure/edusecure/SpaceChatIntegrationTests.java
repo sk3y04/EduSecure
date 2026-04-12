@@ -10,6 +10,7 @@ import edusecure.edusecure.entity.audit.AuditActionType;
 import edusecure.edusecure.entity.auth.User;
 import edusecure.edusecure.entity.space.Space;
 import edusecure.edusecure.repository.spacechat.SpaceChatMessageRepository;
+import edusecure.edusecure.repository.spacechatkey.SpaceChatKeyVersionRepository;
 import edusecure.edusecure.service.space.SpaceAccessContext;
 import edusecure.edusecure.service.space.SpaceAccessService;
 import edusecure.edusecure.service.spacechat.DisabledSpaceChatService;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -52,6 +54,9 @@ class SpaceChatIntegrationTests {
     private MongoTemplate mongoTemplate;
 
     @Mock
+    private SpaceChatKeyVersionRepository spaceChatKeyVersionRepository;
+
+    @Mock
     private AuditService auditService;
 
     private SpaceChatProperties spaceChatProperties;
@@ -70,6 +75,7 @@ class SpaceChatIntegrationTests {
         mongoSpaceChatService = new MongoSpaceChatService(
                 spaceAccessService,
                 spaceChatMessageRepository,
+                spaceChatKeyVersionRepository,
                 mongoTemplate,
                 auditService,
                 spaceChatProperties
@@ -243,6 +249,95 @@ class SpaceChatIntegrationTests {
 
         verify(spaceChatMessageRepository, never()).save(any());
         verify(auditService, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void createEncryptedMessagePersistsCiphertextAndAuditsPlaintextLength() {
+        UUID spaceId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User currentUser = User.builder()
+                .id(userId)
+                .email("student@example.com")
+                .fullName("Student Example")
+                .roles(Set.of())
+                .build();
+        Space space = Space.builder().id(spaceId).archived(false).build();
+        SpaceAccessContext accessContext = new SpaceAccessContext(currentUser, space, false, true);
+        spaceChatProperties.getE2ee().setEnabled(true);
+
+        when(spaceAccessService.requireWritableChatSpace("student@example.com", spaceId)).thenReturn(accessContext);
+        when(spaceChatKeyVersionRepository.findFirstBySpaceIdOrderByKeyVersionDesc(spaceId))
+                .thenReturn(Optional.of(edusecure.edusecure.entity.spacechatkey.SpaceChatKeyVersion.builder()
+                        .id(UUID.randomUUID())
+                        .spaceId(spaceId)
+                        .keyVersion(1)
+                        .createdByUserId(userId)
+                        .createdAt(Instant.now())
+                        .rotationReason("INITIAL_SETUP")
+                        .publisherPublicKeyJwk("{}")
+                        .publisherKeyFingerprint("fp")
+                        .requiresRekey(false)
+                        .build()));
+        when(spaceChatMessageRepository.save(any(SpaceChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SpaceChatMessageResponse response = mongoSpaceChatService.createMessage(
+                "student@example.com",
+                spaceId,
+                new CreateSpaceChatMessageRequest(null, 1, "AES_GCM_256", "nonce-1", "ciphertext-1", "text/plain", 25)
+        );
+
+        assertThat(response.body()).isNull();
+        assertThat(response.keyVersion()).isEqualTo(1);
+        assertThat(response.algorithm()).isEqualTo("AES_GCM_256");
+        assertThat(response.nonce()).isEqualTo("nonce-1");
+        assertThat(response.ciphertext()).isEqualTo("ciphertext-1");
+        assertThat(response.contentType()).isEqualTo("text/plain");
+        assertThat(response.plaintextLength()).isEqualTo(25);
+
+        ArgumentCaptor<SpaceChatMessage> messageCaptor = ArgumentCaptor.forClass(SpaceChatMessage.class);
+        verify(spaceChatMessageRepository).save(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getBody()).isNull();
+        assertThat(messageCaptor.getValue().getCiphertext()).isEqualTo("ciphertext-1");
+        assertThat(messageCaptor.getValue().getPlaintextLength()).isEqualTo(25);
+
+        ArgumentCaptor<String> auditDetailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditService).record(
+                eq(AuditActionType.SPACE_CHAT_MESSAGE_CREATED),
+                eq(userId),
+                eq(SpaceChatMessage.class.getSimpleName()),
+                eq(response.id()),
+                auditDetailsCaptor.capture()
+        );
+        assertThat(auditDetailsCaptor.getValue()).contains("bodyLength=25").doesNotContain("ciphertext-1");
+    }
+
+    @Test
+    void createEncryptedMessageRejectsStaleOrMissingKeyVersion() {
+        UUID spaceId = UUID.randomUUID();
+        when(spaceAccessService.requireWritableChatSpace("student@example.com", spaceId))
+                .thenReturn(readableContext(UUID.randomUUID(), spaceId, false, true, false));
+        spaceChatProperties.getE2ee().setEnabled(true);
+        when(spaceChatKeyVersionRepository.findFirstBySpaceIdOrderByKeyVersionDesc(spaceId))
+                .thenReturn(Optional.of(edusecure.edusecure.entity.spacechatkey.SpaceChatKeyVersion.builder()
+                        .id(UUID.randomUUID())
+                        .spaceId(spaceId)
+                        .keyVersion(2)
+                        .createdByUserId(UUID.randomUUID())
+                        .createdAt(Instant.now())
+                        .rotationReason("INITIAL_SETUP")
+                        .publisherPublicKeyJwk("{}")
+                        .publisherKeyFingerprint("fp")
+                        .requiresRekey(false)
+                        .build()));
+
+        assertThatThrownBy(() -> mongoSpaceChatService.createMessage(
+                "student@example.com",
+                spaceId,
+                new CreateSpaceChatMessageRequest(null, 1, "AES_GCM_256", "nonce-1", "ciphertext-1", "text/plain", 20)
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.CONFLICT))
+                .hasMessageContaining("Encrypted chat key version is no longer current");
     }
 
     @Test

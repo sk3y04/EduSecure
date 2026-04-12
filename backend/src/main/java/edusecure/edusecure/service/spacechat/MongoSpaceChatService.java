@@ -9,6 +9,7 @@ import edusecure.edusecure.dto.spacechat.SpaceChatMessagePageResponse;
 import edusecure.edusecure.dto.spacechat.SpaceChatMessageResponse;
 import edusecure.edusecure.entity.audit.AuditActionType;
 import edusecure.edusecure.repository.spacechat.SpaceChatMessageRepository;
+import edusecure.edusecure.repository.spacechatkey.SpaceChatKeyVersionRepository;
 import edusecure.edusecure.service.space.SpaceAccessContext;
 import edusecure.edusecure.service.space.SpaceAccessService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class MongoSpaceChatService implements SpaceChatService {
 
     private final SpaceAccessService spaceAccessService;
     private final SpaceChatMessageRepository spaceChatMessageRepository;
+    private final SpaceChatKeyVersionRepository spaceChatKeyVersionRepository;
     private final MongoTemplate mongoTemplate;
     private final AuditService auditService;
     private final SpaceChatProperties spaceChatProperties;
@@ -99,29 +101,12 @@ public class MongoSpaceChatService implements SpaceChatService {
     @Override
     public SpaceChatMessageResponse createMessage(String currentUserEmail, UUID spaceId, CreateSpaceChatMessageRequest request) {
         SpaceAccessContext accessContext = spaceAccessService.requireWritableChatSpace(currentUserEmail, spaceId);
-        String trimmedBody = normalizeBody(request.body());
-
-        if (trimmedBody.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message body is required");
-        }
-
-        if (trimmedBody.length() > spaceChatProperties.getMessageMaxLength()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Message body must not exceed " + spaceChatProperties.getMessageMaxLength() + " characters"
-            );
-        }
 
         UUID messageId = UUID.randomUUID();
         Instant createdAt = Instant.now();
-        SpaceChatMessage message = SpaceChatMessage.builder()
-                .id(messageId.toString())
-                .spaceId(spaceId.toString())
-                .authorUserId(accessContext.currentUser().getId().toString())
-                .authorDisplayName(accessContext.currentUser().getFullName())
-                .body(trimmedBody)
-                .createdAt(createdAt)
-                .build();
+        SpaceChatMessage message = spaceChatProperties.getE2ee().isEnabled()
+                ? buildEncryptedMessage(request, accessContext, spaceId, messageId, createdAt)
+                : buildLegacyMessage(request, accessContext, spaceId, messageId, createdAt);
 
         try {
             SpaceChatMessage saved = spaceChatMessageRepository.save(message);
@@ -133,7 +118,7 @@ public class MongoSpaceChatService implements SpaceChatService {
                     "spaceId=" + spaceId
                             + ",messageId=" + saved.getId()
                             + ",authorUserId=" + accessContext.currentUser().getId()
-                            + ",bodyLength=" + trimmedBody.length()
+                            + ",bodyLength=" + resolveAuditBodyLength(saved)
             );
             return toResponse(saved);
         } catch (MongoException | DataAccessException ex) {
@@ -178,6 +163,114 @@ public class MongoSpaceChatService implements SpaceChatService {
         return body == null ? "" : body.trim();
     }
 
+    private SpaceChatMessage buildLegacyMessage(
+            CreateSpaceChatMessageRequest request,
+            SpaceAccessContext accessContext,
+            UUID spaceId,
+            UUID messageId,
+            Instant createdAt
+    ) {
+        if (request.keyVersion() != null || request.algorithm() != null || request.nonce() != null || request.ciphertext() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat payloads are not accepted when end-to-end encryption is disabled");
+        }
+
+        String trimmedBody = normalizeBody(request.body());
+
+        if (trimmedBody.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message body is required");
+        }
+
+        if (trimmedBody.length() > spaceChatProperties.getMessageMaxLength()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Message body must not exceed " + spaceChatProperties.getMessageMaxLength() + " characters"
+            );
+        }
+
+        return SpaceChatMessage.builder()
+                .id(messageId.toString())
+                .spaceId(spaceId.toString())
+                .authorUserId(accessContext.currentUser().getId().toString())
+                .authorDisplayName(accessContext.currentUser().getFullName())
+                .body(trimmedBody)
+                .createdAt(createdAt)
+                .build();
+    }
+
+    private SpaceChatMessage buildEncryptedMessage(
+            CreateSpaceChatMessageRequest request,
+            SpaceAccessContext accessContext,
+            UUID spaceId,
+            UUID messageId,
+            Instant createdAt
+    ) {
+        if (request.body() != null && !request.body().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat requests must not include a plaintext message body");
+        }
+        if (request.keyVersion() == null || request.keyVersion() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat key version is required");
+        }
+        if (request.algorithm() == null || request.algorithm().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat algorithm is required");
+        }
+        if (request.nonce() == null || request.nonce().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat nonce is required");
+        }
+        if (request.ciphertext() == null || request.ciphertext().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat ciphertext is required");
+        }
+        if (request.contentType() == null || request.contentType().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat content type is required");
+        }
+        if (!"text/plain".equals(request.contentType().trim())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat content type must be text/plain");
+        }
+        if (request.plaintextLength() == null || request.plaintextLength() < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat plaintext length must be at least 1");
+        }
+        if (request.plaintextLength() > spaceChatProperties.getMessageMaxLength()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Message body must not exceed " + spaceChatProperties.getMessageMaxLength() + " characters"
+            );
+        }
+
+        var activeKeyVersion = spaceChatKeyVersionRepository.findFirstBySpaceIdOrderByKeyVersionDesc(spaceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Encrypted chat room key has not been initialized for this space"));
+        if (activeKeyVersion.isRequiresRekey()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Encrypted chat room key must be rotated before sending new messages");
+        }
+        if (activeKeyVersion.getKeyVersion() != request.keyVersion()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Encrypted chat key version is no longer current for this space");
+        }
+
+        String normalizedAlgorithm = request.algorithm().trim();
+        if (!"AES_GCM_256".equals(normalizedAlgorithm)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Encrypted chat algorithm must be AES_GCM_256");
+        }
+
+        return SpaceChatMessage.builder()
+                .id(messageId.toString())
+                .spaceId(spaceId.toString())
+                .authorUserId(accessContext.currentUser().getId().toString())
+                .authorDisplayName(accessContext.currentUser().getFullName())
+                .keyVersion(request.keyVersion())
+                .algorithm(normalizedAlgorithm)
+                .nonce(request.nonce().trim())
+                .ciphertext(request.ciphertext().trim())
+                .contentType(request.contentType().trim())
+                .plaintextLength(request.plaintextLength())
+                .createdAt(createdAt)
+                .build();
+    }
+
+    private int resolveAuditBodyLength(SpaceChatMessage message) {
+        if (message.getPlaintextLength() != null) {
+            return message.getPlaintextLength();
+        }
+        return message.getBody() != null ? message.getBody().length() : 0;
+    }
+
     private SpaceChatMessageResponse toResponse(SpaceChatMessage message) {
         return new SpaceChatMessageResponse(
                 UUID.fromString(message.getId()),
@@ -185,6 +278,12 @@ public class MongoSpaceChatService implements SpaceChatService {
                 UUID.fromString(message.getAuthorUserId()),
                 message.getAuthorDisplayName(),
                 message.getBody(),
+                message.getKeyVersion(),
+                message.getAlgorithm(),
+                message.getNonce(),
+                message.getCiphertext(),
+                message.getContentType(),
+                message.getPlaintextLength(),
                 message.getCreatedAt()
         );
     }
