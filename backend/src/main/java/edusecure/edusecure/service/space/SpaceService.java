@@ -1,6 +1,7 @@
 package edusecure.edusecure.service.space;
 
 import edusecure.edusecure.audit.AuditService;
+import edusecure.edusecure.config.chat.SpaceChatProperties;
 import edusecure.edusecure.dto.space.AddSpaceStudentRequest;
 import edusecure.edusecure.dto.space.CreateSpaceRequest;
 import edusecure.edusecure.dto.space.SpaceDetailResponse;
@@ -38,20 +39,22 @@ public class SpaceService {
     private final SpaceMembershipRepository spaceMembershipRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final SpaceAccessService spaceAccessService;
+    private final SpaceChatProperties spaceChatProperties;
 
     @Transactional(readOnly = true)
     public List<SpaceSummaryResponse> listSpaces(String currentUserEmail) {
-        User currentUser = findUserByEmail(currentUserEmail);
+        User currentUser = spaceAccessService.findCurrentUserOrThrow(currentUserEmail);
 
-        if (hasRole(currentUser, RoleName.ADMIN)) {
+        if (spaceAccessService.hasRole(currentUser, RoleName.ADMIN)) {
             return mapSummaries(spaceRepository.findAllSummaries(), true, false);
         }
 
-        if (hasRole(currentUser, RoleName.LECTURER)) {
+        if (spaceAccessService.hasRole(currentUser, RoleName.LECTURER)) {
             return mapSummaries(spaceRepository.findSummariesByCreatedByUserId(currentUser.getId()), true, false);
         }
 
-        if (hasRole(currentUser, RoleName.STUDENT)) {
+        if (spaceAccessService.hasRole(currentUser, RoleName.STUDENT)) {
             return mapSummaries(spaceRepository.findSummariesByStudentUserId(currentUser.getId()), false, true);
         }
 
@@ -60,7 +63,7 @@ public class SpaceService {
 
     @Transactional
     public SpaceDetailResponse createSpace(String currentUserEmail, CreateSpaceRequest request) {
-        User currentUser = findUserByEmail(currentUserEmail);
+        User currentUser = spaceAccessService.findCurrentUserOrThrow(currentUserEmail);
         String normalizedCode = normalizeCode(request.code());
 
         if (spaceRepository.existsByCode(normalizedCode)) {
@@ -91,24 +94,22 @@ public class SpaceService {
 
     @Transactional(readOnly = true)
     public SpaceDetailResponse getSpace(String currentUserEmail, UUID spaceId) {
-        User currentUser = findUserByEmail(currentUserEmail);
-        Space space = getSpaceOrThrow(spaceId);
-        boolean canManage = canManageSpace(currentUser, space);
-        boolean isMember = spaceMembershipRepository.existsBySpaceIdAndStudentUserId(spaceId, currentUser.getId());
-
-        if (!canManage && !isMember) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to view this space");
-        }
-
-        List<SpaceStudentResponse> memberships = canManage ? buildMembershipResponses(spaceId) : List.of();
-        return toDetailResponse(space, memberships, canManage, isMember, spaceMembershipRepository.countBySpaceId(spaceId));
+        SpaceAccessContext accessContext = spaceAccessService.requireReadableSpace(currentUserEmail, spaceId);
+        List<SpaceStudentResponse> memberships = accessContext.canManage() ? buildMembershipResponses(spaceId) : List.of();
+        return toDetailResponse(
+                accessContext.space(),
+                memberships,
+                accessContext.canManage(),
+                accessContext.isMember(),
+                spaceMembershipRepository.countBySpaceId(spaceId)
+        );
     }
 
     @Transactional
     public SpaceDetailResponse updateSpace(String currentUserEmail, UUID spaceId, UpdateSpaceRequest request) {
-        User currentUser = findUserByEmail(currentUserEmail);
-        Space space = getSpaceOrThrow(spaceId);
-        requireManagePermission(currentUser, space);
+        SpaceAccessContext accessContext = spaceAccessService.requireManageableSpace(currentUserEmail, spaceId);
+        User currentUser = accessContext.currentUser();
+        Space space = accessContext.space();
 
         String normalizedCode = normalizeCode(request.code());
         if (spaceRepository.existsByCodeAndIdNot(normalizedCode, space.getId())) {
@@ -136,16 +137,16 @@ public class SpaceService {
 
     @Transactional
     public SpaceStudentResponse addStudentToSpace(String currentUserEmail, UUID spaceId, AddSpaceStudentRequest request) {
-        User currentUser = findUserByEmail(currentUserEmail);
-        Space space = getSpaceOrThrow(spaceId);
-        requireManagePermission(currentUser, space);
+        SpaceAccessContext accessContext = spaceAccessService.requireManageableSpace(currentUserEmail, spaceId);
+        User currentUser = accessContext.currentUser();
+        Space space = accessContext.space();
 
         if (space.isArchived()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Archived spaces cannot accept new students");
         }
 
         User student = findUserByEmail(request.studentEmail().trim());
-        if (!hasRole(student, RoleName.STUDENT)) {
+        if (!spaceAccessService.hasRole(student, RoleName.STUDENT)) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "User is not a student and cannot be added to a space");
         }
 
@@ -173,9 +174,9 @@ public class SpaceService {
 
     @Transactional
     public void removeStudentFromSpace(String currentUserEmail, UUID spaceId, UUID studentUserId) {
-        User currentUser = findUserByEmail(currentUserEmail);
-        Space space = getSpaceOrThrow(spaceId);
-        requireManagePermission(currentUser, space);
+        SpaceAccessContext accessContext = spaceAccessService.requireManageableSpace(currentUserEmail, spaceId);
+        User currentUser = accessContext.currentUser();
+        Space space = accessContext.space();
 
         SpaceMembership membership = spaceMembershipRepository.findBySpaceIdAndStudentUserId(spaceId, studentUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not assigned to this space"));
@@ -249,6 +250,7 @@ public class SpaceService {
                 memberCount,
                 canManage,
                 isMember,
+                spaceChatProperties.isEnabled(),
                 space.getCreatedByUserId(),
                 space.getCreatedAt(),
                 space.getUpdatedAt(),
@@ -256,25 +258,6 @@ public class SpaceService {
         );
     }
 
-    private void requireManagePermission(User currentUser, Space space) {
-        if (!canManageSpace(currentUser, space)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not allowed to manage this space");
-        }
-    }
-
-    private boolean canManageSpace(User currentUser, Space space) {
-        return hasRole(currentUser, RoleName.ADMIN)
-                || hasRole(currentUser, RoleName.LECTURER) && space.getCreatedByUserId().equals(currentUser.getId());
-    }
-
-    private boolean hasRole(User user, RoleName roleName) {
-        return user.getRoles().stream().anyMatch(role -> role.getName() == roleName);
-    }
-
-    private Space getSpaceOrThrow(UUID spaceId) {
-        return spaceRepository.findById(spaceId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Space not found"));
-    }
 
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)

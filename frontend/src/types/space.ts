@@ -21,6 +21,7 @@ export interface SpaceDetail extends SpaceSummary {
   createdByUserId: string
   createdAt: string
   updatedAt: string
+  chatEnabled: boolean
   memberships: SpaceStudent[]
 }
 

@@ -9,12 +9,22 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-edusecure}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    profiles: ["chat"]
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongodb_data:/data/db
     restart: unless-stopped
 
   backend:
@@ -30,6 +40,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      APP_CHAT_ENABLED: ${APP_CHAT_ENABLED:-false}
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI:-mongodb://mongodb:27017/edusecure}
+      SPRING_DATA_MONGODB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE:-edusecure}
       SUBMISSION_STORAGE_BASE_PATH: /var/lib/edusecure/submission-storage
     command: ["./gradlew", "-PedusecureBuildDir=/tmp/edusecure-backend-build", "bootRun", "--no-daemon"]
     ports:
@@ -58,6 +71,8 @@ services:
 volumes:
   postgres_data:
     name: ${POSTGRES_DATA_VOLUME_NAME:-edusecure_dev_postgres_data}
+  mongodb_data:
+    name: ${MONGODB_DATA_VOLUME_NAME:-edusecure_dev_mongodb_data}
   gradle_cache:
   submission_storage:
   frontend_node_modules:

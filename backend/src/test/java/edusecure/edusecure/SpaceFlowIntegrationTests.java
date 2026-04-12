@@ -79,6 +79,7 @@ class SpaceFlowIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("CRYPTO-A"))
                 .andExpect(jsonPath("$.memberCount").value(0))
+                .andExpect(jsonPath("$.chatEnabled").value(false))
                 .andReturn();
 
         String spaceId = textField(objectMapper.readTree(createResult.getResponse().getContentAsString()), "id");
@@ -105,6 +106,7 @@ class SpaceFlowIntegrationTests {
                         .content(updatePayload))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.memberCount").value(1))
+                .andExpect(jsonPath("$.chatEnabled").value(false))
                 .andExpect(jsonPath("$.memberships[0].studentUserId").value(student.getId().toString()));
 
         mockMvc.perform(get("/api/spaces/{spaceId}", spaceId)
@@ -113,6 +115,7 @@ class SpaceFlowIntegrationTests {
                 .andExpect(jsonPath("$.memberCount").value(1))
                 .andExpect(jsonPath("$.canManage").value(false))
                 .andExpect(jsonPath("$.isMember").value(true))
+                .andExpect(jsonPath("$.chatEnabled").value(false))
                 .andExpect(jsonPath("$.memberships.length()").value(0));
 
         mockMvc.perform(get("/api/spaces")

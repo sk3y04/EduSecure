@@ -13,6 +13,7 @@ public record SpaceDetailResponse(
         long memberCount,
         boolean canManage,
         boolean isMember,
+        boolean chatEnabled,
         UUID createdByUserId,
         Instant createdAt,
         Instant updatedAt,

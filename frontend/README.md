@@ -21,6 +21,7 @@ This MVP focuses on the backend flows already implemented in `backend/`:
 - current-user bootstrap and role-aware navigation
 - admin/lecturer account creation UI for managed user onboarding
 - assignment listing
+- space detail with embedded per-space chat
 - lecturer/admin assignment creation
 - student submission creation
 - submission integrity evidence view
@@ -37,6 +38,16 @@ VITE_API_BASE_URL=http://localhost:8080/api
 For cookie auth to work in development, the backend must allow the frontend origin and send
 credentialed responses. The backend defaults already allow `http://localhost:5173`. If you change
 the frontend origin, also update the backend `APP_CORS_ALLOWED_ORIGINS` setting.
+
+If you want the shared space chat to be live in development, the backend must also run with chat
+enabled and a reachable MongoDB instance, for example through the repository `compose.yaml` chat
+profile plus:
+
+```bash
+APP_CHAT_ENABLED=true
+SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/edusecure
+SPRING_DATA_MONGODB_DATABASE=edusecure
+```
 
 The browser client now also uses Spring's CSRF protection for unsafe requests:
 - the frontend first bootstraps `GET /api/auth/csrf` when needed
@@ -91,4 +102,5 @@ npm run build
 - MFA is standard TOTP: users can enroll with a normal smartphone authenticator app by scanning a QR code derived from the backend `otpauth://` URI or by entering the returned manual key.
 - Admins and lecturers now have a user-management screen; admins can create lecturer and student accounts, while lecturers are limited to student account creation.
 - Symmetric-encryption evidence now comes from the backend AES-GCM-at-rest flows for MFA secrets and submission storage rather than from a separate frontend AES demo screen.
+- `SpaceDetail` now embeds a polling-based shared chat panel with load-older support and archived-space read-only behaviour.
 - Grade screens can still be expanded in the frontend if additional screenshots/report evidence are useful.

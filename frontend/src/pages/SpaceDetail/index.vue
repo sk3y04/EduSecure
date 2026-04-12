@@ -7,6 +7,7 @@ import AssignmentWorkspace from '@/pages/AssignmentList/components/AssignmentWor
 import { spacesService } from '@/services/spaces'
 import type { SpaceDetail, SpaceStudent } from '@/types/space'
 import {
+  SpaceChatPanel,
   SpaceMembershipForm,
   SpaceMetaPanel,
   SpaceRosterPanel,
@@ -136,6 +137,21 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
 
     <template v-else-if="space">
       <SpaceMetaPanel :space="space" />
+
+      <SpaceChatPanel
+        v-if="space.chatEnabled"
+        :key="space.id"
+        :space-id="space.id"
+        :archived="space.archived"
+      />
+
+      <section v-else class="page-section">
+        <h3 class="font-display text-2xl font-semibold text-[var(--color-heading)]">Space chat</h3>
+        <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
+          Space chat is currently disabled in this environment. The rest of the space remains fully
+          available, including metadata, assignments, and staff management controls.
+        </p>
+      </section>
 
       <AssignmentWorkspace embedded :space-id="space.id" :space-name="space.name" />
 
