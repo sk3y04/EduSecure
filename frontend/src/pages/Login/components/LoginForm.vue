@@ -20,8 +20,8 @@ function handleSubmit() {
 <template>
   <section class="page-section lg:p-10">
     <div class="panel-header">
-      <p class="section-kicker">Sign in</p>
-      <h2 class="section-title">Authenticate against the API</h2>
+      <p class="section-kicker"></p>
+      <h2 class="section-title">Sign in</h2>
       <p class="section-copy max-w-none">
         Use an existing backend account. If MFA is enabled, the next step will request a TOTP
         verification code.

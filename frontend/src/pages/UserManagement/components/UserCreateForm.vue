@@ -33,7 +33,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <section class="page-section">
+  <section class="page-section desktop-page-panel flex h-full flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Create account</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
@@ -45,7 +45,7 @@ function handleSubmit() {
     <div v-if="props.errorMessage" class="alert-error mb-4">{{ props.errorMessage }}</div>
     <div v-if="props.successMessage" class="alert-success mb-4">{{ props.successMessage }}</div>
 
-    <form class="grid gap-5 lg:grid-cols-2" @submit.prevent="handleSubmit">
+    <form class="grid flex-1 gap-5 lg:grid-cols-2" @submit.prevent="handleSubmit">
       <label class="block">
         <span class="field-label">Full name</span>
         <input v-model="form.fullName" type="text" required class="form-input" placeholder="Student Example" />

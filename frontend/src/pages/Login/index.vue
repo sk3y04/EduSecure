@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
-import { LoginForm, LoginInfoPanel } from './components'
+import { LoginForm } from './components'
 
 const authStore = useAuthStore()
 const route = useRoute()
@@ -53,8 +53,7 @@ async function handleSubmit(payload: { email: string; password: string }) {
 
 <template>
   <div class="app-page px-6 py-[clamp(2rem,7vw,6rem)]">
-    <div class="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,0.8fr)] lg:items-start">
-      <LoginInfoPanel />
+    <div class="mx-auto max-w-xl">
       <LoginForm
         :error-message="authStore.errorMessage"
         :is-submitting="isSubmitting"

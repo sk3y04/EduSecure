@@ -117,79 +117,102 @@ watch(() => route.params.spaceId, () => { void loadSpace() }, { immediate: true 
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="page-hero">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="max-w-3xl">
+  <section class="desktop-page-grid">
+    <div class="page-hero desktop-page-panel hero-shell xl:col-span-12">
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div class="max-w-4xl">
           <p class="section-kicker">Space detail</p>
           <h2 class="section-title">View metadata and manage membership</h2>
-          <p class="section-copy">
-            Staff can update metadata and maintain the student roster here. Student viewers remain
-            read-only and do not receive roster visibility.
+          <p class="section-copy max-w-none">
+            Metadata, chat, assignments, and roster management now live in a single desktop workspace.
+            Wide content panels handle day-to-day work, while narrower utility panels keep staff actions
+            grouped and easy to scan.
           </p>
         </div>
-        <button type="button" class="btn-secondary self-start" @click="loadSpace">Refresh</button>
+
+        <div class="flex flex-col gap-3 lg:items-end">
+          <button type="button" class="btn-secondary self-start lg:self-auto" @click="loadSpace">Refresh</button>
+          <div class="surface-panel-muted px-5 py-4">
+            <p class="meta-label">View mode</p>
+            <p class="meta-value mt-1">Desktop detail canvas</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-if="loadError" class="alert-error">{{ loadError }}</div>
-    <div v-else-if="isLoading" class="empty-state">Loading space details…</div>
+    <div v-if="loadError" class="alert-error xl:col-span-12">{{ loadError }}</div>
+    <div v-else-if="isLoading" class="empty-state xl:col-span-12">Loading space details…</div>
 
     <template v-else-if="space">
-      <SpaceMetaPanel :space="space" />
+      <SpaceMetaPanel class="xl:col-span-8 xl:row-span-2" :space="space" />
+
+      <SpaceUpdateForm
+        v-if="space.canManage"
+        class="xl:col-span-4 xl:row-span-2"
+        :initial-name="space.name"
+        :initial-code="space.code"
+        :initial-description="space.description"
+        :initial-archived="space.archived"
+        :update-error="updateError"
+        :update-success="updateSuccess"
+        :is-updating="isUpdating"
+        @submit="handleUpdate"
+      />
+
+      <section
+        v-else
+        class="page-section desktop-page-panel panel-shell-spread xl:col-span-4 xl:row-span-2"
+      >
+        <div>
+          <p class="section-kicker">Access mode</p>
+          <h3 class="mt-2 font-display text-2xl font-semibold text-[var(--color-heading)]">Read-only access</h3>
+          <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
+            You can view this space because staff added you to its membership roster. Roster
+            management and metadata changes remain restricted to lecturers who own the space and
+            administrators.
+          </p>
+        </div>
+
+        <div class="surface-panel-muted mt-6 px-5 py-4">
+          <p class="meta-label">What remains available</p>
+          <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+            Metadata, assignment visibility, and chat history remain readable inside the same desktop
+            grid even when management controls are hidden.
+          </p>
+        </div>
+      </section>
+
+      <AssignmentWorkspace
+        class="xl:col-span-8 xl:row-span-3"
+        embedded
+        :space-id="space.id"
+        :space-name="space.name"
+      />
 
       <SpaceChatPanel
-        v-if="space.chatEnabled"
         :key="space.id"
+        class="xl:col-span-4 xl:row-span-3"
         :space-id="space.id"
         :archived="space.archived"
       />
 
-      <section v-else class="page-section">
-        <h3 class="font-display text-2xl font-semibold text-[var(--color-heading)]">Space chat</h3>
-        <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
-          Space chat is currently disabled in this environment. The rest of the space remains fully
-          available, including metadata, assignments, and staff management controls.
-        </p>
-      </section>
 
-      <AssignmentWorkspace embedded :space-id="space.id" :space-name="space.name" />
-
-      <section v-if="space.canManage" class="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-        <SpaceUpdateForm
-          :initial-name="space.name"
-          :initial-code="space.code"
-          :initial-description="space.description"
-          :initial-archived="space.archived"
-          :update-error="updateError"
-          :update-success="updateSuccess"
-          :is-updating="isUpdating"
-          @submit="handleUpdate"
+      <template v-if="space.canManage">
+        <SpaceMembershipForm
+          class="xl:col-span-4"
+          :membership-error="membershipError"
+          :membership-success="membershipSuccess"
+          :is-adding-student="isAddingStudent"
+          @add-student="handleAddStudent"
         />
 
-        <div class="space-y-6">
-          <SpaceMembershipForm
-            :membership-error="membershipError"
-            :membership-success="membershipSuccess"
-            :is-adding-student="isAddingStudent"
-            @add-student="handleAddStudent"
-          />
-          <SpaceRosterPanel
-            :memberships="space.memberships"
-            :removing-student-id="removingStudentId"
-            @remove-student="handleRemoveStudent"
-          />
-        </div>
-      </section>
-
-      <section v-else class="page-section">
-        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Read-only access</h3>
-        <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">
-          You can view this space because staff added you to its membership roster. Roster
-          management and metadata changes remain restricted to lecturers who own the space and
-          administrators.
-        </p>
-      </section>
+        <SpaceRosterPanel
+          class="xl:col-span-8 xl:row-span-2"
+          :memberships="space.memberships"
+          :removing-student-id="removingStudentId"
+          @remove-student="handleRemoveStudent"
+        />
+      </template>
     </template>
   </section>
 </template>

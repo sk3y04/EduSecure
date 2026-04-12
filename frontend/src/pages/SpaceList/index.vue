@@ -6,7 +6,13 @@ import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
 import { useAuthStore } from '@/stores/auth'
 import type { SpaceSummary } from '@/types/space'
-import { SpaceCreateForm, SpaceListHeader, SpaceListItems } from './components'
+import {
+  SpaceCreateForm,
+  SpaceListAccessPanel,
+  SpaceListHeader,
+  SpaceListItems,
+  SpaceListMetricsPanel,
+} from './components'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -21,6 +27,9 @@ const isCreating = ref(false)
 const canManageSpaces = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 const canRequestRegistration = computed(() => authStore.hasAnyRole(['STUDENT']))
 const canReviewRegistrations = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
+const activeSpaces = computed(() => spaces.value.filter((space) => !space.archived).length)
+const archivedSpaces = computed(() => spaces.value.filter((space) => space.archived).length)
+const totalMembers = computed(() => spaces.value.reduce((sum, space) => sum + space.memberCount, 0))
 
 async function loadSpaces() {
   isLoading.value = true
@@ -72,21 +81,40 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="desktop-page-grid">
     <SpaceListHeader
+      class="xl:col-span-8 xl:row-span-2"
       :can-request-registration="canRequestRegistration"
       :can-review-registrations="canReviewRegistrations"
     />
 
+    <SpaceListMetricsPanel
+      class="xl:col-span-4"
+      :total-spaces="spaces.length"
+      :active-spaces="activeSpaces"
+      :archived-spaces="archivedSpaces"
+      :total-members="totalMembers"
+    />
+
     <SpaceCreateForm
       v-if="canManageSpaces"
+      class="xl:col-span-4 xl:row-span-2"
       :create-error="createError"
       :create-success="createSuccess"
       :is-creating="isCreating"
       @submit="handleCreate"
     />
 
+    <SpaceListAccessPanel
+      v-else
+      class="xl:col-span-4 xl:row-span-2"
+      :can-manage-spaces="canManageSpaces"
+      :can-request-registration="canRequestRegistration"
+      :can-review-registrations="canReviewRegistrations"
+    />
+
     <SpaceListItems
+      class="xl:col-span-8 xl:row-span-3"
       :spaces="spaces"
       :is-loading="isLoading"
       :load-error="loadError"
@@ -94,6 +122,14 @@ onMounted(() => {
       :can-request-registration="canRequestRegistration"
       :can-review-registrations="canReviewRegistrations"
       @refresh="loadSpaces"
+    />
+
+    <SpaceListAccessPanel
+      v-if="canManageSpaces"
+      class="xl:col-span-4"
+      :can-manage-spaces="canManageSpaces"
+      :can-request-registration="canRequestRegistration"
+      :can-review-registrations="canReviewRegistrations"
     />
   </div>
 </template>

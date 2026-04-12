@@ -38,7 +38,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <div class="page-section">
+  <section class="page-section desktop-page-panel flex h-full flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Update space</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
@@ -50,7 +50,7 @@ function handleSubmit() {
     <div v-if="props.updateError" class="alert-error mb-4">{{ props.updateError }}</div>
     <div v-if="props.updateSuccess" class="alert-success mb-4">{{ props.updateSuccess }}</div>
 
-    <form class="grid gap-5" @submit.prevent="handleSubmit">
+    <form class="grid flex-1 gap-5" @submit.prevent="handleSubmit">
       <label class="block">
         <span class="field-label">Name</span>
         <input v-model="form.name" type="text" required class="form-input" />
@@ -77,6 +77,6 @@ function handleSubmit() {
         </button>
       </div>
     </form>
-  </div>
+  </section>
 </template>
 

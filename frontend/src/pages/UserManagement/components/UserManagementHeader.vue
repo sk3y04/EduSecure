@@ -5,7 +5,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <section class="page-hero">
+  <section class="page-hero desktop-page-panel hero-shell">
     <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
       <div class="max-w-3xl">
         <p class="section-kicker">User management</p>
@@ -17,11 +17,22 @@ const props = defineProps<{
         </p>
       </div>
 
-      <div class="surface-panel-muted max-w-sm px-5 py-4">
-        <p class="text-base font-semibold text-[var(--color-heading)]">Current privileges</p>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+    </div>
+
+    <div class="mt-8 grid gap-4 xl:grid-cols-3">
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Wide primary workflow</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">Account creation owns the main lane</p>
+      </div>
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Current privileges</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">
           Available role targets: {{ props.availableRoleLabels }}
         </p>
+      </div>
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Backend enforcement</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">Role boundaries remain server-validated</p>
       </div>
     </div>
   </section>

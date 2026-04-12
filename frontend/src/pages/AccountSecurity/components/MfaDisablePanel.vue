@@ -19,7 +19,7 @@ function handleDisable() {
 </script>
 
 <template>
-  <section class="page-section">
+  <section class="page-section desktop-page-panel flex h-full flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Disable MFA</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">

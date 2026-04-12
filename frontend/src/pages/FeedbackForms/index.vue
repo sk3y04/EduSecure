@@ -5,6 +5,7 @@ import { examsService } from '@/services/exams'
 import { feedbackFormsService } from '@/services/feedbackForms'
 import { extractErrorMessage } from '@/services/http'
 import { useAuthStore } from '@/stores/auth'
+import { FeedbackFormsHeader, FeedbackFormsMetricsPanel } from './components'
 import type { Exam } from '@/types/exam'
 import type {
   FeedbackForm,
@@ -44,6 +45,12 @@ const studentAnswers = ref<Record<string, string>>({})
 
 const hasForms = computed(() => forms.value.length > 0)
 const selectedExam = computed(() => exams.value.find((exam) => exam.id === selectedExamId.value) ?? null)
+const selectedQuestionCount = computed(() => selectedForm.value?.questions.length ?? 0)
+const responseVolume = computed(() =>
+  isStaffView.value
+    ? review.value?.responseCount ?? forms.value.reduce((sum, form) => sum + (form.responseCount ?? 0), 0)
+    : forms.value.filter((form) => form.alreadySubmitted).length,
+)
 
 function emptyQuestion(order: number): FeedbackFormQuestionPayload {
   return {
@@ -344,26 +351,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="page-hero">
-      <div class="max-w-3xl">
-        <p class="section-kicker">Feedback forms</p>
-        <h2 class="section-title">Structured assessment feedback</h2>
-        <p class="section-copy">
-          Staff can publish reusable feedback forms for exams, and students can submit one structured
-          response per visible form.
-        </p>
-      </div>
-    </div>
+  <section class="desktop-page-grid">
+    <FeedbackFormsHeader class="xl:col-span-8 xl:row-span-2" />
 
-    <div v-if="loadError" class="alert-error">{{ loadError }}</div>
-    <div v-else-if="isLoading" class="empty-state">Loading feedback forms…</div>
+    <FeedbackFormsMetricsPanel
+      class="xl:col-span-4"
+      :accessible-exams="exams.length"
+      :visible-forms="forms.length"
+      :selected-questions="selectedQuestionCount"
+      :response-volume="responseVolume"
+    />
+
+    <div v-if="loadError" class="alert-error xl:col-span-12">{{ loadError }}</div>
+    <div v-else-if="isLoading" class="empty-state xl:col-span-12">Loading feedback forms…</div>
 
     <template v-else>
-      <section class="page-section space-y-4">
-        <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Select exam</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+      <section class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-2">
+        <div class="panel-header">
+          <h3 class="panel-title">Select exam</h3>
+          <p class="panel-copy">
             Feedback forms stay linked to a published exam and reuse the same access boundary as that exam.
           </p>
         </div>
@@ -378,7 +384,7 @@ onMounted(() => {
           </select>
         </label>
 
-        <div v-if="selectedExam" class="surface-panel-muted p-4">
+        <div v-if="selectedExam" class="surface-panel-muted mt-4 p-4">
           <p class="meta-label">Selected exam</p>
           <p class="mt-2 text-base font-medium text-[var(--color-heading)]">
             {{ selectedExam.spaceCode }} · {{ selectedExam.title }}
@@ -388,17 +394,17 @@ onMounted(() => {
           </p>
         </div>
 
-        <div v-if="!exams.length" class="empty-state">
+        <div v-if="!exams.length" class="empty-state mt-4 flex-1">
           No accessible exams are available yet.
         </div>
       </section>
 
       <template v-if="isStaffView">
-        <section class="page-section space-y-5">
-          <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <section class="page-section desktop-page-panel flex min-h-[36rem] flex-col xl:col-span-8 xl:row-span-4">
+          <div class="panel-header flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Manage forms</h3>
-              <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+              <h3 class="panel-title">Manage forms</h3>
+              <p class="panel-copy">
                 Create ordered rating and text prompts, publish them when ready, and update metadata later.
               </p>
             </div>
@@ -425,7 +431,7 @@ onMounted(() => {
             </label>
           </div>
 
-          <div class="space-y-4">
+          <div class="panel-scroll-stack mt-5 flex flex-col gap-4">
             <div class="flex items-center justify-between gap-4">
               <h4 class="font-display text-lg font-semibold text-[var(--color-heading)]">Questions</h4>
               <button
@@ -474,7 +480,7 @@ onMounted(() => {
             </article>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
               class="btn-primary"
@@ -488,14 +494,14 @@ onMounted(() => {
             </button>
           </div>
 
-          <p v-if="formError" class="alert-error">{{ formError }}</p>
-          <p v-else-if="formSuccess" class="alert-success">{{ formSuccess }}</p>
+          <p v-if="formError" class="alert-error mt-4">{{ formError }}</p>
+          <p v-else-if="formSuccess" class="alert-success mt-4">{{ formSuccess }}</p>
         </section>
 
-        <section class="page-section space-y-4">
-          <div>
-            <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Existing forms</h3>
-            <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4 xl:row-span-4">
+          <div class="panel-header">
+            <h3 class="panel-title">Existing forms</h3>
+            <p class="panel-copy">
               Review submissions and reopen a form in the editor to change metadata or publish status.
             </p>
           </div>
@@ -504,8 +510,8 @@ onMounted(() => {
           <div v-else-if="!selectedExamId" class="empty-state">Select an exam to manage its forms.</div>
           <div v-else-if="!hasForms" class="empty-state">No feedback forms exist for this exam yet.</div>
 
-          <div v-else class="space-y-4">
-            <article v-for="form in forms" :key="form.id" class="surface-panel px-5 py-5">
+          <div v-else class="panel-scroll-list">
+            <article v-for="form in forms" :key="form.id" class="record-card">
               <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div class="space-y-3">
                   <div>
@@ -544,10 +550,10 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="page-section space-y-4">
-          <div>
-            <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Response review</h3>
-            <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-12">
+          <div class="panel-header">
+            <h3 class="panel-title">Response review</h3>
+            <p class="panel-copy">
               Review simple rating aggregates and read submitted text feedback for the selected form.
             </p>
           </div>
@@ -571,66 +577,68 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="space-y-4">
-              <article v-for="summary in review.questionSummaries" :key="summary.questionId" class="surface-panel-muted p-4">
-                <p class="meta-label">{{ summary.questionType === 'RATING' ? 'Rating question' : 'Text question' }}</p>
-                <h4 class="mt-2 font-display text-lg font-semibold text-[var(--color-heading)]">
-                  {{ summary.prompt }}
-                </h4>
-                <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-soft)]">
-                  <span>{{ summary.responseCount }} responses</span>
-                  <span v-if="summary.averageRating !== null">Average {{ summary.averageRating.toFixed(2) }}/5</span>
-                </div>
-                <div v-if="summary.questionType === 'RATING'" class="mt-3 flex flex-wrap gap-2 text-sm text-[var(--color-text-soft)]">
-                  <span
-                    v-for="(count, rating) in summary.ratingCounts"
-                    :key="`${summary.questionId}-${rating}`"
-                    class="status-pill status-pill-neutral"
-                  >
-                    {{ rating }}★: {{ count }}
-                  </span>
-                </div>
-              </article>
-            </div>
-
-            <div class="space-y-4">
-              <article v-for="submission in review.submissions" :key="submission.id" class="surface-panel px-5 py-5">
-                <div class="space-y-3">
-                  <div>
-                    <p class="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-text-soft)]">
-                      {{ submission.studentFullName }} · {{ submission.studentEmail }}
-                    </p>
-                    <p class="mt-1 text-sm text-[var(--color-text-soft)]">
-                      Submitted {{ formatDate(submission.submittedAt) }}
-                    </p>
+            <div class="mt-5 grid min-h-0 flex-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+              <div class="panel-scroll-stack">
+                <article v-for="summary in review.questionSummaries" :key="summary.questionId" class="surface-panel-muted p-4">
+                  <p class="meta-label">{{ summary.questionType === 'RATING' ? 'Rating question' : 'Text question' }}</p>
+                  <h4 class="mt-2 font-display text-lg font-semibold text-[var(--color-heading)]">
+                    {{ summary.prompt }}
+                  </h4>
+                  <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-soft)]">
+                    <span>{{ summary.responseCount }} responses</span>
+                    <span v-if="summary.averageRating !== null">Average {{ summary.averageRating.toFixed(2) }}/5</span>
                   </div>
+                  <div v-if="summary.questionType === 'RATING'" class="mt-3 flex flex-wrap gap-2 text-sm text-[var(--color-text-soft)]">
+                    <span
+                      v-for="(count, rating) in summary.ratingCounts"
+                      :key="`${summary.questionId}-${rating}`"
+                      class="status-pill status-pill-neutral"
+                    >
+                      {{ rating }}★: {{ count }}
+                    </span>
+                  </div>
+                </article>
+              </div>
 
+              <div class="panel-scroll-list">
+                <article v-for="submission in review.submissions" :key="submission.id" class="record-card">
                   <div class="space-y-3">
-                    <div v-for="question in selectedForm.questions" :key="`${submission.id}-${question.id}`" class="surface-panel-muted p-4">
-                      <p class="meta-label">{{ question.questionType === 'RATING' ? 'Rating' : 'Text' }}</p>
-                      <p class="mt-2 text-base font-medium text-[var(--color-heading)]">{{ question.prompt }}</p>
-                      <p class="mt-2 text-base leading-7 text-[var(--color-text)]">
-                        <template v-if="question.questionType === 'RATING'">
-                          {{ findSubmissionAnswer(question, submission)?.ratingValue ?? 'No answer' }}/5
-                        </template>
-                        <template v-else>
-                          {{ findSubmissionAnswer(question, submission)?.textValue ?? 'No answer provided.' }}
-                        </template>
+                    <div>
+                      <p class="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-text-soft)]">
+                        {{ submission.studentFullName }} · {{ submission.studentEmail }}
+                      </p>
+                      <p class="mt-1 text-sm text-[var(--color-text-soft)]">
+                        Submitted {{ formatDate(submission.submittedAt) }}
                       </p>
                     </div>
+
+                    <div class="space-y-3">
+                      <div v-for="question in selectedForm.questions" :key="`${submission.id}-${question.id}`" class="surface-panel-muted p-4">
+                        <p class="meta-label">{{ question.questionType === 'RATING' ? 'Rating' : 'Text' }}</p>
+                        <p class="mt-2 text-base font-medium text-[var(--color-heading)]">{{ question.prompt }}</p>
+                        <p class="mt-2 text-base leading-7 text-[var(--color-text)]">
+                          <template v-if="question.questionType === 'RATING'">
+                            {{ findSubmissionAnswer(question, submission)?.ratingValue ?? 'No answer' }}/5
+                          </template>
+                          <template v-else>
+                            {{ findSubmissionAnswer(question, submission)?.textValue ?? 'No answer provided.' }}
+                          </template>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </article>
+                </article>
+              </div>
             </div>
           </template>
         </section>
       </template>
 
       <template v-else>
-        <section class="page-section space-y-4">
-          <div>
-            <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Available forms</h3>
-            <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4 xl:row-span-4">
+          <div class="panel-header">
+            <h3 class="panel-title">Available forms</h3>
+            <p class="panel-copy">
               You can submit one response for each published form in your accessible exam spaces.
             </p>
           </div>
@@ -639,8 +647,8 @@ onMounted(() => {
           <div v-else-if="!selectedExamId" class="empty-state">Select an exam to view feedback forms.</div>
           <div v-else-if="!hasForms" class="empty-state">No published feedback forms are visible for this exam.</div>
 
-          <div v-else class="space-y-4">
-            <article v-for="form in forms" :key="form.id" class="surface-panel px-5 py-5">
+          <div v-else class="panel-scroll-list">
+            <article v-for="form in forms" :key="form.id" class="record-card">
               <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div class="space-y-3">
                   <div>
@@ -673,10 +681,10 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="page-section space-y-4">
-          <div>
-            <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Submit feedback</h3>
-            <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-8 xl:row-span-4">
+          <div class="panel-header">
+            <h3 class="panel-title">Submit feedback</h3>
+            <p class="panel-copy">
               Choose one form and complete each prompt once. Submitted forms cannot be re-opened.
             </p>
           </div>
@@ -684,8 +692,8 @@ onMounted(() => {
           <div v-if="submitError" class="alert-error">{{ submitError }}</div>
           <div v-else-if="submitSuccess" class="alert-success">{{ submitSuccess }}</div>
           <div v-else-if="isLoadingDetail" class="empty-state">Loading selected form…</div>
-          <div v-else-if="!selectedForm" class="empty-state">Select a form to begin.</div>
-          <div v-else-if="selectedForm.alreadySubmitted" class="empty-state">
+          <div v-else-if="!selectedForm" class="empty-state flex-1">Select a form to begin.</div>
+          <div v-else-if="selectedForm.alreadySubmitted" class="empty-state flex-1">
             You have already submitted feedback for this form.
           </div>
           <template v-else>
@@ -699,7 +707,7 @@ onMounted(() => {
               </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="panel-scroll-stack mt-5">
               <article v-for="question in selectedForm.questions" :key="question.id" class="surface-panel-muted p-4">
                 <div class="flex flex-wrap items-center gap-3">
                   <p class="text-base font-medium text-[var(--color-heading)]">{{ question.prompt }}</p>
@@ -725,7 +733,7 @@ onMounted(() => {
               </article>
             </div>
 
-            <button type="button" class="btn-primary" :disabled="isSubmitting" @click="handleStudentSubmit">
+            <button type="button" class="btn-primary mt-5 self-start" :disabled="isSubmitting" @click="handleStudentSubmit">
               {{ isSubmitting ? 'Submitting…' : 'Submit feedback' }}
             </button>
           </template>

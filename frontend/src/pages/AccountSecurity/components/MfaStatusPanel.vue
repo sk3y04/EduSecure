@@ -13,10 +13,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="page-section">
+  <section class="page-section desktop-page-panel flex h-full flex-col">
     <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Current MFA state</h3>
 
-    <dl class="stats-grid mt-6">
+    <dl class="stats-grid mt-6 flex-1">
       <div class="stat-card bg-[var(--color-surface-offset)]">
         <dt class="meta-label">Enabled</dt>
         <dd class="meta-value font-medium">

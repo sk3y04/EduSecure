@@ -5,6 +5,7 @@ import { examsService } from '@/services/exams'
 import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
 import { useAuthStore } from '@/stores/auth'
+import { ExamScheduleHeader, ExamScheduleMetricsPanel } from './components'
 import type { Exam, ExamPayload } from '@/types/exam'
 import type { SpaceSummary } from '@/types/space'
 
@@ -22,6 +23,8 @@ const formSuccess = ref<string | null>(null)
 
 const canManageExams = computed(() => authStore.hasAnyRole(['LECTURER', 'ADMIN']))
 const hasExams = computed(() => exams.value.length > 0)
+const publishedExams = computed(() => exams.value.filter((exam) => exam.published).length)
+const draftExams = computed(() => exams.value.filter((exam) => !exam.published).length)
 
 const createForm = ref<ExamPayload>(emptyForm())
 const editForm = ref<ExamPayload>(emptyForm())
@@ -170,22 +173,21 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="page-hero">
-      <div class="max-w-3xl">
-        <p class="section-kicker">Exam scheduling</p>
-        <h2 class="section-title">Assessment timetable</h2>
-        <p class="section-copy">
-          View the current exam timetable for your visible spaces. Staff can create draft or published
-          exam entries, while students only see published records for enrolled spaces.
-        </p>
-      </div>
-    </div>
+  <section class="desktop-page-grid">
+    <ExamScheduleHeader class="xl:col-span-8 xl:row-span-2" />
 
-    <section v-if="canManageExams" class="page-section space-y-4">
+    <ExamScheduleMetricsPanel
+      class="xl:col-span-4"
+      :total-exams="exams.length"
+      :published-exams="publishedExams"
+      :draft-exams="draftExams"
+      :manageable-spaces="manageableSpaces.length"
+    />
+
+    <section v-if="canManageExams" class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-3">
       <div>
-        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Create exam entry</h3>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <h3 class="panel-title">Create exam entry</h3>
+        <p class="panel-copy">
           Exam entries are space-scoped and checked for same-space overlap conflicts.
         </p>
       </div>
@@ -243,11 +245,11 @@ onMounted(async () => {
       <p v-else-if="formSuccess" class="alert-success">{{ formSuccess }}</p>
     </section>
 
-    <section class="page-section space-y-4">
+    <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-8 xl:row-span-4">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Visible exams</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+          <h3 class="panel-title">Visible exams</h3>
+          <p class="panel-copy">
             Entries are ordered by start time. Draft entries are visible only to staff who can manage them.
           </p>
         </div>
@@ -258,8 +260,8 @@ onMounted(async () => {
       <div v-else-if="isLoading" class="empty-state">Loading exam timetable…</div>
       <div v-else-if="!hasExams" class="empty-state">No exam schedule entries are visible yet.</div>
 
-      <div v-else class="space-y-4">
-        <article v-for="exam in exams" :key="exam.id" class="surface-panel px-5 py-5">
+      <div v-else class="panel-scroll-list">
+        <article v-for="exam in exams" :key="exam.id" class="record-card">
           <template v-if="editingExamId === exam.id">
             <div class="grid gap-4 lg:grid-cols-2">
               <label class="space-y-2">

@@ -8,7 +8,7 @@ defineProps<{
 </script>
 
 <template>
-  <section class="page-hero">
+  <section class="page-hero desktop-page-panel hero-shell">
     <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
       <div class="max-w-3xl">
         <p class="section-kicker">Spaces</p>
@@ -36,13 +36,20 @@ defineProps<{
           </RouterLink>
         </div>
       </div>
+    </div>
 
-      <div class="surface-panel-muted max-w-sm px-5 py-4">
-        <p class="text-base font-semibold text-[var(--color-heading)]">Access posture</p>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-          Lecturers manage the spaces they create, admins manage every space, and students see
-          only the spaces they are assigned to.
-        </p>
+    <div class="mt-8 grid gap-4 xl:grid-cols-3">
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Large primary panel</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">Discovery and action live together</p>
+      </div>
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Balanced hierarchy</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">Primary content spans wider columns</p>
+      </div>
+      <div class="surface-panel-muted px-5 py-4">
+        <p class="meta-label">Modular rhythm</p>
+        <p class="mt-2 text-base font-semibold text-[var(--color-heading)]">Support panels stack cleanly beside the list</p>
       </div>
     </div>
   </section>

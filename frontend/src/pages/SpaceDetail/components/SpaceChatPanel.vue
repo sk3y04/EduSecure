@@ -180,11 +180,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="page-section space-y-5">
+  <section class="page-section desktop-page-panel flex min-h-[32rem] flex-col space-y-5">
     <div class="panel-header flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div class="max-w-3xl">
-        <h3 class="font-display text-2xl font-semibold text-[var(--color-heading)]">Space chat</h3>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <h3 class="panel-title text-2xl">Space chat</h3>
+        <p class="panel-copy">
           Chat is shared by everyone who already has access to this space. Messages stay readable
           after archival, but new posts are blocked once the space is archived.
         </p>
@@ -196,18 +196,20 @@ onBeforeUnmount(() => {
       This space is archived. Existing chat history remains visible, but new messages are disabled.
     </div>
 
-    <SpaceChatMessageList
-      :messages="messages"
-      :current-user-id="currentUserId"
-      :is-loading="isLoading"
-      :load-error="loadError"
-      :refresh-error="refreshError"
-      :has-more="hasMore"
-      :is-loading-older="isLoadingOlder"
-      :load-older-error="loadOlderError"
-      @retry="loadInitial"
-      @load-older="loadOlder"
-    />
+    <div class="min-h-0 flex-1">
+      <SpaceChatMessageList
+        :messages="messages"
+        :current-user-id="currentUserId"
+        :is-loading="isLoading"
+        :load-error="loadError"
+        :refresh-error="refreshError"
+        :has-more="hasMore"
+        :is-loading-older="isLoadingOlder"
+        :load-older-error="loadOlderError"
+        @retry="loadInitial"
+        @load-older="loadOlder"
+      />
+    </div>
 
     <SpaceChatComposer
       v-model="draftBody"

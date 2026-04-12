@@ -33,7 +33,7 @@ function isOwnMessage(message: SpaceChatMessage): boolean {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="flex h-full min-h-0 flex-col gap-4">
     <div v-if="props.loadError && props.messages.length === 0" class="space-y-3">
       <div class="alert-error">{{ props.loadError }}</div>
       <button type="button" class="btn-secondary" @click="emit('retry')">Retry chat load</button>
@@ -63,7 +63,7 @@ function isOwnMessage(message: SpaceChatMessage): boolean {
         No messages yet. Start the conversation.
       </div>
 
-      <div v-else class="space-y-3">
+      <div v-else class="panel-scroll-stack flex-1 space-y-3">
         <article
           v-for="message in props.messages"
           :key="message.id"

@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { authService } from '@/services/auth'
 import { extractErrorMessage } from '@/services/http'
 import type { MfaEnableResponse, MfaSetupResponse, MfaStatusResponse } from '@/types/auth'
-import { MfaDisablePanel, MfaEnablePanel, MfaStatusPanel } from './components'
+import { AccountSecurityHeader, MfaDisablePanel, MfaEnablePanel, MfaStatusPanel } from './components'
 
 const isLoading = ref(true)
 const errorMessage = ref<string | null>(null)
@@ -100,46 +100,65 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="page-hero">
-      <p class="section-kicker">Account security</p>
-      <h2 class="section-title">Manage optional TOTP MFA</h2>
-      <p class="section-copy max-w-3xl">
-        Review MFA status, generate enrollment material, complete the first-code verification flow,
-        and disable MFA only through the stronger password-plus-code requirement.
-      </p>
-    </section>
+  <div class="desktop-page-grid">
+    <AccountSecurityHeader class="xl:col-span-8 xl:row-span-2" />
 
-    <div v-if="errorMessage" class="alert-error">{{ errorMessage }}</div>
-    <div v-if="successMessage" class="alert-success">{{ successMessage }}</div>
+    <MfaStatusPanel
+      class="xl:col-span-4 xl:row-span-2"
+      :status="status"
+      :enabled-at-label="enabledAtLabel"
+      :is-setting-up="isSettingUp"
+      @setup="handleSetup"
+    />
 
-    <div v-if="isLoading" class="empty-state">Loading MFA status…</div>
+    <div v-if="errorMessage" class="alert-error xl:col-span-12">{{ errorMessage }}</div>
+    <div v-if="successMessage" class="alert-success xl:col-span-12">{{ successMessage }}</div>
+
+    <div v-if="isLoading" class="empty-state xl:col-span-12">Loading MFA status…</div>
 
     <template v-else>
-      <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <MfaStatusPanel
-          :status="status"
-          :enabled-at-label="enabledAtLabel"
-          :is-setting-up="isSettingUp"
-          @setup="handleSetup"
-        />
+      <MfaEnablePanel
+        v-if="!status?.mfaEnabled || enableResult?.recoveryCodes?.length"
+        class="xl:col-span-8 xl:row-span-4"
+        :setup-data="setupData"
+        :enable-result="enableResult"
+        :is-enabling="isEnabling"
+        @enable="handleEnable"
+      />
 
-        <div class="space-y-6">
-          <MfaEnablePanel
-            v-if="!status?.mfaEnabled || enableResult?.recoveryCodes?.length"
-            :setup-data="setupData"
-            :enable-result="enableResult"
-            :is-enabling="isEnabling"
-            @enable="handleEnable"
-          />
+      <section
+        v-else
+        class="page-section desktop-page-panel panel-shell-spread xl:col-span-8 xl:row-span-4"
+      >
+        <div>
+          <div class="panel-header">
+            <h3 class="panel-title">Enrollment complete</h3>
+            <p class="panel-copy">
+              MFA is already enabled for this account. Status remains visible in the summary lane, and
+              you can use the adjacent panel to perform a verified disable flow if necessary.
+            </p>
+          </div>
 
-          <MfaDisablePanel
-            v-if="status?.mfaEnabled"
-            :is-disabling="isDisabling"
-            @disable="handleDisable"
-          />
+          <div class="empty-state">
+            No additional enrollment steps are required right now.
+          </div>
         </div>
-      </div>
+
+        <div class="surface-panel-muted mt-6 px-5 py-4">
+          <p class="meta-label">Protection model</p>
+          <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
+            Recovery code counts and current method remain visible above so you can review account
+            recovery posture before making changes.
+          </p>
+        </div>
+      </section>
+
+      <MfaDisablePanel
+        v-if="status?.mfaEnabled"
+        class="xl:col-span-4 xl:row-span-2"
+        :is-disabling="isDisabling"
+        @disable="handleDisable"
+      />
     </template>
   </div>
 </template>

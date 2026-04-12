@@ -75,7 +75,7 @@ function handleEnable() {
 </script>
 
 <template>
-  <section class="page-section">
+  <section class="page-section desktop-page-panel flex min-h-[32rem] flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Enable MFA</h3>
       <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
@@ -84,7 +84,7 @@ function handleEnable() {
       </p>
     </div>
 
-    <div v-if="props.setupData && !isEnrollmentComplete" class="mt-6 space-y-4">
+    <div v-if="props.setupData && !isEnrollmentComplete" class="mt-6 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
       <div class="data-card">
         <div class="grid gap-5 lg:grid-cols-[minmax(0,16rem)_1fr] lg:items-start">
           <div class="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
@@ -162,11 +162,11 @@ function handleEnable() {
       </form>
     </div>
 
-    <div v-else-if="props.enableResult?.recoveryCodes?.length" class="empty-state mt-6">
+    <div v-else-if="props.enableResult?.recoveryCodes?.length" class="empty-state mt-6 flex-1">
       MFA is enabled. Save the recovery codes below before leaving this page.
     </div>
 
-    <div v-else class="empty-state mt-6">
+    <div v-else class="empty-state mt-6 flex-1">
       Generate setup material to begin TOTP enrollment.
     </div>
 

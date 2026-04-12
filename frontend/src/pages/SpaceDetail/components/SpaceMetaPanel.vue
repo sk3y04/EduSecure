@@ -17,7 +17,7 @@ function formatDate(value: string): string {
 </script>
 
 <template>
-  <section class="page-section">
+  <section class="page-section desktop-page-panel panel-shell">
     <div class="panel-header flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
       <div class="max-w-3xl">
         <div class="flex flex-wrap items-center gap-3">
@@ -38,7 +38,7 @@ function formatDate(value: string): string {
       </span>
     </div>
 
-    <dl v-if="props.space" class="stats-grid mt-6">
+    <dl v-if="props.space" class="stats-grid mt-6 flex-1">
       <div class="stat-card">
         <dt class="meta-label">Students</dt>
         <dd class="meta-value font-medium">{{ props.space.memberCount }}</dd>

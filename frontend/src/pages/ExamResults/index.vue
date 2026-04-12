@@ -5,6 +5,7 @@ import { examsService } from '@/services/exams'
 import { examResultsService } from '@/services/examResults'
 import { extractErrorMessage } from '@/services/http'
 import { useAuthStore } from '@/stores/auth'
+import { ExamResultsHeader, ExamResultsMetricsPanel } from './components'
 import type { Exam } from '@/types/exam'
 import type {
   CreateExamResultRequest,
@@ -38,6 +39,14 @@ const editForm = ref<UpdateExamResultRequest>(emptyUpdateForm())
 const selectedExam = computed(() => exams.value.find((exam) => exam.id === selectedExamId.value) ?? null)
 const hasStaffResults = computed(() => staffResults.value.length > 0)
 const hasMyResults = computed(() => myResults.value.length > 0)
+const publishedResultsCount = computed(() =>
+  isStaffView.value
+    ? staffResults.value.filter((result) => result.published).length
+    : myResults.value.filter((result) => Boolean(result.publishedAt)).length,
+)
+const draftResultsCount = computed(() =>
+  isStaffView.value ? staffResults.value.filter((result) => !result.published).length : 0,
+)
 
 function emptyCreateForm(): CreateExamResultRequest {
   return {
@@ -214,26 +223,25 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="page-hero">
-      <div class="max-w-3xl">
-        <p class="section-kicker">Exam results</p>
-        <h2 class="section-title">Published outcomes and staff review</h2>
-        <p class="section-copy">
-          Students can view only their own published exam results. Staff can prepare unpublished results,
-          review them by exam, and publish them when ready.
-        </p>
-      </div>
-    </div>
+  <section class="desktop-page-grid">
+    <ExamResultsHeader class="xl:col-span-8 xl:row-span-2" />
 
-    <div v-if="loadError" class="alert-error">{{ loadError }}</div>
-    <div v-else-if="isLoading" class="empty-state">Loading exam results…</div>
+    <ExamResultsMetricsPanel
+      class="xl:col-span-4"
+      :total-exams="isStaffView ? exams.length : myResults.length"
+      :selected-exam-results="isStaffView ? staffResults.length : myResults.length"
+      :published-results="publishedResultsCount"
+      :draft-results="draftResultsCount"
+    />
+
+    <div v-if="loadError" class="alert-error xl:col-span-12">{{ loadError }}</div>
+    <div v-else-if="isLoading" class="empty-state xl:col-span-12">Loading exam results…</div>
 
     <template v-else-if="isStaffView">
-      <section class="page-section space-y-4">
-        <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Manage exam results</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+      <section class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-3">
+        <div class="panel-header">
+          <h3 class="panel-title">Manage exam results</h3>
+          <p class="panel-copy">
             Select a managed exam, create one result per student, and choose when that result becomes visible.
           </p>
         </div>
@@ -248,7 +256,7 @@ onMounted(() => {
           </select>
         </label>
 
-        <div v-if="selectedExam" class="surface-panel-muted p-4">
+        <div v-if="selectedExam" class="surface-panel-muted mt-4 p-4">
           <p class="meta-label">Selected exam</p>
           <p class="mt-2 text-base font-medium text-[var(--color-heading)]">
             {{ selectedExam.spaceCode }} · {{ selectedExam.title }}
@@ -258,12 +266,12 @@ onMounted(() => {
           </p>
         </div>
 
-        <div v-if="!exams.length" class="empty-state">
+        <div v-if="!exams.length" class="empty-state mt-4 flex-1">
           No manageable exams are available yet. Create an exam schedule entry first.
         </div>
 
         <template v-else>
-          <div class="grid gap-4 lg:grid-cols-2">
+          <div class="mt-4 grid gap-4 lg:grid-cols-2">
             <label class="space-y-2">
               <span class="field-label">Student email</span>
               <input v-model="createForm.studentEmail" type="email" class="form-input" placeholder="student@example.com">
@@ -280,12 +288,12 @@ onMounted(() => {
             </label>
           </div>
 
-          <label class="inline-flex items-center gap-3 text-sm font-medium text-[var(--color-text)]">
+          <label class="mt-4 inline-flex items-center gap-3 text-sm font-medium text-[var(--color-text)]">
             <input v-model="createForm.published" type="checkbox" class="h-4 w-4 rounded border-[var(--color-border)]">
             Publish immediately
           </label>
 
-          <div class="flex flex-wrap items-center gap-3">
+          <div class="mt-4 flex flex-wrap items-center gap-3">
             <button type="button" class="btn-primary" :disabled="isSubmitting || !selectedExamId" @click="handleCreate">
               {{ isSubmitting ? 'Saving…' : 'Create exam result' }}
             </button>
@@ -295,18 +303,16 @@ onMounted(() => {
           </div>
         </template>
 
-        <p v-if="formError" class="alert-error">{{ formError }}</p>
-        <p v-else-if="formSuccess" class="alert-success">{{ formSuccess }}</p>
+        <p v-if="formError" class="alert-error mt-4">{{ formError }}</p>
+        <p v-else-if="formSuccess" class="alert-success mt-4">{{ formSuccess }}</p>
       </section>
 
-      <section class="page-section space-y-4">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Exam result records</h3>
-            <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-              One result may exist per student per exam. Publication is controlled per result.
-            </p>
-          </div>
+      <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-8 xl:row-span-4">
+        <div class="panel-header">
+          <h3 class="panel-title">Exam result records</h3>
+          <p class="panel-copy">
+            One result may exist per student per exam. Publication is controlled per result.
+          </p>
         </div>
 
         <div v-if="resultError" class="alert-error">{{ resultError }}</div>
@@ -314,8 +320,8 @@ onMounted(() => {
         <div v-else-if="!selectedExamId" class="empty-state">Select an exam to view its results.</div>
         <div v-else-if="!hasStaffResults" class="empty-state">No exam results recorded for this exam yet.</div>
 
-        <div v-else class="space-y-4">
-          <article v-for="result in staffResults" :key="result.id" class="surface-panel px-5 py-5">
+        <div v-else class="panel-scroll-list">
+          <article v-for="result in staffResults" :key="result.id" class="record-card">
             <template v-if="editingResultId === result.id">
               <div class="grid gap-4 lg:grid-cols-2">
                 <label class="space-y-2">
@@ -380,10 +386,10 @@ onMounted(() => {
     </template>
 
     <template v-else>
-      <section class="page-section space-y-4">
-        <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Your published exam results</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+      <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-12">
+        <div class="panel-header">
+          <h3 class="panel-title">Your published exam results</h3>
+          <p class="panel-copy">
             Only published results remain visible here, and access still depends on your current membership in the linked academic space.
           </p>
         </div>
@@ -392,8 +398,8 @@ onMounted(() => {
         <div v-else-if="isLoadingResults" class="empty-state">Loading your exam results…</div>
         <div v-else-if="!hasMyResults" class="empty-state">No published exam results are visible yet.</div>
 
-        <div v-else class="space-y-4">
-          <article v-for="result in myResults" :key="result.id" class="surface-panel px-5 py-5">
+        <div v-else class="panel-scroll-list">
+          <article v-for="result in myResults" :key="result.id" class="record-card">
             <div class="space-y-3">
               <div>
                 <p class="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-text-soft)]">

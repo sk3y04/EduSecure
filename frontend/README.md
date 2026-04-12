@@ -39,9 +39,8 @@ For cookie auth to work in development, the backend must allow the frontend orig
 credentialed responses. The backend defaults already allow `http://localhost:5173`. If you change
 the frontend origin, also update the backend `APP_CORS_ALLOWED_ORIGINS` setting.
 
-If you want the shared space chat to be live in development, the backend must also run with chat
-enabled and a reachable MongoDB instance, for example through the repository `compose.yaml` chat
-profile plus:
+The repository `compose.yaml` now starts MongoDB and enables shared space chat by default when you
+run the full stack. The backend still needs these settings in any non-Compose run:
 
 ```bash
 APP_CHAT_ENABLED=true

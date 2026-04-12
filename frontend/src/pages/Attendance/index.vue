@@ -5,6 +5,7 @@ import { attendanceService } from '@/services/attendance'
 import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
 import { useAuthStore } from '@/stores/auth'
+import { AttendanceHeader, AttendanceMetricsPanel } from './components'
 import type {
   AttendanceSession,
   AttendanceSessionPayload,
@@ -60,6 +61,10 @@ const filterableSpaces = computed(() => {
 })
 const filteredSessions = computed(() => sessions.value.filter((session) => matchesFilters(session)))
 const hasFilteredSessions = computed(() => filteredSessions.value.length > 0)
+const manageableSessionCount = computed(() => filteredSessions.value.filter((session) => session.canManage).length)
+const totalUnrecordedSlots = computed(() =>
+  filteredSessions.value.reduce((sum, session) => sum + sessionUnrecordedCount(session), 0),
+)
 const statusOptions: Array<{ value: AttendanceStatus; label: string }> = [
   { value: 'PRESENT', label: 'Present' },
   { value: 'LATE', label: 'Late' },
@@ -356,22 +361,21 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <div class="page-hero">
-      <div class="max-w-3xl">
-        <p class="section-kicker">Attendance</p>
-        <h2 class="section-title">Session attendance and reporting</h2>
-        <p class="section-copy">
-          Staff can create attendance sessions for managed spaces and record per-student status against
-          a roster snapshot. Students can view only their own attendance status for accessible spaces.
-        </p>
-      </div>
-    </div>
+  <section class="desktop-page-grid">
+    <AttendanceHeader class="xl:col-span-8 xl:row-span-2" />
 
-    <section v-if="canManageAttendance" class="page-section space-y-4">
+    <AttendanceMetricsPanel
+      class="xl:col-span-4"
+      :total-sessions="sessions.length"
+      :filtered-sessions="filteredSessions.length"
+      :manageable-sessions="manageableSessionCount"
+      :unrecorded-slots="totalUnrecordedSlots"
+    />
+
+    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-3">
       <div>
-        <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Create attendance session</h3>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        <h3 class="panel-title">Create attendance session</h3>
+        <p class="panel-copy">
           Session creation snapshots the current space roster so later membership changes do not alter historical attendance evidence.
         </p>
       </div>
@@ -419,11 +423,11 @@ onMounted(async () => {
       <p v-else-if="formSuccess" class="alert-success">{{ formSuccess }}</p>
     </section>
 
-    <section class="page-section space-y-4">
+    <section class="page-section desktop-page-panel flex min-h-[36rem] flex-col xl:col-span-8 xl:row-span-4">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Visible attendance sessions</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+          <h3 class="panel-title">Visible attendance sessions</h3>
+          <p class="panel-copy">
             Sessions are ordered newest first and include basic reporting totals for recorded attendance.
           </p>
         </div>
@@ -461,8 +465,8 @@ onMounted(async () => {
       <div v-else-if="!hasSessions" class="empty-state">No attendance sessions are visible yet.</div>
       <div v-else-if="!hasFilteredSessions" class="empty-state">No attendance sessions match the current filters.</div>
 
-      <div v-else class="space-y-4">
-        <article v-for="session in filteredSessions" :key="session.id" class="surface-panel px-5 py-5">
+      <div v-else class="panel-scroll-list">
+        <article v-for="session in filteredSessions" :key="session.id" class="record-card">
           <template v-if="editingSessionId === session.id">
             <div class="grid gap-4 lg:grid-cols-2">
               <label class="space-y-2 lg:col-span-2">
@@ -557,11 +561,11 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section v-if="canManageAttendance" class="page-section space-y-4">
+    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex min-h-[32rem] flex-col xl:col-span-12">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Roster attendance editor</h3>
-          <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+          <h3 class="panel-title">Roster attendance editor</h3>
+          <p class="panel-copy">
             Select a manageable session to record or revise student attendance against the snapshotted roster.
           </p>
         </div>
@@ -590,11 +594,11 @@ onMounted(async () => {
           </p>
         </div>
 
-        <div class="space-y-3">
+        <div class="panel-scroll-list">
           <article
             v-for="record in selectedSessionRecords.records"
             :key="record.studentUserId"
-            class="surface-panel px-5 py-4"
+            class="record-card"
           >
             <div class="grid gap-4 lg:grid-cols-[1.3fr_0.7fr_0.8fr] lg:items-center">
               <div>

@@ -7,9 +7,16 @@ const props = defineProps<{
 </script>
 
 <template>
-  <section class="page-section">
-    <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Last created account</h3>
-    <div class="stats-grid mt-5">
+  <section class="page-section desktop-page-panel flex h-full flex-col">
+    <div class="panel-header">
+      <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Account output</h3>
+      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+        Review the latest created account here, along with a stable summary of who can be provisioned
+        from this workspace.
+      </p>
+    </div>
+
+    <div class="stats-grid flex-1">
       <div class="stat-card bg-[var(--color-surface-offset)]">
         <dt class="meta-label">Name</dt>
         <dd class="meta-value font-medium">{{ props.user.fullName }}</dd>
