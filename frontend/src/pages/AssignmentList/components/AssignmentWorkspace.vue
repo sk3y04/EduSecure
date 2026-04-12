@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { assignmentsService } from '@/services/assignments'
 import { extractErrorMessage } from '@/services/http'
 import { useAuthStore } from '@/stores/auth'
@@ -55,12 +56,6 @@ const submittedAssignments = computed(() =>
 
 const embeddedHeading = computed(() =>
   props.spaceName ? `Assignments in ${props.spaceName}` : 'Assignments in this space',
-)
-
-const embeddedCopy = computed(() =>
-  canCreateAssignments.value
-    ? 'Create coursework, monitor due dates, and open student submission flows from inside this space.'
-    : 'Open coursework, review due dates, and reach the secure submission flow from inside this space.',
 )
 
 async function loadAssignments() {
@@ -134,12 +129,9 @@ watch(
     <template v-if="props.embedded">
       <section class="page-section">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div class="max-w-3xl">
+          <div>
             <p class="section-kicker">Assignments</p>
             <h3 class="section-title">{{ embeddedHeading }}</h3>
-            <p class="section-copy max-w-none">
-              {{ embeddedCopy }}
-            </p>
           </div>
           <div v-if="props.spaceName" class="surface-panel-muted px-5 py-4">
             <p class="meta-label">Working inside</p>
@@ -150,49 +142,22 @@ watch(
     </template>
     <template v-else>
       <div class="desktop-page-grid">
-        <AssignmentListHeader class="xl:col-span-8 xl:row-span-2" />
-
-        <AssignmentListMetricsPanel
-          class="xl:col-span-4"
-          :total-assignments="sortedAssignments.length"
-          :open-assignments="openAssignments"
-          :closed-assignments="closedAssignments"
-          :submitted-assignments="submittedAssignments"
-        />
+        <AssignmentListHeader class="xl:col-span-12" />
 
         <section
           v-if="canCreateAssignments"
-          class="page-section desktop-page-panel panel-shell-spread xl:col-span-4 xl:row-span-2"
+          class="page-section desktop-page-panel panel-shell xl:col-span-12"
         >
-          <div>
-            <div class="panel-header">
-              <h3 class="panel-title">Assignment creation is space-scoped</h3>
-              <p class="panel-copy">
-                Open a space to create coursework for that staff-managed roster. This overview route
-                keeps cross-space visibility while creation remains anchored to the correct class area.
-              </p>
-            </div>
+          <div class="panel-header !mb-0">
+            <h3 class="panel-title">Create assignments from a space</h3>
           </div>
-
-          <div class="surface-panel-muted mt-6 px-5 py-4">
-            <p class="meta-label">Staff path</p>
-            <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
-              Use the adjacent support panel to jump to `Spaces`, then create coursework from the
-              relevant managed space.
-            </p>
+          <div class="flex flex-wrap gap-3">
+            <RouterLink :to="{ name: 'spaces' }" class="btn-primary">Open spaces</RouterLink>
           </div>
         </section>
 
-        <AssignmentListActionPanel
-          v-else
-          class="xl:col-span-4 xl:row-span-2"
-          :is-student="isStudent"
-          :can-create-assignments="canCreateAssignments"
-          :can-review-submissions="canReviewSubmissions"
-        />
-
         <AssignmentListItems
-          class="xl:col-span-8 xl:row-span-3"
+          class="xl:col-span-12"
           :assignments="sortedAssignments"
           :is-loading="isLoading"
           :load-error="loadError"
@@ -202,13 +167,25 @@ watch(
           @refresh="loadAssignments"
         />
 
-        <AssignmentListActionPanel
-          v-if="canCreateAssignments"
-          class="xl:col-span-4"
-          :is-student="isStudent"
-          :can-create-assignments="canCreateAssignments"
-          :can-review-submissions="canReviewSubmissions"
-        />
+        <div class="xl:col-span-12">
+          <ExpandablePanel title="Assignment details" summary="Counts and next steps">
+            <div class="desktop-page-grid">
+              <AssignmentListMetricsPanel
+                class="xl:col-span-6"
+                :total-assignments="sortedAssignments.length"
+                :open-assignments="openAssignments"
+                :closed-assignments="closedAssignments"
+                :submitted-assignments="submittedAssignments"
+              />
+              <AssignmentListActionPanel
+                class="xl:col-span-6"
+                :is-student="isStudent"
+                :can-create-assignments="canCreateAssignments"
+                :can-review-submissions="canReviewSubmissions"
+              />
+            </div>
+          </ExpandablePanel>
+        </div>
       </div>
     </template>
 
@@ -224,11 +201,7 @@ watch(
 
       <section v-else-if="canCreateAssignments" class="page-section">
         <div class="panel-header">
-          <h3 class="panel-title">Assignment creation is space-scoped</h3>
-          <p class="panel-copy">
-            Open a space to create coursework for that staff-managed roster. This view shows all
-            assignments you can currently access across spaces.
-          </p>
+          <h3 class="panel-title">Create assignments from this space</h3>
         </div>
       </section>
 
@@ -242,6 +215,24 @@ watch(
         :space-id="props.spaceId"
         @refresh="loadAssignments"
       />
+
+      <ExpandablePanel v-if="props.embedded" title="Assignment details" summary="Counts and next steps">
+        <div class="desktop-page-grid">
+          <AssignmentListMetricsPanel
+            class="xl:col-span-6"
+            :total-assignments="sortedAssignments.length"
+            :open-assignments="openAssignments"
+            :closed-assignments="closedAssignments"
+            :submitted-assignments="submittedAssignments"
+          />
+          <AssignmentListActionPanel
+            class="xl:col-span-6"
+            :is-student="isStudent"
+            :can-create-assignments="canCreateAssignments"
+            :can-review-submissions="canReviewSubmissions"
+          />
+        </div>
+      </ExpandablePanel>
     </template>
   </div>
 </template>

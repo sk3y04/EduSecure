@@ -26,9 +26,6 @@ function formatDate(value: string): string {
     <div class="panel-header-split">
       <div>
         <h3 class="panel-title">Student roster</h3>
-        <p class="panel-copy">
-          Students are listed only for users with management permission on this space.
-        </p>
       </div>
     </div>
 

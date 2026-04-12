@@ -16,12 +16,8 @@ const emit = defineEmits<{
 <template>
   <section class="page-section">
     <div class="panel-header flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div class="max-w-3xl">
+      <div>
         <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Protected submission content</h3>
-        <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-          Metadata remains visible by default. Protected submission files are only retrieved through
-          the controlled endpoint so the backend can authorize and audit access before download.
-        </p>
       </div>
       <button
         type="button"
@@ -48,10 +44,6 @@ const emit = defineEmits<{
         <p class="status-pill status-pill-success">Audited retrieval</p>
       </div>
 
-      <p class="mt-4 text-sm leading-6 text-[var(--color-text-soft)]">
-        Use the button above to download the decrypted file. This works for both text submissions
-        and PDF coursework while keeping the standard metadata response content-free.
-      </p>
 
       <p v-if="props.downloadedSubmission" class="mt-3 text-sm font-medium text-[var(--color-heading)]">
         Last retrieved: {{ props.downloadedSubmission.fileName }} ({{ props.downloadedSubmission.contentType }})

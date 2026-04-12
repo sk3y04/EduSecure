@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import {
   decryptSpaceChatMessage,
   detectBrowserCryptoSupport,
@@ -92,6 +93,51 @@ const encryptedRoomKeyActionLabel = computed(() => {
 
   return e2eeState.value?.requiresRekey ? 'Publish rotated room key' : 'Rotate encrypted room key'
 })
+const encryptedChatPanelSummary = computed(() => {
+  if (!encryptedChatBootstrapEnabled.value) {
+    return ''
+  }
+
+  if (!browserSupportsEncryptedChatSetup.value) {
+    return 'Unsupported on this browser'
+  }
+
+  if (encryptedChatNeedsSetup.value) {
+    return 'Setup required on this device'
+  }
+
+  if (encryptedChatMissingLocalKey.value || encryptedChatLocalKeyMismatch.value) {
+    return 'Register this device key'
+  }
+
+  if ((e2eeState.value?.activeKeyVersion ?? 0) < 1) {
+    return 'Room key not initialized'
+  }
+
+  if (e2eeState.value?.requiresRekey) {
+    return 'Room key rotation required'
+  }
+
+  if (encryptedChatReadyOnThisDevice.value) {
+    return `Ready${e2eeState.value?.activeKeyVersion ? ` · Key v${e2eeState.value.activeKeyVersion}` : ''}`
+  }
+
+  return 'Status details'
+})
+const shouldOpenEncryptedChatPanel = computed(() => Boolean(
+  encryptedChatBootstrapEnabled.value
+  && (
+    !browserSupportsEncryptedChatSetup.value
+    || encryptedChatNeedsSetup.value
+    || encryptedChatMissingLocalKey.value
+    || encryptedChatLocalKeyMismatch.value
+    || (e2eeState.value?.activeKeyVersion ?? 0) < 1
+    || e2eeState.value?.requiresRekey
+    || e2eeStatusError.value
+    || publishEncryptedRoomKeyError.value
+    || publishEncryptedRoomKeySuccess.value
+  )
+))
 const sendDisabledReason = computed(() => {
   if (!encryptedChatBootstrapEnabled.value) {
     return null
@@ -547,12 +593,8 @@ onBeforeUnmount(() => {
 <template>
   <section class="page-section desktop-page-panel flex min-h-[32rem] flex-col space-y-5">
     <div class="panel-header flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div class="max-w-3xl">
+      <div>
         <h3 class="panel-title text-2xl">Space chat</h3>
-        <p class="panel-copy">
-          Chat is shared by everyone who already has access to this space. Messages stay readable
-          after archival, but new posts are blocked once the space is archived.
-        </p>
       </div>
       <button type="button" class="btn-secondary self-start" @click="loadInitial">Refresh chat</button>
     </div>
@@ -560,73 +602,6 @@ onBeforeUnmount(() => {
     <div v-if="props.archived" class="alert-error">
       This space is archived. Existing chat history remains visible, but new messages are disabled.
     </div>
-
-    <section
-      v-if="encryptedChatBootstrapEnabled"
-      class="rounded-2xl border border-black/10 bg-[var(--color-surface-2)] p-5 text-sm"
-    >
-      <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div class="space-y-2">
-          <h4 class="font-display text-lg font-semibold text-[var(--color-heading)]">Encrypted chat setup</h4>
-          <p class="leading-6 text-[var(--color-text-soft)]">
-            Browser key registration is now available for this space. Messages still use the current chat flow
-            for now, but this device can already prepare and register its encrypted-chat identity.
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-soft)]">
-          <span class="status-pill">E2EE {{ currentUserChatKey?.e2eeEnabled ? 'enabled' : 'planned' }}</span>
-          <span v-if="e2eeState?.activeKeyVersion !== null && e2eeState?.activeKeyVersion !== undefined" class="status-pill">
-            Key v{{ e2eeState.activeKeyVersion }}
-          </span>
-          <span v-if="e2eeState?.requiresRekey" class="status-pill status-pill-warning">Rekey required</span>
-        </div>
-      </div>
-
-      <div v-if="e2eeStatusError" class="alert-error mt-4">{{ e2eeStatusError }}</div>
-      <div v-else-if="!browserSupportsEncryptedChatSetup" class="alert-error mt-4">
-        This browser does not support the Web Crypto + IndexedDB features required for encrypted chat setup.
-      </div>
-      <div v-else-if="encryptedChatReadyOnThisDevice" class="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-[var(--color-text)]">
-        This device already has the active encrypted chat key registered.
-        <div class="mt-2 text-xs text-[var(--color-text-soft)]">
-          Fingerprint: {{ currentUserChatKey?.fingerprint }}
-        </div>
-      </div>
-      <div v-else-if="encryptedChatNeedsSetup" class="mt-4 space-y-3 rounded-2xl border border-[var(--color-accent)]/20 bg-[var(--color-accent)]/5 p-4 text-[var(--color-text)]">
-        <p>This account has not registered an encrypted chat key yet for this device.</p>
-        <button type="button" class="btn-secondary" :disabled="isSettingUpEncryptedChat" @click="setupEncryptedChatOnThisDevice">
-          {{ isSettingUpEncryptedChat ? 'Preparing encrypted chat…' : 'Set up encrypted chat on this device' }}
-        </button>
-      </div>
-      <div v-else-if="encryptedChatMissingLocalKey || encryptedChatLocalKeyMismatch" class="mt-4 space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-[var(--color-text)]">
-        <p>
-          This browser does not currently hold the active encrypted chat key for your account.
-          Registering here will replace the currently registered device key.
-        </p>
-        <button type="button" class="btn-secondary" :disabled="isSettingUpEncryptedChat" @click="setupEncryptedChatOnThisDevice">
-          {{ isSettingUpEncryptedChat ? 'Registering this device…' : 'Register this device key' }}
-        </button>
-      </div>
-
-      <div v-if="canManageEncryptedRoomKey" class="mt-4 space-y-3 rounded-2xl border border-black/10 bg-white/60 p-4 text-[var(--color-text)]">
-        <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p class="font-medium text-[var(--color-heading)]">Encrypted room key management</p>
-            <p class="mt-1 leading-6 text-[var(--color-text-soft)]">
-              Staff can initialize the encrypted room key for this space and publish a new version after membership changes.
-            </p>
-          </div>
-          <button type="button" class="btn-secondary self-start" :disabled="isPublishingEncryptedRoomKey" @click="publishEncryptedRoomKey">
-            {{ isPublishingEncryptedRoomKey ? 'Publishing room key…' : encryptedRoomKeyActionLabel }}
-          </button>
-        </div>
-
-        <div v-if="publishEncryptedRoomKeyError" class="alert-error">{{ publishEncryptedRoomKeyError }}</div>
-        <div v-else-if="publishEncryptedRoomKeySuccess" class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-[var(--color-text)]">
-          {{ publishEncryptedRoomKeySuccess }}
-        </div>
-      </div>
-    </section>
 
     <div class="min-h-0 flex-1">
       <SpaceChatMessageList
@@ -652,6 +627,59 @@ onBeforeUnmount(() => {
       :send-disabled-reason="sendDisabledReason"
       @submit="sendMessage"
     />
+
+    <ExpandablePanel
+      v-if="encryptedChatBootstrapEnabled"
+      title="Encrypted chat"
+      :summary="encryptedChatPanelSummary"
+      :default-open="shouldOpenEncryptedChatPanel"
+    >
+      <div class="space-y-4 text-sm">
+        <div class="flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-soft)]">
+          <span class="status-pill">E2EE {{ currentUserChatKey?.e2eeEnabled ? 'enabled' : 'planned' }}</span>
+          <span v-if="e2eeState?.activeKeyVersion !== null && e2eeState?.activeKeyVersion !== undefined" class="status-pill">
+            Key v{{ e2eeState.activeKeyVersion }}
+          </span>
+          <span v-if="e2eeState?.requiresRekey" class="status-pill status-pill-warning">Rekey required</span>
+        </div>
+
+        <div v-if="e2eeStatusError" class="alert-error">{{ e2eeStatusError }}</div>
+        <div v-else-if="!browserSupportsEncryptedChatSetup" class="alert-error">
+          This browser does not support the encrypted chat setup requirements.
+        </div>
+        <div v-else-if="encryptedChatReadyOnThisDevice" class="surface-panel-muted p-4">
+          <p class="text-sm font-semibold text-[var(--color-heading)]">This device is ready.</p>
+          <p class="mt-2 text-xs text-[var(--color-text-soft)]">Fingerprint: {{ currentUserChatKey?.fingerprint }}</p>
+        </div>
+        <div v-else-if="encryptedChatNeedsSetup" class="space-y-3 surface-panel-muted p-4">
+          <p>This account has not registered an encrypted chat key on this device.</p>
+          <button type="button" class="btn-secondary" :disabled="isSettingUpEncryptedChat" @click="setupEncryptedChatOnThisDevice">
+            {{ isSettingUpEncryptedChat ? 'Preparing encrypted chat…' : 'Set up encrypted chat on this device' }}
+          </button>
+        </div>
+        <div v-else-if="encryptedChatMissingLocalKey || encryptedChatLocalKeyMismatch" class="space-y-3 surface-panel-muted p-4">
+          <p>This browser does not currently hold the active encrypted chat key for your account.</p>
+          <button type="button" class="btn-secondary" :disabled="isSettingUpEncryptedChat" @click="setupEncryptedChatOnThisDevice">
+            {{ isSettingUpEncryptedChat ? 'Registering this device…' : 'Register this device key' }}
+          </button>
+        </div>
+
+        <div v-if="canManageEncryptedRoomKey" class="space-y-3 surface-panel-muted p-4">
+          <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p class="font-medium text-[var(--color-heading)]">Room key</p>
+              <p class="mt-1 leading-6 text-[var(--color-text-soft)]">Initialize or rotate the encrypted room key for this space.</p>
+            </div>
+            <button type="button" class="btn-secondary self-start" :disabled="isPublishingEncryptedRoomKey" @click="publishEncryptedRoomKey">
+              {{ isPublishingEncryptedRoomKey ? 'Publishing room key…' : encryptedRoomKeyActionLabel }}
+            </button>
+          </div>
+
+          <div v-if="publishEncryptedRoomKeyError" class="alert-error">{{ publishEncryptedRoomKeyError }}</div>
+          <div v-else-if="publishEncryptedRoomKeySuccess" class="alert-success">{{ publishEncryptedRoomKeySuccess }}</div>
+        </div>
+      </div>
+    </ExpandablePanel>
   </section>
 </template>
 

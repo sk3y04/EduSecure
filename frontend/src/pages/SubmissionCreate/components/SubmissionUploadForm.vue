@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
+
 const props = defineProps<{
   errorMessage: string | null
   isSubmitting: boolean
@@ -37,9 +39,9 @@ function formatFileSize(size: number): string {
         accept=".txt,text/plain,.pdf,application/pdf"
         @change="handleFileChange"
       />
-      <p class="mt-2 text-sm text-[var(--color-text-soft)]">
+      <span class="mt-2 block text-sm text-[var(--color-text-soft)]">
         Accepted formats: TXT or PDF. Maximum file size: 5 MB.
-      </p>
+      </span>
     </label>
 
     <dl v-if="props.selectedFile" class="stats-grid">
@@ -57,20 +59,17 @@ function formatFileSize(size: number): string {
       </div>
     </dl>
 
-    <div class="surface-panel-muted p-4">
-      <p class="text-base font-semibold text-[var(--color-heading)]">What happens next</p>
-      <ul class="quiet-list">
-        <li>The current upload flow supports UTF-8 <code>text/plain</code> files and validated <code>application/pdf</code> uploads up to 5 MB.</li>
-        <li>The backend computes a SHA-256 digest over the uploaded file bytes.</li>
-        <li>A digital signature is created and immediately verified.</li>
-        <li>The submission content is encrypted at rest before durable storage.</li>
-        <li>The detail page exposes metadata first and retrieves the protected file through a separate audited download.</li>
+    <ExpandablePanel title="Upload details" summary="Accepted formats and verification steps">
+      <ul class="quiet-list !mt-0">
+        <li>TXT and PDF uploads up to 5 MB.</li>
+        <li>Digest and signature are generated on upload.</li>
+        <li>Content stays encrypted at rest.</li>
       </ul>
-    </div>
+    </ExpandablePanel>
 
     <div class="flex flex-wrap gap-3">
       <button type="submit" class="btn-primary" :disabled="props.isSubmitting">
-        {{ props.isSubmitting ? 'Submitting…' : 'Create secure submission' }}
+        {{ props.isSubmitting ? 'Submitting…' : 'Submit file' }}
       </button>
       <RouterLink
         :to="props.spaceId ? { name: 'space-detail', params: { spaceId: props.spaceId } } : { name: 'spaces' }"

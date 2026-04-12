@@ -68,10 +68,6 @@ function formatDate(value: string | null): string {
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">
         {{ props.existingGrade ? 'Update grade' : 'Grade submission' }}
       </h3>
-      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-        Only verified submissions can be graded. Grades are stored as whole-number percentages
-        from 0 to 100. One grade per submission — use the update form once a grade already exists.
-      </p>
     </div>
 
     <div v-if="!props.submissionVerified" class="empty-state">
@@ -115,7 +111,6 @@ function formatDate(value: string | null): string {
             class="form-input"
             placeholder="0 - 100"
           />
-          <span class="mt-2 block text-sm text-[var(--color-text-soft)]">Enter a whole-number percentage between 0 and 100.</span>
         </label>
 
         <label class="block lg:col-span-2">

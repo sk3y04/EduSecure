@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { registrationRequestsService } from '@/services/registrationRequests'
 import type { ReviewRegistrationRequest } from '@/types/registration'
@@ -73,23 +74,12 @@ onMounted(() => {
 
 <template>
   <section class="desktop-page-grid">
-    <RegistrationReviewHeader class="xl:col-span-8 xl:row-span-2" />
+    <RegistrationReviewHeader class="xl:col-span-12" />
 
-    <RegistrationReviewMetricsPanel
-      class="xl:col-span-4"
-      :total-requests="requests.length"
-      :unique-spaces="uniqueSpaces"
-      :unique-students="uniqueStudents"
-      :requests-with-messages="requestsWithMessages"
-    />
-
-    <section class="page-section desktop-page-panel panel-shell panel-shell-min-34 xl:col-span-8 xl:row-span-4">
+    <section class="page-section desktop-page-panel panel-shell xl:col-span-12">
       <div class="panel-header-split items-start">
         <div>
           <h3 class="panel-title">Pending queue</h3>
-          <p class="panel-copy">
-            Lecturers see owned spaces only. Admins can review all pending requests.
-          </p>
         </div>
 
         <button type="button" class="btn-secondary" @click="loadRequests">Refresh queue</button>
@@ -103,7 +93,7 @@ onMounted(() => {
         <div v-else-if="isLoading" class="empty-state">Loading pending requests…</div>
         <div v-else-if="requests.length === 0" class="empty-state">No pending registration requests.</div>
 
-        <div v-else class="panel-scroll-list h-full">
+        <div v-else class="panel-scroll-list">
           <article
             v-for="request in requests"
             :key="request.id"
@@ -127,7 +117,7 @@ onMounted(() => {
                   <span>Submitted {{ formatDate(request.requestedAt) }}</span>
                 </div>
 
-                <p v-if="request.requestMessage" class="text-base leading-7 text-[var(--color-text)]">
+                <p v-if="request.requestMessage" class="text-sm leading-6 text-[var(--color-text)]">
                   {{ request.requestMessage }}
                 </p>
                 <p v-else class="text-sm leading-6 text-[var(--color-text-soft)]">No request message provided.</p>
@@ -140,7 +130,7 @@ onMounted(() => {
                     v-model="reviewNotes[request.id]"
                     class="form-input min-h-28"
                     maxlength="500"
-                    placeholder="Optional note recorded with the review outcome."
+                      placeholder="Optional note"
                   />
                 </label>
 
@@ -169,6 +159,19 @@ onMounted(() => {
       </div>
     </section>
 
-    <RegistrationReviewGuidancePanel class="xl:col-span-4 xl:row-span-2" />
+    <div class="xl:col-span-12">
+      <ExpandablePanel title="Queue details" summary="Metrics and review guidance">
+        <div class="desktop-page-grid">
+          <RegistrationReviewMetricsPanel
+            class="xl:col-span-6"
+            :total-requests="requests.length"
+            :unique-spaces="uniqueSpaces"
+            :unique-students="uniqueStudents"
+            :requests-with-messages="requestsWithMessages"
+          />
+          <RegistrationReviewGuidancePanel class="xl:col-span-6" />
+        </div>
+      </ExpandablePanel>
+    </div>
   </section>
 </template>

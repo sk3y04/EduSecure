@@ -55,7 +55,7 @@ const router = createRouter({
         {
           path: 'exam-results',
           name: 'exam-results',
-          component: () => import('@/pages/ExamResults/index.vue'),
+          redirect: { name: 'exams', query: { view: 'results' } },
         },
         {
           path: 'feedback-forms',

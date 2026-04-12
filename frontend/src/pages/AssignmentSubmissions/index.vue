@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { submissionsService } from '@/services/submissions'
 import type { SubmissionResponse } from '@/types/submission'
@@ -61,13 +62,9 @@ onMounted(() => {
   <section class="space-y-6">
     <div class="page-hero">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="max-w-3xl">
+        <div>
           <p class="section-kicker">Assignment submissions</p>
-          <h2 class="section-title">Review submitted work before grading</h2>
-          <p class="section-copy">
-            Open a submission to inspect its integrity evidence, retrieve content, and assign a grade
-            expressed as a percentage from 0 to 100.
-          </p>
+          <h2 class="section-title">Review submissions</h2>
         </div>
         <div class="flex flex-wrap gap-3">
           <button type="button" class="btn-secondary" @click="loadSubmissions">Refresh</button>
@@ -79,12 +76,14 @@ onMounted(() => {
           </RouterLink>
         </div>
       </div>
+    </div>
 
-      <div class="surface-panel-muted mt-6 px-5 py-4">
+    <ExpandablePanel title="Assignment details" summary="Reference for this review list">
+      <div class="surface-panel-muted p-4">
         <p class="meta-label">Assignment reference</p>
         <p class="meta-value break-all mono-meta">{{ assignmentId }}</p>
       </div>
-    </div>
+    </ExpandablePanel>
 
     <div v-if="errorMessage" class="alert-error">{{ errorMessage }}</div>
     <div v-else-if="isLoading" class="empty-state">Loading assignment submissions…</div>
@@ -127,7 +126,7 @@ onMounted(() => {
             >
               Review and grade
             </RouterLink>
-            <span class="text-base text-[var(--color-text-soft)]">{{ submission.verificationMessage }}</span>
+              <span class="text-sm text-[var(--color-text-soft)]">{{ submission.verificationMessage }}</span>
           </div>
         </article>
       </div>

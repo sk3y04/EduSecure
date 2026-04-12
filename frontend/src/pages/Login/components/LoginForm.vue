@@ -18,14 +18,9 @@ function handleSubmit() {
 </script>
 
 <template>
-  <section class="page-section lg:p-10">
+  <section class="page-section lg:p-8">
     <div class="panel-header">
-      <p class="section-kicker"></p>
       <h2 class="section-title">Sign in</h2>
-      <p class="section-copy max-w-none">
-        Use an existing backend account. If MFA is enabled, the next step will request a TOTP
-        verification code.
-      </p>
     </div>
 
     <div v-if="props.errorMessage" class="alert-error mb-6">
@@ -58,7 +53,7 @@ function handleSubmit() {
       </label>
 
       <button type="submit" class="btn-primary w-full" :disabled="props.isSubmitting">
-        {{ props.isSubmitting ? 'Signing in…' : 'Continue' }}
+        {{ props.isSubmitting ? 'Signing in…' : 'Sign in' }}
       </button>
     </form>
   </section>

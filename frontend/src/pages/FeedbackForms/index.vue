@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { examsService } from '@/services/exams'
 import { feedbackFormsService } from '@/services/feedbackForms'
 import { extractErrorMessage } from '@/services/http'
@@ -352,29 +353,18 @@ onMounted(() => {
 
 <template>
   <section class="desktop-page-grid">
-    <FeedbackFormsHeader class="xl:col-span-8 xl:row-span-2" />
-
-    <FeedbackFormsMetricsPanel
-      class="xl:col-span-4"
-      :accessible-exams="exams.length"
-      :visible-forms="forms.length"
-      :selected-questions="selectedQuestionCount"
-      :response-volume="responseVolume"
-    />
+    <FeedbackFormsHeader class="xl:col-span-12" />
 
     <div v-if="loadError" class="alert-error xl:col-span-12">{{ loadError }}</div>
     <div v-else-if="isLoading" class="empty-state xl:col-span-12">Loading feedback forms…</div>
 
     <template v-else>
-      <section class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-2">
+      <section class="page-section desktop-page-panel flex flex-col xl:col-span-12">
         <div class="panel-header">
           <h3 class="panel-title">Select exam</h3>
-          <p class="panel-copy">
-            Feedback forms stay linked to a published exam and reuse the same access boundary as that exam.
-          </p>
         </div>
 
-        <label class="space-y-2">
+        <label class="space-y-2 xl:max-w-xl">
           <span class="field-label">Exam</span>
           <select v-model="selectedExamId" class="form-input" :disabled="!exams.length || isSubmitting">
             <option value="" disabled>Select an exam</option>
@@ -400,13 +390,10 @@ onMounted(() => {
       </section>
 
       <template v-if="isStaffView">
-        <section class="page-section desktop-page-panel flex min-h-[36rem] flex-col xl:col-span-8 xl:row-span-4">
+        <section class="page-section desktop-page-panel flex min-h-[36rem] flex-col xl:col-span-8">
           <div class="panel-header flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h3 class="panel-title">Manage forms</h3>
-              <p class="panel-copy">
-                Create ordered rating and text prompts, publish them when ready, and update metadata later.
-              </p>
             </div>
 
             <button type="button" class="btn-secondary self-start" @click="handleResetDraft">
@@ -498,12 +485,9 @@ onMounted(() => {
           <p v-else-if="formSuccess" class="alert-success mt-4">{{ formSuccess }}</p>
         </section>
 
-        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4 xl:row-span-4">
+        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4">
           <div class="panel-header">
             <h3 class="panel-title">Existing forms</h3>
-            <p class="panel-copy">
-              Review submissions and reopen a form in the editor to change metadata or publish status.
-            </p>
           </div>
 
           <div v-if="isLoadingForms" class="empty-state">Loading forms…</div>
@@ -532,7 +516,7 @@ onMounted(() => {
                     <span>Updated {{ formatDate(form.updatedAt) }}</span>
                   </div>
 
-                  <p v-if="form.description" class="text-base leading-7 text-[var(--color-text)]">
+                  <p v-if="form.description" class="text-sm leading-6 text-[var(--color-text)]">
                     {{ form.description }}
                   </p>
                 </div>
@@ -553,9 +537,6 @@ onMounted(() => {
         <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-12">
           <div class="panel-header">
             <h3 class="panel-title">Response review</h3>
-            <p class="panel-copy">
-              Review simple rating aggregates and read submitted text feedback for the selected form.
-            </p>
           </div>
 
           <div v-if="reviewError" class="alert-error">{{ reviewError }}</div>
@@ -635,12 +616,9 @@ onMounted(() => {
       </template>
 
       <template v-else>
-        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4 xl:row-span-4">
+        <section class="page-section desktop-page-panel flex min-h-[30rem] flex-col xl:col-span-4">
           <div class="panel-header">
             <h3 class="panel-title">Available forms</h3>
-            <p class="panel-copy">
-              You can submit one response for each published form in your accessible exam spaces.
-            </p>
           </div>
 
           <div v-if="isLoadingForms" class="empty-state">Loading forms…</div>
@@ -668,7 +646,7 @@ onMounted(() => {
                     <span>Updated {{ formatDate(form.updatedAt) }}</span>
                   </div>
 
-                  <p v-if="form.description" class="text-base leading-7 text-[var(--color-text)]">
+                  <p v-if="form.description" class="text-sm leading-6 text-[var(--color-text)]">
                     {{ form.description }}
                   </p>
                 </div>
@@ -681,12 +659,9 @@ onMounted(() => {
           </div>
         </section>
 
-        <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-8 xl:row-span-4">
+        <section class="page-section desktop-page-panel flex min-h-[34rem] flex-col xl:col-span-8">
           <div class="panel-header">
             <h3 class="panel-title">Submit feedback</h3>
-            <p class="panel-copy">
-              Choose one form and complete each prompt once. Submitted forms cannot be re-opened.
-            </p>
           </div>
 
           <div v-if="submitError" class="alert-error">{{ submitError }}</div>
@@ -702,7 +677,7 @@ onMounted(() => {
               <h4 class="mt-2 font-display text-xl font-semibold text-[var(--color-heading)]">
                 {{ selectedForm.title }}
               </h4>
-              <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
+              <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
                 {{ selectedForm.description || 'No description provided.' }}
               </p>
             </div>
@@ -739,6 +714,17 @@ onMounted(() => {
           </template>
         </section>
       </template>
+
+      <div class="xl:col-span-12">
+        <ExpandablePanel title="Feedback details" summary="Counts and response volume">
+          <FeedbackFormsMetricsPanel
+            :accessible-exams="exams.length"
+            :visible-forms="forms.length"
+            :selected-questions="selectedQuestionCount"
+            :response-volume="responseVolume"
+          />
+        </ExpandablePanel>
+      </div>
     </template>
   </section>
 </template>

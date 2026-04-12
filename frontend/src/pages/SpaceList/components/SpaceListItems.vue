@@ -24,13 +24,10 @@ function statusClass(archived: boolean): string {
 </script>
 
 <template>
-  <section class="page-section desktop-page-panel panel-shell panel-shell-min-32">
+  <section class="page-section desktop-page-panel panel-shell">
     <div class="panel-header-split">
       <div>
-        <h3 class="panel-title">Visible spaces</h3>
-        <p class="panel-copy">
-          The list is filtered server-side to match the current user's role and ownership rules.
-        </p>
+        <h3 class="panel-title">Spaces</h3>
       </div>
       <button type="button" class="btn-secondary self-start sm:self-auto" @click="emit('refresh')">
         Refresh
@@ -64,7 +61,7 @@ function statusClass(archived: boolean): string {
         </div>
       </div>
 
-      <div v-else class="panel-scroll-list h-full">
+      <div v-else class="panel-scroll-list">
         <article
           v-for="space in props.spaces"
           :key="space.id"
@@ -78,14 +75,14 @@ function statusClass(archived: boolean): string {
                   {{ space.code }}
                 </span>
               </div>
-              <p class="mt-3 text-base leading-7 text-[var(--color-text-soft)]">{{ space.description }}</p>
+              <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">{{ space.description }}</p>
             </div>
 
             <div class="flex flex-col items-start gap-3 lg:items-end">
               <span class="status-pill" :class="statusClass(space.archived)">
                 {{ space.archived ? 'Archived' : 'Active' }}
               </span>
-              <p class="text-base text-[var(--color-text-soft)]">
+              <p class="text-sm text-[var(--color-text-soft)]">
                 {{ space.memberCount }} student{{ space.memberCount === 1 ? '' : 's' }}
               </p>
             </div>
@@ -95,8 +92,8 @@ function statusClass(archived: boolean): string {
             <RouterLink :to="{ name: 'space-detail', params: { spaceId: space.id } }" class="btn-primary">
               {{ space.canManage ? 'Manage space' : 'Open space' }}
             </RouterLink>
-            <span v-if="space.isMember && !space.canManage" class="text-base text-[var(--color-text-soft)]">
-              You currently have staff-managed membership in this space.
+            <span v-if="space.isMember && !space.canManage" class="text-sm text-[var(--color-text-soft)]">
+              Member
             </span>
           </div>
         </article>

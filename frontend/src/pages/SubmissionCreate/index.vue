@@ -3,6 +3,7 @@ import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { submissionsService } from '@/services/submissions'
 import type { SubmissionResponse } from '@/types/submission'
@@ -73,13 +74,6 @@ onMounted(() => {
 <template>
   <section class="space-y-6">
     <SubmissionCreateHeader :assignment-id="assignmentId" />
-    <ExistingSubmissionPanel
-      :assignment-id="assignmentId"
-      :space-id="spaceId"
-      :submission="existingSubmission"
-      :is-loading="isLoadingExistingSubmission"
-      :load-error="existingSubmissionErrorMessage"
-    />
 
     <SubmissionUploadForm
       :error-message="errorMessage"
@@ -89,6 +83,16 @@ onMounted(() => {
       @submit="handleSubmit"
       @file-change="handleFileChange"
     />
+
+    <ExpandablePanel title="Latest submission" summary="Previously submitted work for this assignment">
+      <ExistingSubmissionPanel
+        :assignment-id="assignmentId"
+        :space-id="spaceId"
+        :submission="existingSubmission"
+        :is-loading="isLoadingExistingSubmission"
+        :load-error="existingSubmissionErrorMessage"
+      />
+    </ExpandablePanel>
   </section>
 </template>
 

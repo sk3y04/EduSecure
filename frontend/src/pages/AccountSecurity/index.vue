@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { authService } from '@/services/auth'
 import { extractErrorMessage } from '@/services/http'
 import type { MfaEnableResponse, MfaSetupResponse, MfaStatusResponse } from '@/types/auth'
@@ -101,15 +102,7 @@ onMounted(() => {
 
 <template>
   <div class="desktop-page-grid">
-    <AccountSecurityHeader class="xl:col-span-8 xl:row-span-2" />
-
-    <MfaStatusPanel
-      class="xl:col-span-4 xl:row-span-2"
-      :status="status"
-      :enabled-at-label="enabledAtLabel"
-      :is-setting-up="isSettingUp"
-      @setup="handleSetup"
-    />
+    <AccountSecurityHeader class="xl:col-span-12" />
 
     <div v-if="errorMessage" class="alert-error xl:col-span-12">{{ errorMessage }}</div>
     <div v-if="successMessage" class="alert-success xl:col-span-12">{{ successMessage }}</div>
@@ -119,7 +112,7 @@ onMounted(() => {
     <template v-else>
       <MfaEnablePanel
         v-if="!status?.mfaEnabled || enableResult?.recoveryCodes?.length"
-        class="xl:col-span-8 xl:row-span-4"
+        class="xl:col-span-8"
         :setup-data="setupData"
         :enable-result="enableResult"
         :is-enabling="isEnabling"
@@ -128,15 +121,11 @@ onMounted(() => {
 
       <section
         v-else
-        class="page-section desktop-page-panel panel-shell-spread xl:col-span-8 xl:row-span-4"
+        class="page-section desktop-page-panel panel-shell-spread xl:col-span-8"
       >
         <div>
           <div class="panel-header">
             <h3 class="panel-title">Enrollment complete</h3>
-            <p class="panel-copy">
-              MFA is already enabled for this account. Status remains visible in the summary lane, and
-              you can use the adjacent panel to perform a verified disable flow if necessary.
-            </p>
           </div>
 
           <div class="empty-state">
@@ -144,21 +133,25 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="surface-panel-muted mt-6 px-5 py-4">
-          <p class="meta-label">Protection model</p>
-          <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">
-            Recovery code counts and current method remain visible above so you can review account
-            recovery posture before making changes.
-          </p>
-        </div>
       </section>
 
       <MfaDisablePanel
         v-if="status?.mfaEnabled"
-        class="xl:col-span-4 xl:row-span-2"
+        class="xl:col-span-4"
         :is-disabling="isDisabling"
         @disable="handleDisable"
       />
+
+      <div class="xl:col-span-12">
+        <ExpandablePanel title="MFA details" summary="Current status and recovery posture">
+          <MfaStatusPanel
+            :status="status"
+            :enabled-at-label="enabledAtLabel"
+            :is-setting-up="isSettingUp"
+            @setup="handleSetup"
+          />
+        </ExpandablePanel>
+      </div>
     </template>
   </div>
 </template>

@@ -78,10 +78,6 @@ function handleEnable() {
   <section class="page-section desktop-page-panel flex min-h-[32rem] flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Enable MFA</h3>
-      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-        Generate the TOTP secret, register it in an authenticator app, then verify the first
-        code to complete enrollment.
-      </p>
     </div>
 
     <div v-if="props.setupData && !isEnrollmentComplete" class="mt-6 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
@@ -105,10 +101,7 @@ function handleEnable() {
           <div class="space-y-4">
             <div>
               <p class="meta-label">Authenticator app setup</p>
-              <p class="meta-value mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
-                Scan this QR code with your authenticator app, then enter the first 6-digit code
-                it generates to finish enrollment.
-              </p>
+              <p class="meta-value mt-1 text-sm leading-6 text-[var(--color-text-soft)]">Scan the code, then enter the first 6-digit code.</p>
             </div>
 
             <div v-if="qrFallbackMessage" class="rounded-lg border border-black/10 bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-soft)]">
@@ -120,19 +113,13 @@ function handleEnable() {
               <p class="meta-value break-all mono-meta">
                 {{ props.setupData.manualEntryKey }}
               </p>
-              <p class="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">
-                If your app cannot scan a QR code, choose the manual entry option and paste this
-                key instead.
-              </p>
+              <p class="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">Use this if your app cannot scan the QR code.</p>
             </div>
 
             <details v-if="setupOtpauthUri" class="rounded-lg border border-black/10 bg-[var(--color-surface)] p-4">
               <summary class="cursor-pointer text-sm font-medium text-[var(--color-heading)]">
                 Advanced setup details
               </summary>
-              <p class="mt-3 text-sm leading-6 text-[var(--color-text-soft)]">
-                Need the raw enrollment URI for troubleshooting or advanced import?
-              </p>
               <p class="meta-value break-all mono-meta">
                 {{ setupOtpauthUri }}
               </p>

@@ -23,9 +23,6 @@ function formatDate(value: string | null): string {
   <section class="page-section">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Your grade</h3>
-      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-        If your submission has been marked, the awarded percentage and feedback appear here.
-      </p>
     </div>
 
     <div v-if="props.errorMessage" class="alert-error mb-4">{{ props.errorMessage }}</div>

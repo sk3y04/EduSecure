@@ -52,8 +52,8 @@ async function handleSubmit(payload: { email: string; password: string }) {
 </script>
 
 <template>
-  <div class="app-page px-6 py-[clamp(2rem,7vw,6rem)]">
-    <div class="mx-auto max-w-xl">
+  <div class="app-page px-4 py-[clamp(1.5rem,5vw,4rem)]">
+    <div class="mx-auto max-w-lg">
       <LoginForm
         :error-message="authStore.errorMessage"
         :is-submitting="isSubmitting"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { attendanceService } from '@/services/attendance'
 import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
@@ -362,22 +363,11 @@ onMounted(async () => {
 
 <template>
   <section class="desktop-page-grid">
-    <AttendanceHeader class="xl:col-span-8 xl:row-span-2" />
+    <AttendanceHeader class="xl:col-span-12" />
 
-    <AttendanceMetricsPanel
-      class="xl:col-span-4"
-      :total-sessions="sessions.length"
-      :filtered-sessions="filteredSessions.length"
-      :manageable-sessions="manageableSessionCount"
-      :unrecorded-slots="totalUnrecordedSlots"
-    />
-
-    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex h-full flex-col xl:col-span-4 xl:row-span-3">
+    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex flex-col xl:col-span-4 xl:self-start">
       <div>
         <h3 class="panel-title">Create attendance session</h3>
-        <p class="panel-copy">
-          Session creation snapshots the current space roster so later membership changes do not alter historical attendance evidence.
-        </p>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
@@ -414,22 +404,19 @@ onMounted(async () => {
 
       <div class="flex flex-wrap items-center gap-3">
         <button type="button" class="btn-primary" :disabled="isSubmitting || !manageableSpaces.length" @click="handleCreate">
-          {{ isSubmitting ? 'Saving…' : 'Create attendance session' }}
+          {{ isSubmitting ? 'Saving…' : 'Create session' }}
         </button>
-        <button type="button" class="btn-secondary" @click="loadSessions">Refresh sessions</button>
+        <button type="button" class="btn-secondary" @click="loadSessions">Refresh</button>
       </div>
 
       <p v-if="formError" class="alert-error">{{ formError }}</p>
       <p v-else-if="formSuccess" class="alert-success">{{ formSuccess }}</p>
     </section>
 
-    <section class="page-section desktop-page-panel flex min-h-[36rem] flex-col xl:col-span-8 xl:row-span-4">
+    <section class="page-section desktop-page-panel flex flex-col xl:col-span-8 xl:self-start">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="panel-title">Visible attendance sessions</h3>
-          <p class="panel-copy">
-            Sessions are ordered newest first and include basic reporting totals for recorded attendance.
-          </p>
+          <h3 class="panel-title">Sessions</h3>
         </div>
         <button type="button" class="btn-secondary" @click="loadSessions">Refresh</button>
       </div>
@@ -465,7 +452,7 @@ onMounted(async () => {
       <div v-else-if="!hasSessions" class="empty-state">No attendance sessions are visible yet.</div>
       <div v-else-if="!hasFilteredSessions" class="empty-state">No attendance sessions match the current filters.</div>
 
-      <div v-else class="panel-scroll-list">
+      <div v-else class="record-list xl:max-h-[42rem] xl:overflow-y-auto xl:pr-1">
         <article v-for="session in filteredSessions" :key="session.id" class="record-card">
           <template v-if="editingSessionId === session.id">
             <div class="grid gap-4 lg:grid-cols-2">
@@ -519,7 +506,7 @@ onMounted(async () => {
                   <span v-if="!session.canManage">Your status: {{ statusLabel(session.myStatus) }}</span>
                 </div>
 
-                <p v-if="session.description" class="text-base leading-7 text-[var(--color-text)]">
+                <p v-if="session.description" class="text-sm leading-6 text-[var(--color-text)]">
                   {{ session.description }}
                 </p>
 
@@ -561,13 +548,10 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex min-h-[32rem] flex-col xl:col-span-12">
+    <section v-if="canManageAttendance" class="page-section desktop-page-panel flex flex-col xl:col-span-12">
       <div class="flex items-start justify-between gap-4">
         <div>
           <h3 class="panel-title">Roster attendance editor</h3>
-          <p class="panel-copy">
-            Select a manageable session to record or revise student attendance against the snapshotted roster.
-          </p>
         </div>
         <button type="button" class="btn-secondary" :disabled="!selectedManageSessionId" @click="loadSelectedSessionRecords">
           Refresh roster
@@ -594,7 +578,7 @@ onMounted(async () => {
           </p>
         </div>
 
-        <div class="panel-scroll-list">
+        <div class="record-list xl:max-h-[32rem] xl:overflow-y-auto xl:pr-1">
           <article
             v-for="record in selectedSessionRecords.records"
             :key="record.studentUserId"
@@ -626,11 +610,22 @@ onMounted(async () => {
 
         <div class="flex flex-wrap items-center gap-3">
           <button type="button" class="btn-primary" :disabled="isSavingRecords" @click="handleSaveRecords">
-            {{ isSavingRecords ? 'Saving…' : 'Save attendance records' }}
+            {{ isSavingRecords ? 'Saving…' : 'Save records' }}
           </button>
         </div>
       </template>
     </section>
+
+    <div class="xl:col-span-12">
+      <ExpandablePanel title="Attendance details" summary="Session totals and remaining work">
+        <AttendanceMetricsPanel
+          :total-sessions="sessions.length"
+          :filtered-sessions="filteredSessions.length"
+          :manageable-sessions="manageableSessionCount"
+          :unrecorded-slots="totalUnrecordedSlots"
+        />
+      </ExpandablePanel>
+    </div>
   </section>
 </template>
 

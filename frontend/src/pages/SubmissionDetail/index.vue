@@ -3,6 +3,7 @@ import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { gradesService } from '@/services/grades'
 import { submissionsService } from '@/services/submissions'
@@ -182,14 +183,9 @@ onMounted(() => {
   <section class="space-y-6">
     <div class="page-hero">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="max-w-3xl">
+        <div>
           <p class="section-kicker">Submission evidence</p>
-          <h2 class="section-title">Review integrity and authorship metadata</h2>
-          <p class="section-copy">
-            This screen keeps the cryptographic evidence easy to inspect: digest, signature
-            algorithm, and verification result remain prominent, while plaintext retrieval stays a
-            separate audited action.
-          </p>
+          <h2 class="section-title">Submission review</h2>
         </div>
         <button type="button" class="btn-secondary self-start" @click="loadSubmission">
           Refresh
@@ -201,11 +197,6 @@ onMounted(() => {
     <div v-else-if="isLoading" class="empty-state">Loading submission evidence…</div>
 
     <template v-else-if="submission">
-      <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <SubmissionMetaPanel :submission="submission" />
-        <SubmissionVerificationPanel :submission="submission" />
-      </div>
-
       <SubmissionContentPanel
         :is-loading-content="isLoadingContent"
         :content-error-message="contentErrorMessage"
@@ -213,6 +204,13 @@ onMounted(() => {
         :downloaded-submission="downloadedSubmission"
         @retrieve="loadSubmissionContent"
       />
+
+      <ExpandablePanel title="Evidence details" summary="Metadata and verification">
+        <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <SubmissionMetaPanel :submission="submission" />
+          <SubmissionVerificationPanel :submission="submission" />
+        </div>
+      </ExpandablePanel>
 
       <GradePanel
         v-if="canGrade"

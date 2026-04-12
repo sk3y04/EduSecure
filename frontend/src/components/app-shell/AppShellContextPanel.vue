@@ -12,15 +12,20 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <aside class="desktop-shell-context">
-    <section class="page-section !p-5">
-      <p class="section-kicker">Signed in as</p>
-      <h3 class="mt-2 font-display text-2xl font-semibold text-[var(--color-heading)]">
+  <aside class="account-panel">
+    <div class="min-w-0">
+      <p class="meta-label">Signed in as</p>
+      <h3 class="mt-1 truncate text-base font-semibold text-[var(--color-heading)]">
         {{ props.user?.fullName ?? 'Workspace user' }}
       </h3>
-      <p class="mt-2 text-sm leading-6 text-[var(--color-text-soft)]">{{ props.user?.email ?? 'No email available' }}</p>
+      <p class="truncate text-sm text-[var(--color-text-soft)]">{{ props.user?.email ?? 'No email available' }}</p>
+      <p v-if="props.primaryRole" class="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--color-text-soft)]">
+        {{ props.primaryRole }}
+      </p>
+    </div>
 
-      <div class="mt-5 flex flex-wrap gap-2">
+    <div class="account-panel-actions">
+      <div class="flex flex-wrap justify-end gap-2">
         <span
           v-for="role in props.user?.roles ?? []"
           :key="role"
@@ -29,14 +34,11 @@ const emit = defineEmits<{
           {{ role.replaceAll('_', ' ') }}
         </span>
       </div>
-    </section>
 
-    <section class="surface-panel-muted px-5 py-5">
-      <p class="meta-label">Session control</p>
-      <button type="button" class="btn-secondary mt-4 w-full" @click="emit('logout')">
+      <button type="button" class="btn-secondary account-signout" @click="emit('logout')">
         Sign out
       </button>
-    </section>
+    </div>
   </aside>
 </template>
 

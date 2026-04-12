@@ -23,10 +23,6 @@ function handleSubmit() {
   <section class="page-section desktop-page-panel flex h-full flex-col">
     <div class="panel-header">
       <h3 class="font-display text-xl font-semibold text-[var(--color-heading)]">Add student</h3>
-      <p class="mt-2 text-base leading-7 text-[var(--color-text-soft)]">
-        Membership is assigned by student email. The backend validates existence, role, and
-        duplicate space membership.
-      </p>
     </div>
 
     <div v-if="props.membershipError" class="alert-error mb-4">{{ props.membershipError }}</div>

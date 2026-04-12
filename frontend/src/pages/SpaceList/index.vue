@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { spacesService } from '@/services/spaces'
 import { useAuthStore } from '@/stores/auth'
@@ -31,12 +32,30 @@ const activeSpaces = computed(() => spaces.value.filter((space) => !space.archiv
 const archivedSpaces = computed(() => spaces.value.filter((space) => space.archived).length)
 const totalMembers = computed(() => spaces.value.reduce((sum, space) => sum + space.memberCount, 0))
 
+function sortSpacesForDisplay(items: SpaceSummary[]) {
+  return [...items].sort((left, right) => {
+    if (left.isMember !== right.isMember) {
+      return left.isMember ? -1 : 1
+    }
+
+    if (left.archived !== right.archived) {
+      return left.archived ? 1 : -1
+    }
+
+    if (left.canManage !== right.canManage) {
+      return left.canManage ? -1 : 1
+    }
+
+    return left.name.localeCompare(right.name)
+  })
+}
+
 async function loadSpaces() {
   isLoading.value = true
   loadError.value = null
 
   try {
-    spaces.value = await spacesService.list()
+    spaces.value = sortSpacesForDisplay(await spacesService.list())
   } catch (error) {
     loadError.value = extractErrorMessage(error)
   } finally {
@@ -52,7 +71,7 @@ async function handleCreate(payload: { name: string; code: string; description: 
   try {
     const created = await spacesService.create(payload)
 
-    spaces.value = [
+    spaces.value = sortSpacesForDisplay([
       {
         id: created.id,
         name: created.name,
@@ -64,7 +83,7 @@ async function handleCreate(payload: { name: string; code: string; description: 
         isMember: created.isMember,
       },
       ...spaces.value,
-    ]
+    ])
 
     createSuccess.value = 'Space created successfully.'
     await router.push({ name: 'space-detail', params: { spaceId: created.id } })
@@ -83,38 +102,13 @@ onMounted(() => {
 <template>
   <div class="desktop-page-grid">
     <SpaceListHeader
-      class="xl:col-span-8 xl:row-span-2"
-      :can-request-registration="canRequestRegistration"
-      :can-review-registrations="canReviewRegistrations"
-    />
-
-    <SpaceListMetricsPanel
-      class="xl:col-span-4"
-      :total-spaces="spaces.length"
-      :active-spaces="activeSpaces"
-      :archived-spaces="archivedSpaces"
-      :total-members="totalMembers"
-    />
-
-    <SpaceCreateForm
-      v-if="canManageSpaces"
-      class="xl:col-span-4 xl:row-span-2"
-      :create-error="createError"
-      :create-success="createSuccess"
-      :is-creating="isCreating"
-      @submit="handleCreate"
-    />
-
-    <SpaceListAccessPanel
-      v-else
-      class="xl:col-span-4 xl:row-span-2"
-      :can-manage-spaces="canManageSpaces"
+      class="xl:col-span-12"
       :can-request-registration="canRequestRegistration"
       :can-review-registrations="canReviewRegistrations"
     />
 
     <SpaceListItems
-      class="xl:col-span-8 xl:row-span-3"
+      class="xl:col-span-12"
       :spaces="spaces"
       :is-loading="isLoading"
       :load-error="loadError"
@@ -124,13 +118,35 @@ onMounted(() => {
       @refresh="loadSpaces"
     />
 
-    <SpaceListAccessPanel
-      v-if="canManageSpaces"
-      class="xl:col-span-4"
-      :can-manage-spaces="canManageSpaces"
-      :can-request-registration="canRequestRegistration"
-      :can-review-registrations="canReviewRegistrations"
-    />
+    <div class="xl:col-span-12">
+      <ExpandablePanel title="Space details" summary="Overview and actions" :default-open="false">
+        <div class="desktop-page-grid">
+          <SpaceListMetricsPanel
+            class="xl:col-span-4"
+            :total-spaces="spaces.length"
+            :active-spaces="activeSpaces"
+            :archived-spaces="archivedSpaces"
+            :total-members="totalMembers"
+          />
+
+          <SpaceCreateForm
+            v-if="canManageSpaces"
+            class="xl:col-span-4"
+            :create-error="createError"
+            :create-success="createSuccess"
+            :is-creating="isCreating"
+            @submit="handleCreate"
+          />
+
+          <SpaceListAccessPanel
+            :class="canManageSpaces ? 'xl:col-span-4' : 'xl:col-span-8'"
+            :can-manage-spaces="canManageSpaces"
+            :can-request-registration="canRequestRegistration"
+            :can-review-registrations="canReviewRegistrations"
+          />
+        </div>
+      </ExpandablePanel>
+    </div>
   </div>
 </template>
 

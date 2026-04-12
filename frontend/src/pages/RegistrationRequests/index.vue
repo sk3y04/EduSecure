@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
+import ExpandablePanel from '@/components/ui/ExpandablePanel.vue'
 import { extractErrorMessage } from '@/services/http'
 import { registrationRequestsService } from '@/services/registrationRequests'
 import type { StudentRegistrationRequest } from '@/types/registration'
@@ -92,25 +93,14 @@ onMounted(() => {
 
 <template>
   <section class="desktop-page-grid">
-    <RegistrationRequestsHeader class="xl:col-span-8 xl:row-span-2" />
+    <RegistrationRequestsHeader class="xl:col-span-12" />
 
-    <RegistrationRequestsMetricsPanel
-      class="xl:col-span-4"
-      :total-requests="requests.length"
-      :pending-requests="pendingRequests"
-      :reviewed-requests="reviewedRequests"
-      :requests-with-notes="requestsWithNotes"
-    />
-
-    <section class="page-section desktop-page-panel panel-shell xl:col-span-4 xl:row-span-3">
+    <section class="page-section desktop-page-panel panel-shell xl:col-span-12">
       <div class="panel-header">
         <h3 class="panel-title">Submit request</h3>
-        <p class="panel-copy">
-          Use a valid space code and optional reviewer context to request membership from staff.
-        </p>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-[0.7fr_1fr]">
+      <div class="grid gap-4 lg:grid-cols-[0.7fr_1fr] xl:max-w-4xl">
         <label class="space-y-2">
           <span class="field-label">Space code</span>
           <input
@@ -128,7 +118,7 @@ onMounted(() => {
             v-model="requestMessage"
             class="form-input min-h-28"
             maxlength="500"
-            placeholder="Optional context for the lecturer or admin reviewing your request."
+            placeholder="Optional message"
           />
         </label>
       </div>
@@ -144,14 +134,12 @@ onMounted(() => {
       <p v-else-if="formSuccess" class="alert-success mt-4">{{ formSuccess }}</p>
     </section>
 
-    <section class="page-section desktop-page-panel panel-shell panel-shell-min-34 xl:col-span-8 xl:row-span-4">
+    <section class="page-section desktop-page-panel panel-shell xl:col-span-12">
       <div class="panel-header-split !mb-4 !pb-0 !border-b-0 items-start">
         <div>
           <h3 class="panel-title">Your request history</h3>
-          <p class="panel-copy">
-            Requests are listed newest first. Only pending requests can be cancelled.
-          </p>
         </div>
+        <button type="button" class="btn-secondary" @click="loadRequests">Refresh</button>
       </div>
 
       <p v-if="actionError" class="alert-error mb-4 mt-4">{{ actionError }}</p>
@@ -161,7 +149,7 @@ onMounted(() => {
         <div v-else-if="isLoading" class="empty-state">Loading request history…</div>
         <div v-else-if="!hasRequests" class="empty-state">No registration requests yet.</div>
 
-        <div v-else class="panel-scroll-list h-full">
+        <div v-else class="panel-scroll-list">
           <article
             v-for="request in requests"
             :key="request.id"
@@ -184,7 +172,7 @@ onMounted(() => {
                   <span>Reviewed {{ formatDate(request.reviewedAt) }}</span>
                 </div>
 
-                <p v-if="request.requestMessage" class="text-base leading-7 text-[var(--color-text)]">
+                <p v-if="request.requestMessage" class="text-sm leading-6 text-[var(--color-text)]">
                   {{ request.requestMessage }}
                 </p>
 
@@ -207,5 +195,16 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <div class="xl:col-span-12">
+      <ExpandablePanel title="Request details" summary="History totals and review status">
+        <RegistrationRequestsMetricsPanel
+          :total-requests="requests.length"
+          :pending-requests="pendingRequests"
+          :reviewed-requests="reviewedRequests"
+          :requests-with-notes="requestsWithNotes"
+        />
+      </ExpandablePanel>
+    </div>
   </section>
 </template>
