@@ -41,6 +41,8 @@ It is designed to:
 - persist PostgreSQL, MongoDB, and submission storage on the host
 - expose only the frontend (`3000`) and backend (`8080`) ports that the VPS reverse proxy needs over the VPN tunnel
 
+For PostgreSQL 18, the home-server Compose files mount `/srv/edusecure/data/postgres` as the parent `/var/lib/postgresql` directory and let `PGDATA` point at the version-specific cluster path. If you already have an older host directory layout from `/var/lib/postgresql/data`, back it up and migrate it carefully instead of deleting it blindly.
+
 ### `home-server/mongodb-init/01-create-app-user.js`
 
 MongoDB first-run init script that creates the least-privilege application user used by the chat-enabled backend.

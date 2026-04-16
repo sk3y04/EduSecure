@@ -187,6 +187,8 @@ Example host layout:
     └── submission-storage/
 ```
 
+For `postgres:18-alpine`, treat `/srv/edusecure/data/postgres` as the **parent directory** that contains the cluster subdirectory managed by `PGDATA`, rather than as a direct bind mount of the old `/var/lib/postgresql/data` path.
+
 Recommended protections:
 
 - keep `.env.prod` outside Git and set permissions to owner-read only
@@ -230,8 +232,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/18/docker
     volumes:
-      - /srv/edusecure/data/postgres:/var/lib/postgresql/data
+      - /srv/edusecure/data/postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -452,6 +455,27 @@ sudo docker compose --env-file /srv/edusecure/.env.prod ps
 ```
 
 This starts PostgreSQL, MongoDB, the backend, and the frontend together as the default production stack.
+
+If PostgreSQL 18 refuses to start because an existing cluster was previously mounted at `/var/lib/postgresql/data`, use this recovery approach before starting the stack again:
+
+```bash
+cd /srv/edusecure
+sudo docker compose --env-file /srv/edusecure/.env.prod down
+sudo cp -a /srv/edusecure/data/postgres /srv/edusecure/data/postgres.backup.$(date +%Y%m%d-%H%M%S)
+sudo mkdir -p /srv/edusecure/data/postgres/18/docker
+```
+
+Then:
+
+- if `/srv/edusecure/data/postgres` contains a cluster created by an earlier **PostgreSQL 18** container using the old mount path, move the cluster contents into `/srv/edusecure/data/postgres/18/docker/`
+- if the directory contains a cluster from an older PostgreSQL major version, do **not** just move files in place; use `pg_upgrade` or restore from a logical backup instead
+
+After the directory layout matches the new mount strategy, start the stack again with:
+
+```bash
+cd /srv/edusecure
+sudo docker compose --env-file /srv/edusecure/.env.prod up -d --build
+```
 
 > [!IMPORTANT]
 > The MongoDB init script only runs when `/srv/edusecure/data/mongodb` is empty. If you already have a MongoDB data directory from an earlier unauthenticated deployment, either back it up and reinitialise it before first authenticated startup, or create the root/app users manually before enabling this Compose file.
