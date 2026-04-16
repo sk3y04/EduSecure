@@ -239,7 +239,6 @@ services:
 
   mongodb:
     image: mongo:7.0
-    profiles: ["chat"]
     volumes:
       - /srv/edusecure/data/mongodb:/data/db
     healthcheck:
@@ -254,6 +253,8 @@ services:
     image: ghcr.io/sk3y04/edusecure-backend:2026.04.15
     depends_on:
       postgres:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -274,7 +275,7 @@ services:
       SUBMISSION_STORAGE_BASE_PATH: /var/lib/edusecure/submission-storage
       CRYPTO_SIGNING_PRIVATE_KEY_LOCATION: file:/run/edusecure/crypto/signing-private.pem
       CRYPTO_SIGNING_PUBLIC_KEY_LOCATION: file:/run/edusecure/crypto/signing-public.pem
-      APP_CHAT_ENABLED: ${APP_CHAT_ENABLED}
+      APP_CHAT_ENABLED: "true"
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
       SPRING_DATA_MONGODB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE}
     ports:
@@ -366,12 +367,11 @@ AUDIT_HMAC_SECRET=REPLACE_WITH_BASE64_SECRET
 SUBMISSION_STORAGE_MASTER_KEY=REPLACE_WITH_BASE64_SECRET
 SUBMISSION_STORAGE_MASTER_KEY_VERSION=v1
 
-APP_CHAT_ENABLED=false
 SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/edusecure
 SPRING_DATA_MONGODB_DATABASE=edusecure
 ```
 
-If you want the shared space chat feature in production, switch `APP_CHAT_ENABLED=true` and start the stack with the `chat` profile so MongoDB is present.
+In this production layout, shared space chat is deployed with the rest of the stack, so MongoDB connection settings should always be present.
 
 ### 8.2 Minimum secret-handling rules
 
@@ -424,12 +424,7 @@ sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compos
 sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml ps
 ```
 
-If chat is not required, leave `APP_CHAT_ENABLED=false` and start the default stack. If you want the shared space chat feature, set `APP_CHAT_ENABLED=true` and start with the `chat` profile so MongoDB is included:
-
-```bash
-cd /srv/edusecure
-sudo docker compose --profile chat --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml up -d
-```
+This starts PostgreSQL, MongoDB, the backend, and the frontend together as the default production stack.
 
 ### 9.3 Verify locally on the home server
 
@@ -437,6 +432,7 @@ sudo docker compose --profile chat --env-file /srv/edusecure/.env.prod -f /srv/e
 sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=100 backend
 sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=100 frontend
 sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=50 postgres
+sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=50 mongodb
 ```
 
 Verify that the frontend and backend respond over the VPN-reachable home-server address after the tunnel is up.

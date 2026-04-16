@@ -19,7 +19,6 @@ services:
 
   mongodb:
     image: mongo:7.0
-    profiles: ["chat"]
     volumes:
       - /srv/edusecure/data/mongodb:/data/db
     healthcheck:
@@ -36,6 +35,8 @@ services:
     image: ghcr.io/sk3y04/edusecure-backend:RELEASE_TAG
     depends_on:
       postgres:
+        condition: service_healthy
+      mongodb:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -61,7 +62,7 @@ services:
       SUBMISSION_UPLOAD_MAX_FILE_SIZE: ${SUBMISSION_UPLOAD_MAX_FILE_SIZE}
       SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE}
       SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE}
-      APP_CHAT_ENABLED: ${APP_CHAT_ENABLED}
+      APP_CHAT_ENABLED: "true"
       SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
       SPRING_DATA_MONGODB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE}
     ports:
