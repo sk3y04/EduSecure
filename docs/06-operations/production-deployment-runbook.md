@@ -209,6 +209,17 @@ sudo chmod 600 /srv/edusecure/.env.prod
 sudo chmod 700 /srv/edusecure/crypto
 ```
 
+Generate the signing key pair before the first production boot:
+
+```bash
+./scripts/generate-prod-signing-keypair.sh --output-dir /srv/edusecure/crypto
+```
+
+That produces:
+
+- `/srv/edusecure/crypto/signing-private.pem`
+- `/srv/edusecure/crypto/signing-public.pem`
+
 ## 7. Production-grade Docker Compose design
 
 The production Compose stack should differ from the repository-root development file in the following ways:
@@ -444,6 +455,8 @@ Place the production files on the home server:
 The repository also keeps `deploy/home-server/compose.prod.yaml` as an equivalent named copy, but the default `compose.yaml` is the most convenient choice for plain `docker compose` commands inside `/srv/edusecure`.
 
 Because backend and frontend are built locally from the repository checkout, the home server needs the full project tree available at the same relative paths used by `deploy/home-server/compose.yaml`.
+
+If the backend fails with `Configured signing key resource does not exist`, confirm that both PEM files above exist on the host and are readable by the container through the `/srv/edusecure/crypto:/run/edusecure/crypto:ro` bind mount.
 
 ### 9.2 Pull the images and start the stack
 

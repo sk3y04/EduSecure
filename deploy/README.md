@@ -47,6 +47,10 @@ For PostgreSQL 18, the home-server Compose files mount `/srv/edusecure/data/post
 
 MongoDB first-run init script that creates the least-privilege application user used by the chat-enabled backend.
 
+### `../scripts/generate-prod-signing-keypair.sh` and `../scripts/generate-prod-signing-keypair.ps1`
+
+Helper scripts that generate the PEM key pair expected by the production backend mount at `/srv/edusecure/crypto/`.
+
 ### `home-server/.env.prod.example`
 
 Example production environment file for the home-server Compose stack.
@@ -81,6 +85,7 @@ Suggested target locations when you actually deploy:
 | `deploy/home-server/compose.prod.yaml` | home server | `/srv/edusecure/compose.prod.yaml` |
 | `deploy/home-server/.env.prod.example` | home server | `/srv/edusecure/.env.prod` |
 | `deploy/home-server/mongodb-init/01-create-app-user.js` | home server | `/srv/edusecure/mongodb-init/01-create-app-user.js` |
+| `scripts/generate-prod-signing-keypair.sh` | home server | run from the repository checkout to populate `/srv/edusecure/crypto/` |
 | `deploy/vps/nginx/edusecure.conf.example` | OVH VPS | `/usr/local/etc/nginx/conf.d/edusecure.conf` |
 
 ## Configuration assumptions
@@ -108,8 +113,9 @@ These templates assume the deployment model documented in `docs/06-operations/pr
 2. place the repository checkout on the home server so the Compose build contexts resolve correctly
 3. copy or symlink the home-server deployment files into `/srv/edusecure/`
 4. replace secrets in `.env.prod`
-5. ensure the VPN path between the VPS and home server is working
-6. deploy the Compose stack on the home server with `docker compose up --build`
-7. install the VPS Nginx config and obtain the TLS certificate with Certbot
-8. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
+5. generate the signing key pair under `/srv/edusecure/crypto/`
+6. ensure the VPN path between the VPS and home server is working
+7. deploy the Compose stack on the home server with `docker compose up --build`
+8. install the VPS Nginx config and obtain the TLS certificate with Certbot
+9. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
 
