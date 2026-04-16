@@ -10,8 +10,11 @@ These files are intentionally marked as examples/templates. They document the **
 deploy/
 ├── README.md
 ├── home-server/
+│   ├── compose.yaml
 │   ├── compose.prod.yaml
-│   └── .env.prod.example
+│   ├── .env.prod.example
+│   └── mongodb-init/
+│       └── 01-create-app-user.js
 └── vps/
     └── nginx/
         └── edusecure.conf.example
@@ -19,18 +22,28 @@ deploy/
 
 ## Purpose of each file
 
+### `home-server/compose.yaml`
+
+Default production-style Docker Compose template for the **home server**.
+
+It mirrors `home-server/compose.prod.yaml` so plain `docker compose` commands work when you are inside the deployment directory on the host.
+
 ### `home-server/compose.prod.yaml`
 
-Production-style Docker Compose template for the **home server**.
+Named production-style Docker Compose template for the **home server**.
 
 It is designed to:
 
-- run pre-built backend and frontend images
+- run pre-built backend and frontend images pinned to the current release tag
 - keep PostgreSQL and MongoDB off the public internet
 - run the backend with `SPRING_PROFILES_ACTIVE=prod`
 - externalise secrets via an environment file
 - persist PostgreSQL, MongoDB, and submission storage on the host
 - expose only the frontend (`3000`) and backend (`8080`) ports that the VPS reverse proxy needs over the VPN tunnel
+
+### `home-server/mongodb-init/01-create-app-user.js`
+
+MongoDB first-run init script that creates the least-privilege application user used by the chat-enabled backend.
 
 ### `home-server/.env.prod.example`
 
@@ -62,8 +75,10 @@ Suggested target locations when you actually deploy:
 
 | Repository template | Target host | Suggested destination |
 |---|---|---|
+| `deploy/home-server/compose.yaml` | home server | `/srv/edusecure/compose.yaml` |
 | `deploy/home-server/compose.prod.yaml` | home server | `/srv/edusecure/compose.prod.yaml` |
 | `deploy/home-server/.env.prod.example` | home server | `/srv/edusecure/.env.prod` |
+| `deploy/home-server/mongodb-init/01-create-app-user.js` | home server | `/srv/edusecure/mongodb-init/01-create-app-user.js` |
 | `deploy/vps/nginx/edusecure.conf.example` | OVH VPS | `/usr/local/etc/nginx/conf.d/edusecure.conf` |
 
 ## Configuration assumptions
@@ -90,7 +105,7 @@ These templates assume the deployment model documented in `docs/06-operations/pr
 
 1. read `docs/06-operations/production-deployment-runbook.md`
 2. copy the home-server templates into `/srv/edusecure/`
-3. replace placeholder image tags and secrets
+3. replace secrets and, when you publish a newer rollout, update the pinned image tags deliberately
 4. ensure the VPN path between the VPS and home server is working
 5. deploy the Compose stack on the home server
 6. install the VPS Nginx config and obtain the TLS certificate with Certbot

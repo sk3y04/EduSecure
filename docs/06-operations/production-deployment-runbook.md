@@ -239,10 +239,17 @@ services:
 
   mongodb:
     image: mongo:7.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE}
+      MONGODB_APP_USERNAME: ${MONGODB_APP_USERNAME}
+      MONGODB_APP_PASSWORD: ${MONGODB_APP_PASSWORD}
     volumes:
       - /srv/edusecure/data/mongodb:/data/db
+      - ./mongodb-init/01-create-app-user.js:/docker-entrypoint-initdb.d/01-create-app-user.js:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -276,7 +283,7 @@ services:
       CRYPTO_SIGNING_PRIVATE_KEY_LOCATION: file:/run/edusecure/crypto/signing-private.pem
       CRYPTO_SIGNING_PUBLIC_KEY_LOCATION: file:/run/edusecure/crypto/signing-public.pem
       APP_CHAT_ENABLED: "true"
-      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGODB_APP_USERNAME}:${MONGODB_APP_PASSWORD}@mongodb:27017/${SPRING_DATA_MONGODB_DATABASE}?authSource=${SPRING_DATA_MONGODB_DATABASE}
       SPRING_DATA_MONGODB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE}
     ports:
       - "8080:8080"
@@ -357,6 +364,12 @@ POSTGRES_DB=edusecure
 POSTGRES_USER=edusecure_app
 POSTGRES_PASSWORD=REPLACE_WITH_LONG_RANDOM_PASSWORD
 
+MONGODB_ROOT_USERNAME=edusecure_mongo_root
+MONGODB_ROOT_PASSWORD=REPLACE_WITH_LONG_RANDOM_HEX_PASSWORD
+MONGODB_APP_USERNAME=edusecure_chat_app
+MONGODB_APP_PASSWORD=REPLACE_WITH_LONG_RANDOM_HEX_PASSWORD
+SPRING_DATA_MONGODB_DATABASE=edusecure
+
 APP_CORS_ALLOWED_ORIGINS=https://edusecure.skey.ovh
 AUTH_COOKIE_SAME_SITE=Lax
 AUTH_COOKIE_DOMAIN=
@@ -366,12 +379,9 @@ MFA_SECRET_ENCRYPTION_KEY=REPLACE_WITH_BASE64_SECRET
 AUDIT_HMAC_SECRET=REPLACE_WITH_BASE64_SECRET
 SUBMISSION_STORAGE_MASTER_KEY=REPLACE_WITH_BASE64_SECRET
 SUBMISSION_STORAGE_MASTER_KEY_VERSION=v1
-
-SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/edusecure
-SPRING_DATA_MONGODB_DATABASE=edusecure
 ```
 
-In this production layout, shared space chat is deployed with the rest of the stack, so MongoDB connection settings should always be present.
+In this production layout, shared space chat is deployed with the rest of the stack, so MongoDB credentials and database settings should always be present. Keep `MONGODB_APP_PASSWORD` URL-safe because Compose injects it directly into the backend MongoDB URI.
 
 ### 8.2 Minimum secret-handling rules
 
@@ -394,6 +404,8 @@ openssl rand -base64 48
 Suggested usage:
 
 - database passwords: `openssl rand -hex 24`
+- `MONGODB_ROOT_PASSWORD`: `openssl rand -hex 24`
+- `MONGODB_APP_PASSWORD`: `openssl rand -hex 24`
 - `JWT_SECRET`: `openssl rand -base64 48`
 - `MFA_SECRET_ENCRYPTION_KEY`: `openssl rand -base64 32`
 - `AUDIT_HMAC_SECRET`: `openssl rand -base64 48`
@@ -410,29 +422,35 @@ This section assumes the home server already follows the homelab-blueprint opera
 
 Place the production files on the home server:
 
-- `/srv/edusecure/compose.prod.yaml`
+- `/srv/edusecure/compose.yaml`
 - `/srv/edusecure/.env.prod`
+- `/srv/edusecure/mongodb-init/01-create-app-user.js`
 - `/srv/edusecure/crypto/signing-private.pem`
 - `/srv/edusecure/crypto/signing-public.pem`
+
+The repository also keeps `deploy/home-server/compose.prod.yaml` as an equivalent named copy, but the default `compose.yaml` is the most convenient choice for plain `docker compose` commands inside `/srv/edusecure`.
 
 ### 9.2 Pull the images and start the stack
 
 ```bash
 cd /srv/edusecure
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml pull
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml up -d
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml ps
+sudo docker compose --env-file /srv/edusecure/.env.prod pull
+sudo docker compose --env-file /srv/edusecure/.env.prod up -d
+sudo docker compose --env-file /srv/edusecure/.env.prod ps
 ```
 
 This starts PostgreSQL, MongoDB, the backend, and the frontend together as the default production stack.
 
+> [!IMPORTANT]
+> The MongoDB init script only runs when `/srv/edusecure/data/mongodb` is empty. If you already have a MongoDB data directory from an earlier unauthenticated deployment, either back it up and reinitialise it before first authenticated startup, or create the root/app users manually before enabling this Compose file.
+
 ### 9.3 Verify locally on the home server
 
 ```bash
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=100 backend
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=100 frontend
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=50 postgres
-sudo docker compose --env-file /srv/edusecure/.env.prod -f /srv/edusecure/compose.prod.yaml logs --tail=50 mongodb
+sudo docker compose --env-file /srv/edusecure/.env.prod logs --tail=100 backend
+sudo docker compose --env-file /srv/edusecure/.env.prod logs --tail=100 frontend
+sudo docker compose --env-file /srv/edusecure/.env.prod logs --tail=50 postgres
+sudo docker compose --env-file /srv/edusecure/.env.prod logs --tail=50 mongodb
 ```
 
 Verify that the frontend and backend respond over the VPN-reachable home-server address after the tunnel is up.
