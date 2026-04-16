@@ -1,0 +1,98 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /srv/edusecure/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - edusecure_internal
+
+  mongodb:
+    image: mongo:7.0
+    profiles: ["chat"]
+    volumes:
+      - /srv/edusecure/data/mongodb:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - edusecure_internal
+
+  backend:
+    image: ghcr.io/sk3y04/edusecure-backend:RELEASE_TAG
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_COOKIE_SAME_SITE: ${AUTH_COOKIE_SAME_SITE}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN}
+      JWT_SECRET: ${JWT_SECRET}
+      MFA_SECRET_ENCRYPTION_KEY: ${MFA_SECRET_ENCRYPTION_KEY}
+      MFA_SECRET_KEY_VERSION: ${MFA_SECRET_KEY_VERSION}
+      MFA_ISSUER: ${MFA_ISSUER}
+      AUDIT_HMAC_SECRET: ${AUDIT_HMAC_SECRET}
+      CRYPTO_SIGNING_PRIVATE_KEY_LOCATION: file:/run/edusecure/crypto/signing-private.pem
+      CRYPTO_SIGNING_PUBLIC_KEY_LOCATION: file:/run/edusecure/crypto/signing-public.pem
+      SUBMISSION_STORAGE_MASTER_KEY: ${SUBMISSION_STORAGE_MASTER_KEY}
+      SUBMISSION_STORAGE_MASTER_KEY_VERSION: ${SUBMISSION_STORAGE_MASTER_KEY_VERSION}
+      SUBMISSION_STORAGE_BASE_PATH: /var/lib/edusecure/submission-storage
+      SUBMISSION_UPLOAD_MAX_FILE_SIZE: ${SUBMISSION_UPLOAD_MAX_FILE_SIZE}
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE}
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE}
+      APP_CHAT_ENABLED: ${APP_CHAT_ENABLED}
+      SPRING_DATA_MONGODB_URI: ${SPRING_DATA_MONGODB_URI}
+      SPRING_DATA_MONGODB_DATABASE: ${SPRING_DATA_MONGODB_DATABASE}
+    ports:
+      - "8080:8080"
+    volumes:
+      - /srv/edusecure/data/submission-storage:/var/lib/edusecure/submission-storage
+      - /srv/edusecure/crypto:/run/edusecure/crypto:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edusecure_internal
+
+  frontend:
+    image: ghcr.io/sk3y04/edusecure-frontend:RELEASE_TAG
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edusecure_internal
+
+networks:
+  edusecure_internal:
+    name: edusecure_internal
+
