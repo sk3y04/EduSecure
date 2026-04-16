@@ -39,7 +39,9 @@ services:
       - edusecure_internal
 
   backend:
-    image: ghcr.io/sk3y04/edusecure-backend:2026.04.15
+    build:
+      context: ../..
+      dockerfile: deploy/home-server/docker/backend.Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,9 +86,15 @@ services:
       - edusecure_internal
 
   frontend:
-    image: ghcr.io/sk3y04/edusecure-frontend:2026.04.15
+    build:
+      context: ../..
+      dockerfile: deploy/home-server/docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
     depends_on:
       - backend
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: "1"
     ports:
       - "3000:80"
     restart: unless-stopped

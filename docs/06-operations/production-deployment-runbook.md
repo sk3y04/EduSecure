@@ -136,21 +136,20 @@ Even after the VPN is established, the home server can restrict frontend/backend
 
 ## 5. Production packaging assumptions
 
-The deployment-stage Compose file should run **pre-built images**, not source bind mounts.
+The deployment-stage Compose file should run **production container builds**, not development bind mounts.
 
-Recommended packaging model:
+Current repository-supported packaging model:
 
-- backend image: built from the Spring Boot application and tagged immutably
-- frontend image: built as a static site image (for example multi-stage Node build -> Nginx image)
-- image registry: GHCR or another private/public container registry you control
+- backend image: built locally from the Spring Boot application with `deploy/home-server/docker/backend.Dockerfile`
+- frontend image: built locally as static assets served by Nginx with `deploy/home-server/docker/frontend.Dockerfile`
+- registry publishing: optional future optimisation, not required for the current home-server deployment flow
 
 A practical workflow is:
 
 1. run automated tests
-2. build and tag backend/frontend images
-3. push the images to the registry
-4. update the image tags in the production Compose file on the home server
-5. pull and restart the stack with controlled rollout
+2. build the backend/frontend images locally with Docker Compose
+3. start or restart the stack with `up --build`
+4. verify logs and service reachability across the VPN path
 
 ### Backend image note
 
@@ -174,7 +173,10 @@ Example host layout:
 
 ```text
 /srv/edusecure/
+├── compose.yaml
 ├── compose.prod.yaml
+├── mongodb-init/
+│   └── 01-create-app-user.js
 ├── .env.prod
 ├── crypto/
 │   ├── signing-private.pem
@@ -198,6 +200,7 @@ Example home-server preparation:
 sudo mkdir -p /srv/edusecure/data/postgres
 sudo mkdir -p /srv/edusecure/data/mongodb
 sudo mkdir -p /srv/edusecure/data/submission-storage
+sudo mkdir -p /srv/edusecure/mongodb-init
 sudo mkdir -p /srv/edusecure/crypto
 sudo touch /srv/edusecure/.env.prod
 sudo chmod 600 /srv/edusecure/.env.prod
@@ -208,7 +211,7 @@ sudo chmod 700 /srv/edusecure/crypto
 
 The production Compose stack should differ from the repository-root development file in the following ways:
 
-- use immutable `image:` references
+- use production `build:` definitions rather than development bind mounts
 - do not publish PostgreSQL or MongoDB to the public network
 - run the backend with `SPRING_PROFILES_ACTIVE=prod`
 - externalise all secrets
@@ -257,7 +260,9 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/sk3y04/edusecure-backend:2026.04.15
+    build:
+      context: ../..
+      dockerfile: deploy/home-server/docker/backend.Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -295,7 +300,11 @@ services:
       - no-new-privileges:true
 
   frontend:
-    image: ghcr.io/sk3y04/edusecure-frontend:2026.04.15
+    build:
+      context: ../..
+      dockerfile: deploy/home-server/docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
     environment:
       NGINX_ENTRYPOINT_QUIET_LOGS: "1"
     depends_on:
@@ -316,7 +325,7 @@ services:
 
 - the database services are **not** published directly
 - the backend runs the `prod` profile instead of development defaults
-- the frontend is a built image, not a Vite dev server
+- the frontend is built into a static Nginx-served image, not a Vite dev server
 - source code is not bind-mounted into running containers
 - secrets are injected from `.env.prod`
 - submission storage is persisted outside the container lifecycle
@@ -423,6 +432,7 @@ This section assumes the home server already follows the homelab-blueprint opera
 Place the production files on the home server:
 
 - `/srv/edusecure/compose.yaml`
+- `/srv/edusecure/compose.prod.yaml`
 - `/srv/edusecure/.env.prod`
 - `/srv/edusecure/mongodb-init/01-create-app-user.js`
 - `/srv/edusecure/crypto/signing-private.pem`
@@ -430,12 +440,14 @@ Place the production files on the home server:
 
 The repository also keeps `deploy/home-server/compose.prod.yaml` as an equivalent named copy, but the default `compose.yaml` is the most convenient choice for plain `docker compose` commands inside `/srv/edusecure`.
 
+Because backend and frontend are built locally from the repository checkout, the home server needs the full project tree available at the same relative paths used by `deploy/home-server/compose.yaml`.
+
 ### 9.2 Pull the images and start the stack
 
 ```bash
 cd /srv/edusecure
-sudo docker compose --env-file /srv/edusecure/.env.prod pull
-sudo docker compose --env-file /srv/edusecure/.env.prod up -d
+sudo docker compose --env-file /srv/edusecure/.env.prod build
+sudo docker compose --env-file /srv/edusecure/.env.prod up -d --build
 sudo docker compose --env-file /srv/edusecure/.env.prod ps
 ```
 

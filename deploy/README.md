@@ -34,7 +34,7 @@ Named production-style Docker Compose template for the **home server**.
 
 It is designed to:
 
-- run pre-built backend and frontend images pinned to the current release tag
+- build production backend and frontend images locally from this repository checkout
 - keep PostgreSQL and MongoDB off the public internet
 - run the backend with `SPRING_PROFILES_ACTIVE=prod`
 - externalise secrets via an environment file
@@ -97,17 +97,17 @@ These templates assume the deployment model documented in `docs/06-operations/pr
 
 ## Important limitations
 
-- The repository currently includes a **development** root `compose.yaml`, not a production packaging pipeline.
-- These templates expect **pre-built images** for the backend and frontend.
-- If you want a fully executable deployment path from this repository alone, the next step would be to add backend/frontend container build files and image-publish automation.
+- The home-server deployment now depends on the repository checkout because backend and frontend are built locally with Docker.
+- If you later want faster rollouts or remote hosts without the full source tree, the next step would be to add image-publish automation and switch the Compose stack back to published registry images.
 
 ## Recommended usage order
 
 1. read `docs/06-operations/production-deployment-runbook.md`
-2. copy the home-server templates into `/srv/edusecure/`
-3. replace secrets and, when you publish a newer rollout, update the pinned image tags deliberately
-4. ensure the VPN path between the VPS and home server is working
-5. deploy the Compose stack on the home server
-6. install the VPS Nginx config and obtain the TLS certificate with Certbot
-7. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
+2. place the repository checkout on the home server so the Compose build contexts resolve correctly
+3. copy or symlink the home-server deployment files into `/srv/edusecure/`
+4. replace secrets in `.env.prod`
+5. ensure the VPN path between the VPS and home server is working
+6. deploy the Compose stack on the home server with `docker compose up --build`
+7. install the VPS Nginx config and obtain the TLS certificate with Certbot
+8. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
 

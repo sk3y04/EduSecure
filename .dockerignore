@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+build
+backend/build
+frontend/dist
+frontend/node_modules
+homelab-blueprint
+
