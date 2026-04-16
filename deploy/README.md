@@ -51,6 +51,10 @@ MongoDB first-run init script that creates the least-privilege application user 
 
 Helper scripts that generate the PEM key pair expected by the production backend mount at `/srv/edusecure/crypto/`.
 
+### `../scripts/generate-prod-secrets.sh` and `../scripts/generate-prod-secrets.ps1`
+
+Helper scripts that generate production-ready `.env.prod` secret values, including the 32-byte Base64 AES keys required for MFA secret encryption and submission-storage key protection.
+
 ### `home-server/.env.prod.example`
 
 Example production environment file for the home-server Compose stack.
@@ -86,6 +90,7 @@ Suggested target locations when you actually deploy:
 | `deploy/home-server/.env.prod.example` | home server | `/srv/edusecure/.env.prod` |
 | `deploy/home-server/mongodb-init/01-create-app-user.js` | home server | `/srv/edusecure/mongodb-init/01-create-app-user.js` |
 | `scripts/generate-prod-signing-keypair.sh` | home server | run from the repository checkout to populate `/srv/edusecure/crypto/` |
+| `scripts/generate-prod-secrets.sh` | home server | run from the repository checkout to generate valid `.env.prod` secrets |
 | `deploy/vps/nginx/edusecure.conf.example` | OVH VPS | `/usr/local/etc/nginx/conf.d/edusecure.conf` |
 
 ## Configuration assumptions
@@ -113,9 +118,10 @@ These templates assume the deployment model documented in `docs/06-operations/pr
 2. place the repository checkout on the home server so the Compose build contexts resolve correctly
 3. copy or symlink the home-server deployment files into `/srv/edusecure/`
 4. replace secrets in `.env.prod`
-5. generate the signing key pair under `/srv/edusecure/crypto/`
-6. ensure the VPN path between the VPS and home server is working
-7. deploy the Compose stack on the home server with `docker compose up --build`
-8. install the VPS Nginx config and obtain the TLS certificate with Certbot
-9. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
+5. generate valid `.env.prod` secrets, especially the 32-byte Base64 AES keys used by MFA and submission storage
+6. generate the signing key pair under `/srv/edusecure/crypto/`
+7. ensure the VPN path between the VPS and home server is working
+8. deploy the Compose stack on the home server with `docker compose up --build`
+9. install the VPS Nginx config and obtain the TLS certificate with Certbot
+10. verify HTTPS access and collect evidence if you want to claim live deployment in the final report
 

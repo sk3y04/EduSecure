@@ -398,13 +398,21 @@ AUTH_COOKIE_SAME_SITE=Lax
 AUTH_COOKIE_DOMAIN=
 
 JWT_SECRET=REPLACE_WITH_BASE64_SECRET
-MFA_SECRET_ENCRYPTION_KEY=REPLACE_WITH_BASE64_SECRET
+MFA_SECRET_ENCRYPTION_KEY=REPLACE_WITH_32_BYTE_BASE64_SECRET
 AUDIT_HMAC_SECRET=REPLACE_WITH_BASE64_SECRET
-SUBMISSION_STORAGE_MASTER_KEY=REPLACE_WITH_BASE64_SECRET
+SUBMISSION_STORAGE_MASTER_KEY=REPLACE_WITH_32_BYTE_BASE64_SECRET
 SUBMISSION_STORAGE_MASTER_KEY_VERSION=v1
 ```
 
 In this production layout, shared space chat is deployed with the rest of the stack, so MongoDB credentials and database settings should always be present. Keep `MONGODB_APP_PASSWORD` URL-safe because Compose injects it directly into the backend MongoDB URI.
+
+`MFA_SECRET_ENCRYPTION_KEY` and `SUBMISSION_STORAGE_MASTER_KEY` must be standard Base64 values that decode to exactly 16, 24, or 32 bytes. The safest default is a 32-byte value.
+
+To generate a ready-to-paste secret block from the repository checkout, run:
+
+```bash
+./scripts/generate-prod-secrets.sh
+```
 
 ### 8.2 Minimum secret-handling rules
 
@@ -430,9 +438,9 @@ Suggested usage:
 - `MONGODB_ROOT_PASSWORD`: `openssl rand -hex 24`
 - `MONGODB_APP_PASSWORD`: `openssl rand -hex 24`
 - `JWT_SECRET`: `openssl rand -base64 48`
-- `MFA_SECRET_ENCRYPTION_KEY`: `openssl rand -base64 32`
+- `MFA_SECRET_ENCRYPTION_KEY`: `openssl rand -base64 32` (decodes to a 256-bit AES key)
 - `AUDIT_HMAC_SECRET`: `openssl rand -base64 48`
-- `SUBMISSION_STORAGE_MASTER_KEY`: `openssl rand -base64 32`
+- `SUBMISSION_STORAGE_MASTER_KEY`: `openssl rand -base64 32` (decodes to a 256-bit AES key)
 
 > [!NOTE]
 > The exact acceptable lengths depend on the consuming code path. The important deployment rule is to use strong random values and keep them externalised. If you later standardise exact key lengths in code or validation, update this runbook to match that enforcement precisely.
