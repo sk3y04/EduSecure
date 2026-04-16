@@ -1,18 +1,15 @@
-FROM eclipse-temurin:25-jdk AS build
-WORKDIR /workspace/backend
+FROM gradle:9.1.0-jdk25 AS build
+WORKDIR /home/gradle/project/backend
 
-COPY backend/gradlew ./gradlew
-COPY backend/gradle ./gradle
 COPY backend/build.gradle ./build.gradle
 COPY backend/src ./src
 
-RUN chmod +x ./gradlew \
-    && ./gradlew bootJar --no-daemon -x test
+RUN gradle --no-daemon bootJar -x test
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-COPY --from=build /workspace/backend/build/libs/*.jar /app/app.jar
+COPY --from=build /home/gradle/project/backend/build/libs/*.jar /app/app.jar
 
 EXPOSE 8080
 
