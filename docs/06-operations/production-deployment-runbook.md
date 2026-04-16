@@ -512,6 +512,8 @@ sudo docker compose --env-file /srv/edusecure/.env.prod logs --tail=50 mongodb
 
 Verify that the frontend and backend respond over the VPN-reachable home-server address after the tunnel is up.
 
+If you need to seed the first privileged account after deployment, follow `docs/06-operations/admin-user-db-guide.md` and use the production-safe HTTPS registration + PostgreSQL role-promotion workflow.
+
 ## 10. VPN path from home server to OVH VPS
 
 The network flow should follow the same pattern as `homelab-blueprint/NETWORK.md`:
