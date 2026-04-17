@@ -63,7 +63,17 @@ const currentRoomKeyVersion = ref<number | null>(null)
 let pollHandle: number | null = null
 
 const currentUserId = computed(() => authStore.user?.userId ?? null)
-const encryptedChatBootstrapEnabled = computed(() => Boolean(authStore.user?.chatE2eeEnabled || currentUserChatKey.value?.e2eeEnabled))
+const encryptedChatBootstrapEnabled = computed(() => {
+  if (currentUserChatKey.value) {
+    return currentUserChatKey.value.e2eeEnabled
+  }
+
+  if (e2eeState.value) {
+    return e2eeState.value.e2eeEnabled
+  }
+
+  return Boolean(authStore.user?.chatE2eeEnabled)
+})
 const encryptedChatNeedsSetup = computed(() => Boolean(encryptedChatBootstrapEnabled.value && currentUserChatKey.value && !currentUserChatKey.value.keyRegistered))
 const encryptedChatMissingLocalKey = computed(() => Boolean(encryptedChatBootstrapEnabled.value && currentUserChatKey.value?.keyRegistered && !localKeyFingerprint.value))
 const encryptedChatLocalKeyMismatch = computed(() => Boolean(
@@ -85,6 +95,15 @@ const canManageEncryptedRoomKey = computed(() => Boolean(
   && props.canManage
   && !props.archived
   && encryptedChatReadyOnThisDevice.value,
+))
+const encryptedChatActive = computed(() => Boolean(
+  encryptedChatBootstrapEnabled.value
+  && browserSupportsEncryptedChatSetup.value
+  && encryptedChatReadyOnThisDevice.value
+  && (e2eeState.value?.activeKeyVersion ?? 0) > 0
+  && !e2eeState.value?.requiresRekey
+  && currentRoomKey.value
+  && currentRoomKeyVersion.value === e2eeState.value?.activeKeyVersion,
 ))
 const encryptedRoomKeyActionLabel = computed(() => {
   if ((e2eeState.value?.activeKeyVersion ?? 0) < 1) {
@@ -118,8 +137,16 @@ const encryptedChatPanelSummary = computed(() => {
     return 'Room key rotation required'
   }
 
+  if (encryptedChatActive.value) {
+    return `Active${e2eeState.value?.activeKeyVersion ? ` · Key v${e2eeState.value.activeKeyVersion}` : ''}`
+  }
+
+  if (encryptedChatReadyOnThisDevice.value && e2eeState.value?.currentUserWrappedKey) {
+    return 'Syncing active room key'
+  }
+
   if (encryptedChatReadyOnThisDevice.value) {
-    return `Ready${e2eeState.value?.activeKeyVersion ? ` · Key v${e2eeState.value.activeKeyVersion}` : ''}`
+    return 'Awaiting room key access'
   }
 
   return 'Status details'
@@ -319,12 +346,24 @@ async function loadEncryptedChatBootstrapState() {
   clearCurrentRoomKey()
 
   const userId = currentUserId.value
-  if (!userId || !authStore.user?.chatE2eeEnabled) {
+  if (!userId) {
     browserSupportsEncryptedChatSetup.value = true
     return
   }
 
   try {
+    const [keyResponse, stateResponse] = await Promise.all([
+      spaceChatService.getCurrentUserChatKey(),
+      spaceChatService.getE2eeState(props.spaceId),
+    ])
+    currentUserChatKey.value = keyResponse
+    e2eeState.value = stateResponse
+
+    if (!keyResponse.e2eeEnabled && !stateResponse.e2eeEnabled) {
+      browserSupportsEncryptedChatSetup.value = true
+      return
+    }
+
     const support = await detectBrowserCryptoSupport()
     browserSupportsEncryptedChatSetup.value = support.subtleAvailable && support.indexedDbAvailable && support.cryptoKeyStructuredCloneAvailable
 
@@ -334,13 +373,6 @@ async function loadEncryptedChatBootstrapState() {
 
     const localKey = await chatKeyStore.loadCurrentUserKey(userId)
     localKeyFingerprint.value = localKey?.fingerprint ?? null
-
-    const [keyResponse, stateResponse] = await Promise.all([
-      spaceChatService.getCurrentUserChatKey(),
-      spaceChatService.getE2eeState(props.spaceId),
-    ])
-    currentUserChatKey.value = keyResponse
-    e2eeState.value = stateResponse
     await syncCurrentRoomKey(localKey)
   } catch (error) {
     e2eeStatusError.value = extractErrorMessage(error)
@@ -623,7 +655,7 @@ onBeforeUnmount(() => {
       :is-sending="isSending"
       :send-error="sendError"
       :is-archived="props.archived"
-      :is-encrypted-chat-active="encryptedChatBootstrapEnabled"
+      :is-encrypted-chat-active="encryptedChatActive"
       :send-disabled-reason="sendDisabledReason"
       @submit="sendMessage"
     />
@@ -648,7 +680,16 @@ onBeforeUnmount(() => {
           This browser does not support the encrypted chat setup requirements.
         </div>
         <div v-else-if="encryptedChatReadyOnThisDevice" class="surface-panel-muted p-4">
-          <p class="text-sm font-semibold text-[var(--color-heading)]">This device is ready.</p>
+          <p class="text-sm font-semibold text-[var(--color-heading)]">
+            {{ encryptedChatActive ? 'Encrypted chat is active.' : 'This device key is registered.' }}
+          </p>
+          <p class="mt-2 text-xs text-[var(--color-text-soft)]">
+            {{ encryptedChatActive
+              ? 'Messages sent from this device now use the active encrypted room key for this space.'
+              : e2eeState?.currentUserWrappedKey
+                ? 'This device is syncing access to the active room key for this space.'
+                : 'This device is ready for encrypted chat, but it does not currently have access to the active room key for this space.' }}
+          </p>
           <p class="mt-2 text-xs text-[var(--color-text-soft)]">Fingerprint: {{ currentUserChatKey?.fingerprint }}</p>
         </div>
         <div v-else-if="encryptedChatNeedsSetup" class="space-y-3 surface-panel-muted p-4">

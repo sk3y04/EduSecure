@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = defineProps<{
   modelValue: string
   isSending: boolean
@@ -16,6 +18,18 @@ const emit = defineEmits<{
 function updateValue(event: Event) {
   emit('update:modelValue', (event.target as HTMLTextAreaElement).value)
 }
+
+const composerStatusMessage = computed(() => {
+  if (props.isEncryptedChatActive) {
+    return 'Encrypted chat is active on this device for this space.'
+  }
+
+  if (props.sendDisabledReason) {
+    return 'Encrypted chat is required for this space, but this device is not ready to send yet.'
+  }
+
+  return 'Messages are stored as plain text and new posts are blocked once the space is archived.'
+})
 </script>
 
 <template>
@@ -24,9 +38,7 @@ function updateValue(event: Event) {
       <div>
         <h4 class="font-display text-lg font-semibold text-[var(--color-heading)]">Send a message</h4>
         <p class="mt-1 text-sm leading-6 text-[var(--color-text-soft)]">
-          {{ props.isEncryptedChatActive
-            ? 'Messages sent from this device now use the encrypted room key when one is available.'
-            : 'Messages are stored as plain text and new posts are blocked once the space is archived.' }}
+          {{ composerStatusMessage }}
         </p>
       </div>
       <span v-if="props.isArchived" class="status-pill status-pill-warning">Read-only</span>
