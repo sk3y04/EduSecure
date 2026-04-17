@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 007-exam-scheduling
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: exams

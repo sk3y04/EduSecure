@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 009-feedback-forms-create-feedback-forms
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: feedback_forms
@@ -68,7 +68,7 @@ databaseChangeLog:
 
   - changeSet:
       id: 009-feedback-forms-create-feedback-form-questions
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: feedback_form_questions
@@ -125,7 +125,7 @@ databaseChangeLog:
 
   - changeSet:
       id: 009-feedback-forms-create-feedback-form-submissions
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: feedback_form_submissions
@@ -177,7 +177,7 @@ databaseChangeLog:
 
   - changeSet:
       id: 009-feedback-forms-create-feedback-form-answers
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: feedback_form_answers

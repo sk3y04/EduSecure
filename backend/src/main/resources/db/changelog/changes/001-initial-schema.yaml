@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 001-initial-schema
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: roles

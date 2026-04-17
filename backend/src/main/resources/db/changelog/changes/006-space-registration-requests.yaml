@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 006-space-registration-requests
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: space_registration_requests

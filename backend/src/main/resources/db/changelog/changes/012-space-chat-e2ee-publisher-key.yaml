@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 012-space-chat-e2ee-publisher-key
-      author: copilot
+      author: edusecure
       changes:
         - addColumn:
             tableName: space_chat_key_versions

@@ -83,6 +83,20 @@ class LiquibasePostgresIntegrationTests {
         );
         assertThat(attendanceChangeSetCount).isEqualTo(1);
 
+        Integer cleanedAuthorCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM databasechangelog WHERE filename LIKE 'db/changelog/changes/%' AND author = ?",
+                Integer.class,
+                "edusecure"
+        );
+        assertThat(cleanedAuthorCount).isGreaterThan(0);
+
+        Integer nonStandardAuthorCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM databasechangelog WHERE filename LIKE 'db/changelog/changes/%' AND author <> ?",
+                Integer.class,
+                "edusecure"
+        );
+        assertThat(nonStandardAuthorCount).isZero();
+
         Integer tableCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('roles', 'users', 'user_roles')",
                 Integer.class

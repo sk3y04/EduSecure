@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 002-submission-aes-storage
-      author: copilot
+      author: edusecure
       changes:
         - addColumn:
             tableName: submissions

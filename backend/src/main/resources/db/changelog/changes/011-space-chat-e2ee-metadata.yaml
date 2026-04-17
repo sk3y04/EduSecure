@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 011-space-chat-e2ee-metadata
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: user_chat_keys

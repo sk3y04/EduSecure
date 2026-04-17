@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 004-grade-percentage
-      author: copilot
+      author: edusecure
       preConditions:
         - onFail: MARK_RAN
         - onError: HALT

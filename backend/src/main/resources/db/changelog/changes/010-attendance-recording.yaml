@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: 010-attendance-recording-create-attendance-sessions
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: attendance_sessions
@@ -76,7 +76,7 @@ databaseChangeLog:
 
   - changeSet:
       id: 010-attendance-recording-create-attendance-records
-      author: copilot
+      author: edusecure
       changes:
         - createTable:
             tableName: attendance_records
