@@ -33,7 +33,7 @@ function isOwnMessage(message: SpaceChatMessage): boolean {
 
 function messageStatusLabel(message: SpaceChatMessage): string | null {
   if (message.bodyState === 'legacy-plaintext') {
-    return 'Legacy plaintext'
+    return null
   }
 
   if (message.bodyState === 'decrypted') {
