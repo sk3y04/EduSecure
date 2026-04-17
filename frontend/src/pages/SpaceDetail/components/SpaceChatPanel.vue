@@ -681,11 +681,11 @@ onBeforeUnmount(() => {
         </div>
         <div v-else-if="encryptedChatReadyOnThisDevice" class="surface-panel-muted p-4">
           <p class="text-sm font-semibold text-[var(--color-heading)]">
-            {{ encryptedChatActive ? 'Encrypted chat is active.' : 'This device key is registered.' }}
+            {{ encryptedChatActive ? 'Active room key available.' : 'This device key is registered.' }}
           </p>
           <p class="mt-2 text-xs text-[var(--color-text-soft)]">
             {{ encryptedChatActive
-              ? 'Messages sent from this device now use the active encrypted room key for this space.'
+              ? 'This device can use the current encrypted room key for this space.'
               : e2eeState?.currentUserWrappedKey
                 ? 'This device is syncing access to the active room key for this space.'
                 : 'This device is ready for encrypted chat, but it does not currently have access to the active room key for this space.' }}
