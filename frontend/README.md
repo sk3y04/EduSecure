@@ -92,7 +92,6 @@ npm run build
 
 ## Notes
 
-- `Christialattion/frontend/` is used only as a structural reference.
 - The UI is intentionally evidence-oriented rather than product-polished.
 - Authentication is now cookie-based: the browser stores the session JWT in an HttpOnly cookie,
   while the frontend only keeps the MFA challenge state in `sessionStorage`.
