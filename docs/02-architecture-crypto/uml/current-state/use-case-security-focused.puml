@@ -1,0 +1,46 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor Student
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
+
+rectangle EduSecure {
+  usecase "Authenticate" as UC1
+  usecase "Complete MFA Challenge" as UC2
+  usecase "Submit Assignment" as UC3
+  usecase "Review Submission\nIntegrity Status" as UC4
+  usecase "Retrieve Submission\nContent (audited)" as UC5
+  usecase "Create / Update Grade" as UC6
+}
+
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC5 : own submission only
+
+Lecturer --> UC1
+Lecturer --> UC4
+Lecturer --> UC5
+Lecturer --> UC6
+
+Admin --> UC1
+Admin --> UC4 : oversight
+Admin --> UC5 : oversight
+Admin --> UC6 : oversight
+
+UC2 ..> UC1 : <<extends>> when MFA is enabled
+UC5 ..> UC4 : <<separate endpoint>>
+UC6 ..> UC4 : <<uses verified submission state>>
+
+note bottom of EduSecure
+This simplified current-state use-case diagram is intended for the final report.
+It keeps the focus on implemented protected interactions:
+cookie-backed authentication, optional TOTP MFA, submission upload,
+separate audited content retrieval, and verified-submission grade handling.
+Audit logs are written for sensitive actions, but public audit-review
+endpoints remain deferred in the current repository.
+end note
+@enduml
+

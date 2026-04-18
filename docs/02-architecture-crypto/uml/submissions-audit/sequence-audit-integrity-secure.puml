@@ -1,0 +1,42 @@
+@startuml
+actor Student
+participant "SubmissionService" as SubmissionService
+participant "AuditService" as Audit
+participant "ICryptoService" as Crypto
+database DB
+actor Lecturer
+actor Admin
+
+Student -> SubmissionService : submit verified or failed submission event
+SubmissionService -> Audit : record(actionType, actor, entity, details)
+Audit -> Audit : build canonical payload\n(actionType, actorUserId, entityType, entityId, timestamp, details)
+Audit -> DB : load previous audit record integrity value (optional)
+DB --> Audit : previousIntegrityValue
+Audit -> Crypto : computeAuditMac(canonicalPayload, previousIntegrityValue)
+Crypto --> Audit : integrityValue (HMAC-SHA-256)
+Audit -> DB : append AuditLog\n+ integrityValue\n+ previousIntegrityValue
+DB --> Audit : audit entry stored
+Audit --> SubmissionService : audit recorded
+
+note right of Audit
+The implemented backend uses `AuditService.record(...)`
+for append-oriented writes and computes an
+HMAC-SHA-256 integrity value over a canonical payload.
+end note
+
+note right of DB
+The model is append-oriented and stores
+`previousIntegrityValue` for simple chaining.
+
+The repo does not currently expose a public
+`/api/audit/...` review endpoint for lecturers or admins.
+Current audit review evidence comes from tests and
+DB inspection rather than a dedicated REST flow.
+end note
+
+note over Lecturer,Admin
+Lecturer/admin audit consumption is still a deferred
+operational/reporting concern, not an implemented
+application endpoint in the current codebase.
+end note
+@enduml

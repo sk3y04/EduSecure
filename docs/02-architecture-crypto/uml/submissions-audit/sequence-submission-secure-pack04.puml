@@ -1,0 +1,115 @@
+@startuml
+actor Student
+participant Browser
+participant "SubmissionController" as Controller
+participant "SubmissionService" as SubmissionService
+participant "ICryptoService" as Crypto
+participant "SubmissionContentEncryptionService" as Encrypt
+participant "SubmissionKeyProtectionService" as KeyProtect
+participant "SubmissionContentStore" as Store
+participant "AuditService" as Audit
+database DB
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
+
+Student -> Browser : choose assignment from enrolled space
+Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\nauthenticated session-cookie request\n(HTTPS in intended deployment)
+Controller -> SubmissionService : createSubmission(currentUserEmail, assignmentId, file)
+SubmissionService -> DB : load assignment and enforce\ncurrent space-scoped student access
+DB --> SubmissionService : assignment + current visibility
+alt upload is text/plain
+    SubmissionService -> SubmissionService : validate UTF-8 text bytes
+else upload is application/pdf
+    SubmissionService -> SubmissionService : validate %PDF- header and PDF media type
+end
+SubmissionService -> Crypto : hash(fileBytes) with SHA-256
+Crypto --> SubmissionService : hashDigest
+SubmissionService -> Crypto : sign(hashDigest) in simulated signing model
+Crypto --> SubmissionService : digitalSignature
+SubmissionService -> Crypto : verify(hashDigest, digitalSignature)
+Crypto --> SubmissionService : verificationResult
+SubmissionService -> Encrypt : encrypt(plaintext) with AES-GCM
+Encrypt --> SubmissionService : ciphertext + nonce + content-encryption key
+SubmissionService -> KeyProtect : wrap(content-encryption key)
+KeyProtect --> SubmissionService : wrapped key + key version
+SubmissionService -> Store : store(ciphertext)
+Store --> SubmissionService : storedFileReference
+
+alt verification succeeds
+    SubmissionService -> DB : store Submission with VERIFIED status\nand encrypted-at-rest metadata
+    SubmissionService -> Audit : log SUBMISSION_CREATED and SUBMISSION_VERIFIED
+    Audit --> SubmissionService : audit recorded
+    SubmissionService --> Controller : metadata-only submission response
+    Controller --> Browser : 201 Created + verificationStatus=VERIFIED
+else verification fails but record is retained
+    SubmissionService -> DB : store Submission with FAILED_VERIFICATION status\nand encrypted-at-rest metadata
+    SubmissionService -> Audit : log SUBMISSION_CREATED and SUBMISSION_VERIFICATION_FAILED
+    Audit --> SubmissionService : audit recorded
+    SubmissionService --> Controller : metadata-only submission response
+    Controller --> Browser : 201 Created + verificationStatus=FAILED_VERIFICATION
+end
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}
+Controller -> SubmissionService : getSubmission(submissionId)
+SubmissionService -> DB : load submission metadata
+DB --> SubmissionService : submission + verification status
+SubmissionService --> Controller : submission details
+Controller --> Lecturer : metadata, digest, status, message
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}/content
+Controller -> SubmissionService : getSubmissionContent(submissionId)
+SubmissionService -> Store : read(ciphertext)
+Store --> SubmissionService : ciphertext bytes
+SubmissionService -> KeyProtect : unwrap(content-encryption key)
+KeyProtect --> SubmissionService : plaintext DEK
+SubmissionService -> Encrypt : decrypt(ciphertext, nonce, DEK)
+Encrypt --> SubmissionService : plaintext content
+SubmissionService -> Audit : log SUBMISSION_CONTENT_ACCESSED
+Audit --> SubmissionService : audit recorded
+SubmissionService --> Controller : decrypted file bytes + contentType + fileName
+Controller --> Lecturer : binary-safe download response\nContent-Type + Content-Disposition
+
+Admin -> Controller : GET /api/submissions/{submissionId}\nor /api/submissions/{submissionId}/content
+Controller -> SubmissionService : owner-scoped access check with admin override
+SubmissionService --> Controller : metadata or decrypted content
+Controller --> Admin : authorised oversight response
+
+note right of SubmissionService
+The implemented backend still performs immediate
+verification during submission creation, but now also
+encrypts submission content before durable storage.
+
+Submission review is owner-scoped for lecturers:
+- submission owner student while the assignment remains
+  visible through current space membership
+- lecturer who owns the assignment
+- admin override
+
+Assignment visibility is now scoped as follows:
+- students see assignments only for current space memberships
+- lecturers see assignments they own
+- admins retain global oversight
+
+The current scoped file support is:
+- UTF-8 text/plain
+- validated application/pdf
+end note
+
+note right of Crypto
+The signing model remains simulated for the study project.
+It demonstrates authorship/tamper-evidence logic,
+not a production user-held PKI deployment.
+end note
+
+note right of Controller
+Normal browser access uses the backend-issued
+HttpOnly auth cookie rather than a frontend-managed
+Bearer token contract.
+
+Production deployment is intended to terminate
+traffic over HTTPS, but that is documented as an
+operations/deployment posture rather than a repo-
+proven runtime property of local tests.
+end note
+@enduml
+

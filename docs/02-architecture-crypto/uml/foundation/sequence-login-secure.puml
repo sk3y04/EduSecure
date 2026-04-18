@@ -1,0 +1,133 @@
+@startuml
+actor Student
+participant Browser
+participant "AuthController" as Controller
+participant "CookieCsrfTokenRepository" as CsrfRepo
+participant "AuthService" as Auth
+participant "AuthenticationManager" as AuthManager
+participant "DaoAuthenticationProvider" as AuthProvider
+participant "CustomUserDetailsService" as UserDetails
+participant "MfaService" as MFA
+participant "JwtAuthenticationFilter" as JwtFilter
+participant "JwtService" as Jwt
+participant "AuthCookieService" as Cookie
+database DB
+
+Browser -> Controller : GET /api/auth/csrf over HTTPS
+Controller -> CsrfRepo : generateToken(request)
+CsrfRepo --> Controller : CSRF token
+Controller -> CsrfRepo : saveToken(token, request, response)
+CsrfRepo --> Browser : readable XSRF-TOKEN cookie
+note over Browser,Controller
+Frontend boots CSRF before unsafe requests and sends
+X-XSRF-TOKEN plus credentialed cookies on POST requests.
+end note
+
+Student -> Browser : enter name, email, password
+Browser -> Controller : POST /api/auth/register + X-XSRF-TOKEN
+Controller -> Auth : register(request)
+Auth -> DB : check unique email + load STUDENT role
+Auth -> DB : store user with BCrypt password hash
+Auth -> Jwt : generateToken(amr=[pwd], mfa=false)
+Jwt --> Auth : signed JWT
+Auth --> Controller : AuthResponse(..., token present internally)
+Controller -> Cookie : createAuthenticationCookie(jwt)
+Cookie --> Controller : Set-Cookie header
+Controller --> Browser : 201 Created + HttpOnly auth cookie + token omitted from body
+
+Student -> Browser : later enters email + password
+Browser -> Controller : POST /api/auth/login + X-XSRF-TOKEN
+Controller -> Auth : login(credentials)
+Auth -> AuthManager : authenticate(email, password)
+AuthManager -> AuthProvider : authenticate(...)
+AuthProvider -> UserDetails : loadUserByUsername(email)
+UserDetails -> DB : load user by email
+DB --> UserDetails : user with bcrypt password hash + roles
+AuthProvider -> AuthProvider : verify with BCryptPasswordEncoder
+AuthProvider --> AuthManager : authenticated principal
+AuthManager --> Auth : authentication success
+Auth -> DB : load normalized user record
+DB --> Auth : user + MFA state
+
+alt MFA disabled for this account
+  Auth -> Jwt : generateToken(amr=[pwd], mfa=false)
+  Jwt --> Auth : signed JWT
+  Auth --> Controller : AuthResponse(authStatus=AUTHENTICATED, token)
+  Controller -> Cookie : createAuthenticationCookie(jwt)
+  Cookie --> Controller : Set-Cookie header
+  Controller --> Browser : 200 OK + HttpOnly auth cookie
+else MFA enabled for this account
+  Auth -> MFA : createLoginChallenge(user)
+  MFA -> DB : delete expired/prior challenges
+  MFA -> DB : store short-lived MFA challenge
+  DB --> MFA : challengeId + expiry + attempts
+  MFA --> Auth : AuthResponse(authStatus=MFA_REQUIRED, no token)
+  Auth --> Controller : MFA challenge metadata
+  Controller -> Cookie : clearAuthenticationCookie()
+  Cookie --> Controller : clearing Set-Cookie header
+  Controller --> Browser : 200 OK + MFA challenge metadata
+
+  Student -> Browser : enter authenticator or recovery code
+  Browser -> Controller : POST /api/auth/mfa/verify + X-XSRF-TOKEN
+  Controller -> MFA : verify(challengeId, verificationCode)
+  MFA -> DB : load challenge + user MFA secret/recovery data
+  DB --> MFA : pending challenge + protected MFA state
+  MFA -> MFA : validate TOTP or consume recovery code
+  MFA -> DB : mark challenge consumed / recovery code used
+  MFA -> Jwt : generateToken(amr=[pwd, otp], mfa=true)
+  Jwt --> MFA : signed JWT
+  MFA --> Controller : AuthResponse(authStatus=AUTHENTICATED, token)
+  Controller -> Cookie : createAuthenticationCookie(jwt)
+  Cookie --> Controller : Set-Cookie header
+  Controller --> Browser : 200 OK + HttpOnly auth cookie
+end
+
+Browser -> JwtFilter : GET /api/auth/me with credentialed auth cookie
+JwtFilter -> Cookie : extractToken(request cookies)
+alt auth cookie present
+  Cookie --> JwtFilter : JWT from auth cookie
+else no auth cookie
+  JwtFilter -> JwtFilter : fallback to Authorization: Bearer header
+end
+JwtFilter -> Jwt : extract username and validate token
+Jwt --> JwtFilter : valid subject + claims
+JwtFilter -> UserDetails : loadUserByUsername(subject)
+UserDetails -> DB : load user by email
+DB --> UserDetails : user details + roles
+JwtFilter --> Controller : authenticated SecurityContext
+Controller -> Auth : currentUser(authentication.name)
+Auth -> DB : load current user
+DB --> Auth : user profile + roles
+Auth --> Controller : CurrentUserResponse
+Controller --> Browser : 200 OK + CurrentUserResponse
+
+note right of AuthProvider
+Plaintext passwords are not stored.
+Spring Security verifies only the bcrypt password hash.
+end note
+
+note right of MFA
+No authenticated session cookie is established
+before second-factor success.
+TOTP secrets are AES-GCM protected at rest and
+recovery codes are one-time backup credentials.
+end note
+
+note right of Jwt
+JWT supports stateless session validation,
+but it is not a data-encryption mechanism.
+Invalid JWTs are ignored by the filter and fail later
+at authorization boundaries.
+end note
+
+note over Browser,Controller
+The browser-facing contract is cookie-first:
+- JWT is transported in an HttpOnly auth cookie
+- frontend sends credentialed requests and bootstraps CSRF automatically
+- response bodies omit the raw token value
+- validation, malformed-body, ResponseStatusException, and AuthApiException
+  failures use a shared structured envelope
+- some Spring Security / CSRF / authorization failures remain plain 401/403 responses
+end note
+@enduml
+

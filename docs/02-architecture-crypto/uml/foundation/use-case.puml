@@ -1,0 +1,59 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor Student
+actor Lecturer
+actor Admin
+
+rectangle EduSecure {
+  usecase "Authenticate" as UC1
+  usecase "View Visible Spaces and Assignments" as UC2
+  usecase "Submit Assignment for Visible Space" as UC3
+  usecase "Review Submission Integrity Metadata" as UC4
+  usecase "View Own Grades for Visible Submission" as UC5
+  usecase "Create / Update Grades" as UC6
+  usecase "Create Managed User Accounts" as UC8
+  usecase "Create Assignments for Owned Spaces" as UC9
+  usecase "Manage Owned Spaces" as UC10
+}
+
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC5
+
+Lecturer --> UC1
+Lecturer --> UC2
+Lecturer --> UC4
+Lecturer --> UC6
+Lecturer --> UC8 : student accounts only
+Lecturer --> UC9
+Lecturer --> UC10
+
+Admin --> UC1
+Admin --> UC4 : oversight
+Admin --> UC6 : oversight
+Admin --> UC8 : student + lecturer accounts
+Admin --> UC9 : oversight
+Admin --> UC10 : oversight
+
+UC3 ..> UC4 : <<creates metadata for>>
+UC6 ..> UC4 : <<requires verified submission>>
+
+note bottom of EduSecure
+Assignments are linked to spaces rather than standalone courses.
+Student submission and student self-service grade access
+are limited to assignments that remain visible through
+the student's current space memberships.
+
+Audit logging is implemented internally for user creation,
+space changes, submissions, and grades, but there is no
+actor-facing audit review API/UI in the current codebase.
+
+Managed user creation is intentionally limited:
+- ADMIN can create STUDENT and LECTURER accounts
+- LECTURER can create STUDENT accounts only
+end note
+@enduml
+

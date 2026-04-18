@@ -1,0 +1,154 @@
+@startuml
+title EduSecure - Submission AES-at-Rest and Lecturer Retrieval
+
+actor Student
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
+participant Browser
+participant "SubmissionController" as Controller
+participant "SubmissionService" as Service
+participant "AesRsaCryptoService\n(hash/sign/verify/audit HMAC)" as Crypto
+participant "SubmissionContentEncryptionService\n(AES-GCM)" as ContentCrypto
+participant "SubmissionKeyProtectionService\n(AESWrap)" as KeyProtection
+database "SubmissionRepository\n(PostgreSQL)" as SubmissionRepo
+collections "FileSystemSubmissionContentStore\n(default ./var/submission-storage)" as FileStore
+participant "AuditService" as Audit
+
+== Student submission ==
+
+Student -> Browser : choose TXT or PDF file
+Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\nauthenticated session-cookie request\n(HTTPS in intended deployment)
+Controller -> Service : createSubmission(currentUserEmail, assignmentId, file)
+Service -> Service : verify assignment is visible\nthrough current student space membership
+
+Service -> Service : validate file\n- filename\n- size\n- content type\n- UTF-8/PDF checks
+Service -> Service : read plaintext file bytes
+
+== Integrity and authorship on plaintext ==
+
+Service -> Crypto : hash(plaintext bytes)
+Crypto --> Service : SHA-256 digest
+
+Service -> Crypto : sign(digest bytes)
+Crypto --> Service : digitalSignature
+
+Service -> Crypto : verify(digest bytes, digitalSignature)
+Crypto --> Service : verificationStatus
+
+== AES at rest ==
+
+Service -> ContentCrypto : encrypt(plaintext bytes)
+activate ContentCrypto
+ContentCrypto -> ContentCrypto : generate random AES-256 DEK
+ContentCrypto -> ContentCrypto : generate random 12-byte GCM nonce
+ContentCrypto -> ContentCrypto : encrypt with AES/GCM/NoPadding
+ContentCrypto --> Service : ciphertext + Base64 nonce\n+ algorithm + DEK
+deactivate ContentCrypto
+
+Service -> KeyProtection : wrap(DEK)
+activate KeyProtection
+KeyProtection -> KeyProtection : load submission.storage.master-key
+KeyProtection -> KeyProtection : wrap DEK using AESWrap
+KeyProtection --> Service : wrappedContentEncryptionKey\n+ keyWrapAlgorithm + storageKeyVersion
+deactivate KeyProtection
+
+Service -> FileStore : store(ciphertext)
+FileStore --> Service : storedFileReference\nsubmission://<uuid>.bin
+
+Service -> SubmissionRepo : save Submission\nmetadata + encrypted-at-rest fields\n+ digest/signature/verification fields
+SubmissionRepo --> Service : saved submission
+
+Service -> Audit : record(SUBMISSION_CREATED)
+Audit --> Service : audit recorded
+
+alt verification succeeds
+    Service -> Audit : record(SUBMISSION_VERIFIED)
+    Audit --> Service : audit recorded
+else verification fails but submission is retained
+    Service -> Audit : record(SUBMISSION_VERIFICATION_FAILED)
+    Audit --> Service : audit recorded
+end
+
+Service --> Controller : SubmissionResponse\n(metadata only)
+Controller --> Browser : 201 Created
+
+note right of FileStore
+Disk stores ciphertext only.
+Plaintext file bytes are not stored directly.
+The path shown here is the default configured base path,
+not a hard-coded deployment guarantee.
+end note
+
+note right of SubmissionRepo
+DB stores the reference and decryption metadata:
+- storedFileReference
+- storageEncryptionNonce
+- wrappedContentEncryptionKey
+- storageKeyVersion
+- ciphertextLengthBytes
+- hash/signature status
+end note
+
+== Lecturer content retrieval ==
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}/content
+Controller -> Service : getSubmissionContent(submissionId, authentication)
+
+Service -> Service : requireAccessibleSubmission(...)
+note right of Service
+Current policy allows:
+- owner student while the related assignment remains\n  visible through current space membership
+- lecturer who owns the assignment
+- admin
+Denies unrelated student and unrelated lecturer.
+end note
+
+Service -> SubmissionRepo : findById(submissionId)
+SubmissionRepo --> Service : submission metadata
+
+Service -> FileStore : read(storedFileReference)
+FileStore --> Service : ciphertext bytes
+
+Service -> KeyProtection : unwrap(wrappedContentEncryptionKey, storageKeyVersion)
+activate KeyProtection
+KeyProtection -> KeyProtection : load master key
+KeyProtection -> KeyProtection : unwrap DEK using AESWrap
+KeyProtection --> Service : plaintext DEK
+deactivate KeyProtection
+
+Service -> ContentCrypto : decrypt(ciphertext, nonce, DEK)
+activate ContentCrypto
+ContentCrypto -> ContentCrypto : decrypt with AES/GCM/NoPadding
+ContentCrypto --> Service : plaintext file bytes
+deactivate ContentCrypto
+
+Service -> Audit : record(SUBMISSION_CONTENT_ACCESSED)
+Audit --> Service : audit recorded
+
+Service --> Controller : SubmissionContentResponse\n(fileName, contentType, plaintext bytes)
+Controller --> Lecturer : 200 OK attachment download
+
+note over Lecturer,Controller
+Lecturer does not decrypt locally.
+The server decrypts on demand and returns the original file.
+end note
+
+Admin -> Controller : GET /api/submissions/{submissionId}/content
+Controller -> Service : getSubmissionContent(submissionId, authentication)
+Service -> Service : apply admin override
+Service --> Controller : SubmissionContentResponse
+Controller --> Admin : 200 OK attachment download
+
+note right of Crypto
+Despite the legacy class name, `AesRsaCryptoService`
+currently signs with `SHA256withECDSA`.
+
+It is not the AES-at-rest file cipher.
+It provides:
+- SHA-256 hashing
+- ECDSA signing and verification
+- HMAC-SHA-256 audit integrity
+end note
+
+@enduml
+

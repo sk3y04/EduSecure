@@ -1,0 +1,233 @@
+# Final Implementation Evidence Map
+
+This document links the current EduSecure backend implementation to concrete evidence that can be reused in the report.
+
+Companion test-coverage notes:
+- `docs/04-evidence-testing/testing-support/unit-test-coverage-summary.md`
+- `docs/04-evidence-testing/testing-support/integration-test-coverage-summary.md`
+- `docs/04-evidence-testing/testing-support/manual-test-coverage-summary.md`
+- `docs/04-evidence-testing/testing-support/csrf-browser-evidence-capture-note.md`
+- `docs/04-evidence-testing/testing-support/test-evidence-collection-template.md`
+
+## 1. Implemented backend surface
+
+### Auth foundation and MFA hardening
+Controller:
+- `backend/src/main/java/edusecure/edusecure/controller/AuthController.java`
+
+Services / domain:
+- `backend/src/main/java/edusecure/edusecure/service/auth/AuthService.java`
+- `backend/src/main/java/edusecure/edusecure/service/auth/MfaService.java`
+- `backend/src/main/java/edusecure/edusecure/service/auth/AuthTokenService.java`
+- `backend/src/main/java/edusecure/edusecure/service/auth/TotpService.java`
+- `backend/src/main/java/edusecure/edusecure/service/auth/MfaSecretCryptoService.java`
+- `backend/src/main/java/edusecure/edusecure/entity/User.java`
+- `backend/src/main/java/edusecure/edusecure/entity/MfaChallenge.java`
+- `backend/src/main/java/edusecure/edusecure/entity/MfaRecoveryCode.java`
+
+Cookie/security configuration:
+- `backend/src/main/java/edusecure/edusecure/security/AuthCookieService.java`
+- `backend/src/main/java/edusecure/edusecure/config/AuthCookieProperties.java`
+- `backend/src/main/java/edusecure/edusecure/config/CorsProperties.java`
+- `backend/src/main/java/edusecure/edusecure/config/AuthCookieConfigurationValidator.java`
+- `backend/src/main/resources/application.properties`
+- `backend/src/main/resources/application-prod.properties`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/AuthControllerIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/MfaAuthIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/config/AuthCookieConfigurationValidatorTests.java`
+- `backend/src/test/java/edusecure/edusecure/config/AuthCookieConfigurationStartupValidationTests.java`
+
+What it proves:
+- registration works
+- bcrypt-backed password handling is in place
+- registration rejects passwords that do not meet the uppercase/lowercase/number/special-character policy
+- registration returns structured field-level validation feedback for weak passwords
+- auth-domain failures now use a shared structured error envelope for both validation and non-validation auth errors
+- login issues JWT-backed authenticated cookie sessions for non-MFA users
+- login returns `MFA_REQUIRED` for MFA-enabled users
+- TOTP-based MFA setup and enablement work
+- authenticated cookie session is established only after successful MFA verification for MFA-enabled users
+- recovery codes are generated, hashed, and one-time use
+- invalid and expired MFA challenges are rejected
+- authenticated identity lookup works
+- logout clears the auth cookie
+- cookie transport is `HttpOnly` and validated in integration tests
+- unsafe browser requests require the Spring Security CSRF token pair for acceptance
+- unsafe cookie settings fail fast during startup validation
+
+## 2. Assignment and submission integrity
+
+Controllers:
+- `backend/src/main/java/edusecure/edusecure/controller/AssignmentController.java`
+- `backend/src/main/java/edusecure/edusecure/controller/SubmissionController.java`
+
+Services / domain:
+- `AssignmentService.java`
+- `SubmissionService.java`
+- `Submission.java`
+- `SubmissionVerificationStatus.java`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/SubmissionFlowIntegrationTests.java`
+- `backend/src/test/java/edusecure/edusecure/service/submission/SubmissionContentEncryptionServiceTests.java`
+- `backend/src/test/java/edusecure/edusecure/service/submission/SubmissionKeyProtectionServiceTests.java`
+- `backend/src/test/java/edusecure/edusecure/service/submission/FileSystemSubmissionContentStoreTests.java`
+- `backend/src/test/java/edusecure/edusecure/service/crypto/AesRsaCryptoServiceTests.java`
+- `docs/04-evidence-testing/submissions-audit/submission-content-protection-and-retrieval.md`
+
+What it proves:
+- lecturer can create assignments
+- assignments are linked to spaces through `spaceId`
+- students see only assignments for spaces they currently belong to
+- student can upload a bounded UTF-8 `text/plain` submission file through the browser-facing multipart contract
+- `SHA-256` digest metadata is created
+- digital signature metadata is created
+- the submission-signature workflow uses a stable configured demo ECC keypair rather than a fresh runtime-generated keypair
+- verification status is stored and returned
+- submission content is encrypted at rest
+- submission metadata and plaintext retrieval are separated into different endpoints
+- successful plaintext retrieval is auditable
+- unrelated student cannot read another student's submission
+- student-owned submission access is re-checked against current assignment-space membership
+- unrelated lecturer cannot list, read, or download submissions for another lecturer's assignments
+- assignment-owning lecturer access is enforced for submission review while `ADMIN` retains oversight access
+- unsupported non-text uploads are rejected
+- empty uploads are rejected
+- invalid UTF-8 uploads are rejected
+- assignment/submission endpoints work under the cookie-authenticated session model used by the browser-facing frontend
+
+## 3. Audit integrity
+
+Service / domain:
+- `backend/src/main/java/edusecure/edusecure/audit/AuditService.java`
+- `backend/src/main/java/edusecure/edusecure/entity/AuditLog.java`
+- `backend/src/main/java/edusecure/edusecure/entity/AuditActionType.java`
+
+Evidence/tests:
+- `SubmissionFlowIntegrationTests.java`
+- `GradeFlowIntegrationTests.java`
+
+What it proves:
+- sensitive actions create audit records
+- audit records contain non-empty HMAC-backed integrity values
+- append-oriented audit evidence exists for key actions
+
+## 4. Grade integrity
+
+Controller:
+- `backend/src/main/java/edusecure/edusecure/controller/GradeController.java`
+
+Service / domain:
+- `GradeService.java`
+- `Grade.java`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/GradeFlowIntegrationTests.java`
+
+What it proves:
+- assignment-owning lecturers can create or update grades for their own assignments
+- admins can create or update grades globally
+- students can retrieve only their own grades while the related assignment remains visible through current space membership
+- duplicate grade creation is rejected
+- non-verified submissions cannot be graded
+- unrelated lecturers cannot create, read, or update another lecturer's grades
+- student self-service grade reads are revoked after assignment-space membership removal
+- grade-sensitive actions are audited
+- grade endpoints remain protected under the same cookie-authenticated session model
+
+## 5. Space ownership and membership authorization
+
+Controller:
+- `backend/src/main/java/edusecure/edusecure/controller/space/SpaceController.java`
+
+Service / domain:
+- `SpaceService.java`
+- `Space.java`
+- `SpaceMembership.java`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/SpaceFlowIntegrationTests.java`
+- `docs/03-features/academic-workflows/space-management-technical-specification.md`
+
+What it proves:
+- lecturers can create and manage only spaces they own
+- admins can manage any space globally
+- students can view only spaces they belong to
+- non-manager student members do not receive full roster disclosure
+- space management actions are audited
+
+## 6. Secure transmission design note — TLS via Certbot/Let's Encrypt
+
+The former standalone symmetric-crypto endpoints have been removed. Secure message/file transmission is now handled in the documentation as a deployment-side TLS 1.3 control via Certbot and Let's Encrypt rather than as a standalone application-layer endpoint slice.
+
+AES-GCM symmetric encryption remains evidenced in the codebase through two real business controls:
+- MFA secret protection at rest (`MfaSecretCryptoService`)
+- Submission content encryption at rest (`SubmissionContentEncryptionService`, `SubmissionKeyProtectionService`)
+
+What the current repository supports claiming:
+- TLS 1.3 via Certbot/Let's Encrypt is the intended deployment control for client-server transport security
+- the codebase itself now evidences symmetric encryption through AES-GCM protection of MFA secrets and submission content at rest rather than through a separate transmission demo
+
+## 7. Baseline availability / boot evidence
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/EduSecureApplicationTests.java`
+
+What it proves:
+- application context loads
+- health endpoint is public and working
+
+## 8. Database delivery and PostgreSQL verification
+
+Configuration / delivery evidence:
+- `compose.yaml`
+- `backend/src/main/resources/application.properties`
+- `backend/src/main/java/edusecure/edusecure/config/LiquibaseConfig.java`
+- `backend/src/main/resources/db/changelog/db.changelog-master.yaml`
+- `backend/src/main/resources/db/changelog/changes/001-initial-schema.yaml`
+
+Evidence/tests:
+- `backend/src/test/java/edusecure/edusecure/LiquibasePostgresIntegrationTests.java`
+- `backend/src/test/resources/application-postgres-liquibase.properties`
+
+What it proves:
+- PostgreSQL is the intended runtime database path
+- schema creation is represented in versioned Liquibase changelogs rather than relying only on Hibernate mutation
+- Liquibase is wired to run before Hibernate validation in the application context
+- the baseline schema can be applied against a real PostgreSQL container in automated tests
+- core tables, constraints, and indexes exist after migration
+- seed roles are available after startup against PostgreSQL
+- a minimal repository round-trip works against real PostgreSQL, including the `user_roles` join table
+
+What it does not prove:
+- production hardening of PostgreSQL transport or storage encryption
+- broad API-level PostgreSQL coverage across the whole suite
+- operational backup/restore maturity
+
+## 9. Minimum cryptographic techniques now evidenced
+
+The implemented artefact now contains evidence for at least these techniques:
+- password hashing with `bcrypt`
+- TOTP-based MFA using HMAC-derived one-time-password verification
+- hashing with `SHA-256`
+- digital signature workflow with ECC-based signing/verification logic
+- HMAC-backed integrity for audit records
+- AES-GCM symmetric encryption for sensitive data at rest
+- AES-GCM protection of stored MFA secrets at rest
+- AES-GCM protection of stored submission content at rest
+
+This exceeds the brief's minimum of three implemented cryptographic technique areas.
+
+## 10. Browser-session hardening evidence
+
+Additional documentation/evidence worth citing in the report:
+- `frontend/src/services/http.ts` shows credentialed requests with `withCredentials: true`
+- `frontend/src/services/http.ts` also shows CSRF bootstrap and header mirroring through `GET /api/auth/csrf`, `XSRF-TOKEN`, and `X-XSRF-TOKEN`
+- `frontend/src/stores/auth.ts` shows that the frontend no longer stores the auth JWT in `localStorage`
+- `frontend/README.md` documents the production profile and cookie deployment expectations
+- `docs/03-features/authentication/api-auth-contract.md` records the implemented `Set-Cookie`-based auth contract and logout behaviour
+- `docs/04-evidence-testing/testing-support/csrf-browser-evidence-capture-note.md` explains how to capture report-ready browser evidence for `CSRF-01` and `AUTH-15` without overstating what automated backend tests alone prove
+- `docs/04-evidence-testing/testing-support/test-evidence-worked-examples.md` now includes an appendix-ready `CSRF-01` worked record that can be reused as the preferred browser-security example in Section 8
+

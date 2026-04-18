@@ -1,0 +1,83 @@
+@startuml
+actor "Assignment-owning Lecturer" as Lecturer
+actor Admin
+actor Student
+participant "GradeController" as Controller
+participant "GradeService" as GradeService
+participant "AssignmentService" as AssignmentService
+participant "AuditService" as Audit
+database DB
+
+Lecturer -> Controller : POST /api/submissions/{submissionId}/grade\ncredentialed auth cookie + X-XSRF-TOKEN
+Controller -> GradeService : createGrade(currentUser, submissionId, request, authentication)
+GradeService -> DB : load actor + submission
+DB --> GradeService : lecturer + submission
+GradeService -> AssignmentService : requireLecturerOrAdminAssignmentAccess(...)
+AssignmentService -> DB : load assignment + owner scope
+DB --> AssignmentService : assignment owned by lecturer
+AssignmentService --> GradeService : authorised
+GradeService -> GradeService : require SubmissionVerificationStatus.VERIFIED
+GradeService -> DB : persist new grade
+GradeService -> Audit : record GRADE_CREATED
+Audit -> DB : store MAC-chained audit record
+GradeService --> Controller : GradeResponse
+Controller --> Lecturer : 201 Created
+
+Lecturer -> Controller : PUT /api/grades/{gradeId}\ncredentialed auth cookie + X-XSRF-TOKEN
+Controller -> GradeService : updateGrade(currentUser, gradeId, request, authentication)
+GradeService -> DB : load grade + related submission
+DB --> GradeService : grade + submission
+GradeService -> AssignmentService : requireLecturerOrAdminAssignmentAccess(...)
+AssignmentService --> GradeService : authorised
+GradeService -> GradeService : require SubmissionVerificationStatus.VERIFIED
+GradeService -> DB : update existing grade
+GradeService -> Audit : record GRADE_UPDATED
+Audit -> DB : store MAC-chained audit record
+Controller --> Lecturer : 200 OK + updated GradeResponse
+
+Admin -> Controller : GET /api/grades/{gradeId}\ncredentialed auth cookie request
+Controller -> GradeService : getGrade(gradeId, authentication)
+GradeService -> DB : load grade + submission
+DB --> GradeService : grade + submission
+GradeService -> AssignmentService : requireLecturerOrAdminAssignmentAccess(...)
+AssignmentService --> GradeService : authorised via admin oversight
+GradeService --> Controller : GradeResponse
+Controller --> Admin : privileged grade response
+
+Student -> Controller : GET /api/my/grades/{gradeId}\ncredentialed auth cookie request
+Controller -> GradeService : getMyGrade(gradeId, authentication)
+GradeService -> DB : load student, grade, submission
+DB --> GradeService : student + grade + submission
+GradeService -> AssignmentService : check current assignment visibility
+AssignmentService -> DB : load assignment
+DB --> AssignmentService : assignment + space visibility
+AssignmentService --> GradeService : student-visible assignment
+GradeService --> Controller : MyGradeResponse
+Controller --> Student : own grade response
+
+Student -> Controller : GET /api/my/submissions/{submissionId}/grade\ncredentialed auth cookie request
+Controller -> GradeService : getMyGradeForSubmission(submissionId, authentication)
+GradeService -> DB : load student, submission, grade
+DB --> GradeService : student + owned submission + grade
+GradeService -> AssignmentService : check current assignment visibility
+AssignmentService --> GradeService : student-visible assignment
+GradeService --> Controller : MyGradeResponse
+Controller --> Student : own grade by submission response
+
+note right of Audit
+ Sensitive grade changes are logged with
+ tamper-evident MAC-chained integrity support.
+ The audit details avoid storing full feedback text.
+end note
+
+note right of GradeService
+ Lecturer access is owner-scoped by assignment,
+ while admins retain global oversight.
+ Create and update operations are allowed only when
+ the linked submission verification status is VERIFIED.
+ Student grade reads are allowed only for the student's
+ own submission while the related assignment remains
+ visible through current space membership.
+end note
+@enduml
+

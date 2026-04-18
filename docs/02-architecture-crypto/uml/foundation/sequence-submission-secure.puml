@@ -1,0 +1,94 @@
+@startuml
+actor Student
+actor Lecturer
+actor Admin
+participant Browser
+participant "SubmissionController" as Controller
+participant "SubmissionService" as SubmissionService
+participant "AssignmentService" as AssignmentService
+participant "ICryptoService" as Crypto
+participant "SubmissionContentEncryptionService" as Encrypt
+participant "SubmissionKeyProtectionService" as KeyProtect
+participant "FileSystemSubmissionContentStore" as Store
+participant "AuditService" as Audit
+database DB
+
+Browser -> Controller : GET /api/auth/csrf over HTTPS
+Controller --> Browser : readable XSRF-TOKEN cookie
+
+Student -> Browser : choose assignment visible through current space membership
+Browser -> Controller : POST /api/assignments/{assignmentId}/submissions\nmultipart/form-data + credentialed auth cookie + X-XSRF-TOKEN
+Controller -> SubmissionService : createSubmission(currentUser, assignmentId, file)
+SubmissionService -> AssignmentService : getStudentAccessibleAssignmentOrThrow(currentUser, assignmentId)
+AssignmentService -> DB : load assignment + student space visibility
+DB --> AssignmentService : assignment + current visibility
+AssignmentService --> SubmissionService : visible assignment
+SubmissionService -> SubmissionService : validate file presence, size, type,\nPDF header / UTF-8 constraints, and open assignment state
+SubmissionService -> Crypto : hash(plaintext bytes) using SHA-256
+Crypto --> SubmissionService : hashDigest
+SubmissionService -> Crypto : sign(hashDigest bytes)
+Crypto --> SubmissionService : digitalSignature
+SubmissionService -> Crypto : verify(hashDigest bytes, digitalSignature)
+Crypto --> SubmissionService : verification result
+SubmissionService -> Encrypt : encrypt(plaintext) with fresh AES-GCM nonce + DEK
+Encrypt --> SubmissionService : ciphertext + nonce + content-encryption key
+SubmissionService -> KeyProtect : wrap(content-encryption key)
+KeyProtect --> SubmissionService : wrapped key + key version
+SubmissionService -> Store : store(ciphertext)
+Store --> SubmissionService : storedFileReference
+SubmissionService -> DB : persist submission metadata, digest, signature,\nverification state, and encryption metadata
+SubmissionService -> Audit : record SUBMISSION_CREATED
+SubmissionService -> Audit : record SUBMISSION_VERIFIED or SUBMISSION_VERIFICATION_FAILED
+SubmissionService --> Controller : SubmissionResponse (metadata only)
+Controller --> Browser : 201 Created + metadata-only JSON
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}\ncredentialed auth cookie request
+Controller -> SubmissionService : getSubmission(submissionId, actor)
+SubmissionService -> DB : load submission metadata + verification state
+DB --> SubmissionService : metadata + verification state + grade linkage
+SubmissionService --> Controller : SubmissionResponse
+Controller --> Lecturer : digest, signature, verificationStatus, message
+
+Admin -> Controller : GET /api/submissions/{submissionId}\ncredentialed auth cookie request
+Controller -> SubmissionService : getSubmission(submissionId, actor)
+SubmissionService --> Controller : SubmissionResponse
+Controller --> Admin : metadata with global oversight access
+
+Student -> Controller : GET /api/submissions/{submissionId}/content\ncredentialed auth cookie request
+Controller -> SubmissionService : getSubmissionContent(submissionId, actor)
+SubmissionService -> DB : load submission + authorise student ownership\nor lecturer/admin assignment access
+DB --> SubmissionService : accessible submission + storage metadata
+SubmissionService -> Store : read(ciphertext by storedFileReference)
+Store --> SubmissionService : ciphertext
+SubmissionService -> KeyProtect : unwrap(content-encryption key)
+KeyProtect --> SubmissionService : plaintext DEK
+SubmissionService -> Encrypt : decrypt(ciphertext, nonce, DEK)
+Encrypt --> SubmissionService : plaintext content
+SubmissionService -> Audit : record SUBMISSION_CONTENT_ACCESSED
+SubmissionService --> Controller : SubmissionContentResponse
+Controller --> Student : decrypted file bytes
+
+note right of SubmissionService
+ The implemented flow now:
+ - validates assignment visibility and open state
+ - validates upload size and supported file types
+ - computes SHA-256 digest
+ - signs and verifies the digest immediately
+ - encrypts stored content with AES-GCM
+ - wraps the DEK before persistence
+
+ Student submission and student self-service retrieval
+ depend on the related assignment remaining visible
+ through current space membership.
+ Lecturer access is owner-scoped by assignment,
+ while admins retain global oversight.
+end note
+
+note right of Store
+ Standard metadata responses do not expose ciphertext,
+ wrapped keys, nonce values, or storedFileReference.
+ Plaintext retrieval is a separate authorised path via
+ GET /api/submissions/{submissionId}/content.
+end note
+@enduml
+

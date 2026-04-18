@@ -1,0 +1,70 @@
+@startuml
+title EduSecure - Lecturer Submission Retrieval and Server-Side Decryption
+
+actor "Assignment-owning Lecturer" as Lecturer
+participant "SubmissionController" as Controller
+participant "SubmissionService" as Service
+participant "AssignmentService" as AssignmentService
+database "SubmissionRepository\n(PostgreSQL)" as SubmissionRepo
+collections "FileSystemSubmissionContentStore\n(default ./var/submission-storage)" as FileStore
+participant "SubmissionKeyProtectionService\n(AESWrap)" as KeyProtection
+participant "SubmissionContentEncryptionService\n(AES-GCM)" as ContentCrypto
+participant "AuditService" as Audit
+
+Lecturer -> Controller : GET /api/submissions/{submissionId}/content
+Controller -> Service : getSubmissionContent(submissionId, authentication)
+
+Service -> Service : find current user by email
+Service -> SubmissionRepo : findById(submissionId)
+SubmissionRepo --> Service : submission metadata
+
+Service -> AssignmentService : requireLecturerOrAdminAssignmentAccess(...)
+AssignmentService --> Service : access granted for assignment owner
+
+Service -> FileStore : read(storedFileReference)
+FileStore --> Service : ciphertext bytes
+
+Service -> KeyProtection : unwrap(wrappedContentEncryptionKey, storageKeyVersion)
+activate KeyProtection
+KeyProtection -> KeyProtection : load submission.storage.master-key
+KeyProtection -> KeyProtection : restore per-submission AES key with AESWrap
+KeyProtection --> Service : plaintext content-encryption key
+deactivate KeyProtection
+
+Service -> ContentCrypto : decrypt(ciphertext, storageEncryptionNonce, contentEncryptionKey)
+activate ContentCrypto
+ContentCrypto -> ContentCrypto : AES/GCM/NoPadding decrypt
+ContentCrypto --> Service : plaintext submission bytes
+deactivate ContentCrypto
+
+Service -> Audit : record(SUBMISSION_CONTENT_ACCESSED)
+Audit --> Service : audit recorded
+
+Service --> Controller : SubmissionContentResponse(fileName, contentType, plaintext bytes)
+Controller --> Lecturer : 200 OK attachment download
+
+note right of Lecturer
+The lecturer does not decrypt locally.
+They request content through the API.
+end note
+
+note right of Service
+Server-side decryption only happens after:
+- submission lookup
+- lecturer ownership/admin access check
+- wrapped key restoration
+- AES-GCM decryption
+end note
+
+note over FileStore,SubmissionRepo
+At rest, the file remains split across:
+- ciphertext in the file store
+- nonce + wrapped key + key version in metadata
+
+The file-store path shown here is the default
+configured base path, not a hard-coded
+deployment guarantee.
+end note
+
+@enduml
+

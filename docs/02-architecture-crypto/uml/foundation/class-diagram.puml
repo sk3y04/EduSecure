@@ -1,0 +1,293 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class AuthController
+class ApiExceptionHandler
+class SystemController
+class AssignmentController
+class SpaceController
+class SubmissionController
+class GradeController
+
+class AuthService
+class AuthTokenService
+class MfaService
+class AssignmentService
+class SpaceService
+class SubmissionService
+class SubmissionContentEncryptionService
+class SubmissionKeyProtectionService
+class GradeService
+class AuditService
+class AuthCookieService
+class AuthApiException {
+  +status: HttpStatus
+  +message: String
+}
+
+interface ICryptoService {
+  +hash(data): String
+  +signatureAlgorithm(): String
+  +sign(data): String
+  +verify(data, signature): boolean
+  +computeAuditMac(canonicalPayload, previousIntegrityValue): String
+}
+
+class AesRsaCryptoService {
+  +hash(data): String
+  +signatureAlgorithm(): String
+  +sign(data): String
+  +verify(data, signature): boolean
+  +computeAuditMac(canonicalPayload, previousIntegrityValue): String
+}
+
+class JwtService
+class JwtAuthenticationFilter
+class CustomUserDetailsService
+class SecurityConfig
+interface SubmissionContentStore {
+  +store(ciphertext): String
+  +read(storedFileReference): byte[]
+  +delete(storedFileReference): void
+}
+class FileSystemSubmissionContentStore
+
+class ValidationErrorResponse {
+  +message: String
+  +errors: Map<String, List<String>>
+}
+
+class User {
+  +id: UUID
+  +email: String
+  +passwordHash: String
+  +fullName: String
+  +roles: Set<Role>
+  +mfaEnabled: boolean
+  +mfaMethod: MfaMethod
+  +mfaSecretCiphertext: String
+  +mfaSecretNonce: String
+  +mfaSecretKeyVersion: String
+  +mfaEnabledAt: Instant
+}
+
+class Role {
+  +name: RoleName
+}
+
+enum RoleName {
+  STUDENT
+  LECTURER
+  ADMIN
+}
+
+enum MfaMethod {
+  TOTP
+}
+
+class MfaChallenge {
+  +id: UUID
+  +mfaMethod: MfaMethod
+  +expiresAt: Instant
+  +consumedAt: Instant
+  +attemptCount: int
+  +maxAttempts: int
+  +createdAt: Instant
+}
+
+class MfaRecoveryCode {
+  +id: UUID
+  +codeHash: String
+  +usedAt: Instant
+}
+
+class Space {
+  +id: UUID
+  +name: String
+  +code: String
+  +description: String
+  +createdByUserId: UUID
+  +createdAt: Instant
+  +updatedAt: Instant
+  +archived: boolean
+}
+
+class SpaceMembership {
+  +id: UUID
+  +spaceId: UUID
+  +studentUserId: UUID
+  +addedByUserId: UUID
+  +addedAt: Instant
+}
+
+class Assignment {
+  +id: UUID
+  +title: String
+  +description: String
+  +dueAt: Instant
+  +createdByLecturerId: UUID
+  +spaceId: UUID
+  +open: boolean
+}
+
+class Submission {
+  +id: UUID
+  +assignmentId: UUID
+  +studentUserId: UUID
+  +submittedAt: Instant
+  +fileName: String
+  +contentType: String
+  +storedFileReference: String
+  +storageEncryptionAlgorithm: String
+  +storageEncryptionNonce: String
+  +wrappedContentEncryptionKey: String
+  +keyWrapAlgorithm: String
+  +storageKeyVersion: String
+  +ciphertextLengthBytes: Long
+  +hashDigest: String
+  +digitalSignature: String
+  +signatureAlgorithm: String
+  +verificationStatus: SubmissionVerificationStatus
+  +verificationMessage: String
+}
+
+enum SubmissionVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED_VERIFICATION
+  REJECTED
+}
+
+class Grade {
+  +id: UUID
+  +submissionId: UUID
+  +value: Integer
+  +feedback: String
+  +gradedByLecturerId: UUID
+  +gradedAt: Instant
+  +lastModifiedAt: Instant
+}
+
+class AuditLog {
+  +id: UUID
+  +actionType: AuditActionType
+  +actorUserId: UUID
+  +entityType: String
+  +entityId: UUID
+  +eventTimestamp: Instant
+  +detailsJson: String
+  +integrityValue: String
+  +previousIntegrityValue: String
+}
+
+AuthController --> AuthService
+AuthController --> MfaService
+AuthController --> AuthCookieService
+AuthController ..> ApiExceptionHandler
+AssignmentController --> AssignmentService
+SpaceController --> SpaceService
+SubmissionController --> SubmissionService
+GradeController --> GradeService
+
+ApiExceptionHandler --> ValidationErrorResponse
+ApiExceptionHandler --> AuthApiException
+AuthService --> MfaService
+AuthService --> AuthTokenService
+AuthService ..> AuthApiException
+MfaService ..> AuthApiException
+MfaService --> AuthTokenService
+SubmissionService --> ICryptoService
+SubmissionService --> AssignmentService
+SubmissionService --> SubmissionContentEncryptionService
+SubmissionService --> SubmissionKeyProtectionService
+SubmissionService --> SubmissionContentStore
+GradeService --> AuditService
+GradeService --> AssignmentService
+AuditService --> ICryptoService
+SecurityConfig --> JwtAuthenticationFilter
+SecurityConfig --> CustomUserDetailsService
+CustomUserDetailsService --> User
+AuthTokenService --> JwtService
+JwtAuthenticationFilter --> AuthCookieService
+JwtAuthenticationFilter --> JwtService
+JwtAuthenticationFilter --> CustomUserDetailsService
+FileSystemSubmissionContentStore ..|> SubmissionContentStore
+
+AssignmentService --> Assignment
+SpaceService --> Space
+SubmissionService --> Submission
+GradeService --> Grade
+AuditService --> AuditLog
+
+AesRsaCryptoService ..|> ICryptoService
+
+User "*" -- "*" Role
+User --> MfaMethod
+User "1" -- "0..*" MfaChallenge
+User "1" -- "0..*" MfaRecoveryCode
+Role --> RoleName
+Space "1" -- "*" Assignment
+Space "1" -- "*" SpaceMembership
+User "1" -- "*" SpaceMembership
+User "1" -- "*" Submission
+Assignment "1" -- "*" Submission
+Submission "0..1" -- "1" Grade
+Submission --> SubmissionVerificationStatus
+
+note bottom of User
+  MFA attributes are now implemented
+  in the backend authentication model.
+end note
+
+note right of MfaService
+  Implemented service responsibility:
+  - TOTP enrollment
+  - MFA challenge lifecycle
+  - recovery-code handling
+  - second-factor verification before JWT issuance
+end note
+
+note right of AuthTokenService
+  JWT issuance is centralized here.
+  AuthController stores the signed JWT only in
+  the HttpOnly auth cookie and omits the raw token
+  from response bodies.
+end note
+
+note right of SubmissionService
+  Submission creation now computes SHA-256 digest,
+  signs and verifies it immediately, encrypts content
+  at rest with AES-GCM, wraps the DEK, and stores only
+  metadata in standard API responses.
+end note
+
+note right of ApiExceptionHandler
+  Centralises validation and auth-domain/controller-service
+  API failures into one envelope:
+  - field-level validation errors
+  - malformed request-body errors
+  - auth/business errors via _global entries
+  Some Spring Security 401/403 failures still occur
+  before this handler runs.
+end note
+
+note right of AuthApiException
+  Used for non-validation auth-domain outcomes
+  while preserving HTTP status codes such as
+  401, 404, 409, 410, and 429.
+end note
+
+note right of AesRsaCryptoService
+  Legacy class name retained.
+  Current implementation provides SHA-256 hashing,
+  ECDSA signatures, and HMAC-backed audit integrity.
+end note
+
+note right of Assignment
+Current implementation links assignments to spaces.
+Students see assignments only through current space
+memberships, while lecturers remain owner-scoped and
+admins retain global oversight.
+end note
+@enduml
+
